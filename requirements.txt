@@ -1,0 +1,4 @@
+kaspa>=2.0
+cryptography>=42.0
+pqcrypto>=0.4
+aiohttp>=3.9

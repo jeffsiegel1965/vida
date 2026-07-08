@@ -1,0 +1,36 @@
+# NEVER commit wallet files, keys, or secrets.
+# NOTE: patterns target DATA files, not source code (*.py is always fine).
+
+# All JSON is treated as potential key material (wallets, sessions, exports)
+*.json
+*.json.*
+
+# Backups / dumps / env / key files
+*.bak
+*.env
+.env*
+*.pem
+*.key
+key.txt
+keys.txt
+keystore*
+*seed*.txt
+*mnemonic*.txt
+*export*.csv
+*export*.json
+
+# Specific wallet-data filenames this project writes
+vida_secure.json
+vida_mainnet.json
+agent_session*
+deployer*
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+
+# OS
+.DS_Store
