@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="1280" height="720">
+  <!-- Vida temporary brand mark: butterflies + road + wordmark (folk/Dead-adjacent, simple) -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#87CEEB"/>
+      <stop offset="70%" stop-color="#FFE4A0"/>
+      <stop offset="100%" stop-color="#F4C27A"/>
+    </linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C4A574"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="640" height="360" fill="url(#sky)"/>
+
+  <!-- Sun -->
+  <circle cx="520" cy="70" r="42" fill="#FFD54A" stroke="#E8A317" stroke-width="3"/>
+
+  <!-- Hills -->
+  <path d="M0 220 Q120 160 220 200 T420 190 T640 210 L640 360 L0 360 Z" fill="#5FA86B"/>
+  <path d="M0 250 Q160 200 300 240 T640 230 L640 360 L0 360 Z" fill="#4E9459"/>
+
+  <!-- Country road -->
+  <path d="M250 360 Q300 260 320 200 Q340 260 390 360 Z" fill="url(#road)" stroke="#6B4F1D" stroke-width="2"/>
+  <path d="M312 220 Q320 280 320 360" stroke="#F5E6C8" stroke-width="3" stroke-dasharray="10 12" fill="none" opacity="0.7"/>
+
+  <!-- Dancing figure (simple folk silhouette) -->
+  <g transform="translate(300,165)">
+    <!-- hat -->
+    <ellipse cx="20" cy="-8" rx="18" ry="6" fill="#1a1a1a"/>
+    <rect x="8" y="-28" width="24" height="20" rx="4" fill="#1a1a1a"/>
+    <rect x="6" y="-12" width="28" height="4" fill="#E74C3C"/>
+    <rect x="6" y="-8" width="28" height="3" fill="#F1C40F"/>
+    <rect x="6" y="-5" width="28" height="3" fill="#2ECC71"/>
+    <!-- head -->
+    <circle cx="20" cy="4" r="12" fill="#E8B88A" stroke="#2c2c2c" stroke-width="2"/>
+    <!-- sunglasses -->
+    <rect x="10" y="0" width="20" height="7" rx="2" fill="#1a1a1a"/>
+    <!-- body / tropical shirt -->
+    <path d="M8 18 Q20 14 32 18 L36 48 Q20 54 4 48 Z" fill="#E74C3C" stroke="#2c2c2c" stroke-width="2"/>
+    <circle cx="16" cy="28" r="3" fill="#F1C40F"/>
+    <circle cx="26" cy="34" r="3" fill="#2ECC71"/>
+    <circle cx="18" cy="40" r="2.5" fill="#3498DB"/>
+    <!-- arms up dancing -->
+    <path d="M8 22 Q-8 10 -14 0" stroke="#E8B88A" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M32 22 Q48 8 56 2" stroke="#E8B88A" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <!-- legs mid-skip -->
+    <path d="M14 48 Q8 70 4 88" stroke="#2c2c2c" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M26 48 Q40 62 48 78" stroke="#2c2c2c" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Rainbow butterflies (Grateful Dead dancing-bear energy, butterflies instead) -->
+  <!-- butterfly helper shapes -->
+  <g id="bf">
+    <ellipse cx="-8" cy="0" rx="10" ry="7" transform="rotate(-25 -8 0)"/>
+    <ellipse cx="8" cy="0" rx="10" ry="7" transform="rotate(25 8 0)"/>
+    <ellipse cx="-6" cy="8" rx="7" ry="5" transform="rotate(-15 -6 8)"/>
+    <ellipse cx="6" cy="8" rx="7" ry="5" transform="rotate(15 6 8)"/>
+    <line x1="0" y1="-6" x2="0" y2="14" stroke="#2c2c2c" stroke-width="1.5"/>
+    <circle cx="0" cy="-7" r="2" fill="#2c2c2c"/>
+  </g>
+
+  <use href="#bf" x="90" y="120" fill="#E74C3C" stroke="#2c2c2c" stroke-width="1" transform="scale(1.1)"/>
+  <use href="#bf" x="140" y="160" fill="#F39C12" stroke="#2c2c2c" stroke-width="1"/>
+  <use href="#bf" x="70" y="190" fill="#F1C40F" stroke="#2c2c2c" stroke-width="1" transform="scale(0.9)"/>
+  <use href="#bf" x="500" y="140" fill="#2ECC71" stroke="#2c2c2c" stroke-width="1"/>
+  <use href="#bf" x="540" y="180" fill="#3498DB" stroke="#2c2c2c" stroke-width="1" transform="scale(1.05)"/>
+  <use href="#bf" x="480" y="210" fill="#9B59B6" stroke="#2c2c2c" stroke-width="1" transform="scale(0.85)"/>
+  <use href="#bf" x="180" y="100" fill="#E91E63" stroke="#2c2c2c" stroke-width="1" transform="scale(0.8)"/>
+  <use href="#bf" x="430" y="100" fill="#1ABC9C" stroke="#2c2c2c" stroke-width="1" transform="scale(0.95)"/>
+
+  <!-- Wordmark -->
+  <text x="320" y="330" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="54" font-weight="bold" fill="#1a1a1a" stroke="#FFF8E7" stroke-width="6" paint-order="stroke">Vida</text>
+  <text x="320" y="352" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="14" fill="#2c2c2c" letter-spacing="3">AGENT WALLET FOR KASPA</text>
+</svg>

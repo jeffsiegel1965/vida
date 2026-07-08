@@ -1,6 +1,37 @@
-# Vida — an agent wallet for Kaspa that your AI can use but never own
+# Vida — give your AI agent a pulse on Kaspa
 
-**Free and open source.** Built for the coming world of AI agents that hold and move money — with the human owner always in control.
+**Vida** (Spanish for *life*) is a free, open-source wallet that lets an AI agent — Hermes or any local agent — **receive, hold, and send real KAS** without ever owning your money.
+
+You hold the seed.  
+You set the limits.  
+The agent works inside them.
+
+Built for the agent economy. Proven on Kaspa mainnet. MIT forever.
+
+---
+
+## Why Vida exists
+
+Most AI agents can talk. Almost none can **pay** — safely.
+
+Until now, giving an agent money meant either:
+- handing it a raw private key (one bad prompt = drained wallet), or
+- using a big corporate EVM “agent wallet” that doesn’t speak Kaspa
+
+**Vida is the first free agent wallet built for Kaspa** with the full owner-custody stack:
+
+| What you get | Why it matters |
+|---|---|
+| **You hold the 24-word seed** | The agent never sees it. No cloud custody. |
+| **Password-encrypted wallet** | Stolen file = useless ciphertext. |
+| **Time-boxed agent sessions** | Hours, max per tx, max per day. Revoke in one second. |
+| **Mainnet-proven sends** | Real receipts, not a pitch deck. |
+| **Post-quantum ready** | ML-DSA-65 identity ready when Kaspa upgrades. |
+| **Works with Hermes** | Your agent stops being a chat bot and starts being able to *act* on-chain. |
+
+**Why Kaspa?** Sub-cent fees and fast confirmation make agent micropayments actually work. EVM agent wallets ignore Kaspa. Vida doesn’t.
+
+**Why free?** Trust first. Review the code. Run the tests. Fund a working balance only when you’re ready. Optional donations support the next modules (covenants, TAO, Bitcoin) — never required.
 
 ---
 
