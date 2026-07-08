@@ -100,7 +100,7 @@ We’re building toward covenant-enforced limits when Kaspa support is solid.
 No ads. No telemetry. No paid tier for the core wallet.
 
 Optional donations to the Vida Wallet Development Fund support next modules (covenants, TAO, Bitcoin):
-`kaspa:qqc5cnjk03hfmjzuxvylfsxddddqr5qk65r6rqm5j7076c8szj5nkw6s42v3e`
+`kaspa:qqnnn7wlwz92a70v7km4j3c74lgvnymc60rl2p4gza7dgu6l4pv8g0560yzzn`
 
 Nothing required to use it.
 

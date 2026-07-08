@@ -139,7 +139,7 @@ This is ~1,100 lines of Python across five files. For a wallet, don't trust — 
 Vida is free forever (MIT). If it helps you and you want to support ongoing development — the covenant module, TAO, Bitcoin, and maintenance — you can send KAS to the **Vida Wallet Development Fund**:
 
 ```
-kaspa:qqc5cnjk03hfmjzuxvylfsxddddqr5qk65r6rqm5j7076c8szj5nkw6s42v3e
+kaspa:qqnnn7wlwz92a70v7km4j3c74lgvnymc60rl2p4gza7dgu6l4pv8g0560yzzn
 ```
 
 Any amount is appreciated. Nothing is required to use the software. No ads, no telemetry, no paid tier for the core wallet.

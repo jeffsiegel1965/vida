@@ -108,7 +108,7 @@ Serious money stays in your cold storage.
 Free forever. MIT.
 
 Optional support — Vida Wallet Development Fund:
-kaspa:qqc5cnjk03hfmjzuxvylfsxddddqr5qk65r6rqm5j7076c8szj5nkw6s42v3e
+kaspa:qqnnn7wlwz92a70v7km4j3c74lgvnymc60rl2p4gza7dgu6l4pv8g0560yzzn
 
 Code + docs:
 [REPO_URL]
