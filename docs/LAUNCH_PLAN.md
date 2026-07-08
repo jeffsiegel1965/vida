@@ -11,7 +11,7 @@
 
 ## Bio (X, under 160)
 ```
-Vida = life for your AI on Kaspa. Free agent wallet. You hold the seed. Your agent spends only inside limits you set. First of its kind on Kaspa. MIT.
+Vida = life for your AI on Kaspa. Free agent wallet. You hold the seed. Agent spends only inside your limits. Post-quantum ready (ML-DSA-65). First of its kind on Kaspa. MIT.
 ```
 
 ## Location / website
@@ -36,10 +36,9 @@ Vida lets it live on Kaspa.
 
 Free agent wallet — first of its kind on Kaspa.
 You hold the 24-word seed.
-Your agent (Hermes or any local AI) spends only inside limits you set.
-Password-encrypted. PQ-ready. Proven on mainnet.
-
-MIT. No custody. No hype.
+Your agent spends only inside limits you set.
+Post-quantum ready (ML-DSA-65 / NIST Level 3).
+Proven on mainnet. MIT. No custody.
 
 GitHub: [REPO_URL]
 ```
@@ -75,13 +74,22 @@ How it works:
 • Revoke in one second
 
 **4/**
+Post-quantum ready — today.
+
+Every Vida wallet carries an ML-DSA-65 identity (NIST Level 3 standard).
+Kaspa still verifies Schnorr on-chain today — so PQ doesn’t secure coins on the chain *yet*.
+When Kaspa upgrades, Vida users don’t scramble. They’re already equipped.
+
+Built for today. Ready for tomorrow.
+
+**5/**
 Why Kaspa:
 
 Sub-cent fees. Fast confirmation.
 Agent micropayments actually make sense here.
 EVM agent wallets ignored Kaspa. We didn’t.
 
-**5/**
+**6/**
 Receipts, not hype.
 
 Real mainnet send by Vida’s code:
@@ -89,14 +97,14 @@ https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240
 
 24/24 tests. Review the ~1,100 lines yourself.
 
-**6/**
+**7/**
 Honest limits (we say this up front):
 
 Session caps are policy-enforced in the wallet process — not on-chain covenants yet.
 Keep only a working balance in an agent wallet.
 Serious money stays in your cold storage.
 
-**7/**
+**8/**
 Free forever. MIT.
 
 Optional support — Vida Wallet Development Fund:
@@ -116,7 +124,8 @@ Vida — free agent wallet for Kaspa (MIT).
 Problem: agents that can talk but can’t safely hold/spend KAS.
 Solution: you hold the 24-word seed; agent gets time-boxed limited sessions.
 First free owner-custody agent wallet built for Kaspa. Works with Hermes and other local agents.
-Mainnet-proven. 24/24 tests. PQ-ready.
+Post-quantum ready (ML-DSA-65 / NIST Level 3) — identity on every wallet for when Kaspa upgrades.
+Mainnet-proven. 24/24 tests.
 
 GitHub: [REPO_URL]
 Mainnet receipt: https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7

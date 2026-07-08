@@ -26,10 +26,12 @@ Until now, giving an agent money meant either:
 | **Password-encrypted wallet** | Stolen file = useless ciphertext. |
 | **Time-boxed agent sessions** | Hours, max per tx, max per day. Revoke in one second. |
 | **Mainnet-proven sends** | Real receipts, not a pitch deck. |
-| **Post-quantum ready** | ML-DSA-65 identity ready when Kaspa upgrades. |
+| **Post-quantum ready (ML-DSA-65)** | NIST Level 3 PQ identity on every wallet — ready the day Kaspa upgrades. No migration scramble. |
 | **Works with Hermes** | Your agent stops being a chat bot and starts being able to *act* on-chain. |
 
 **Why Kaspa?** Sub-cent fees and fast confirmation make agent micropayments actually work. EVM agent wallets ignore Kaspa. Vida doesn’t.
+
+**Why post-quantum now?** Quantum computers will eventually break today’s signature schemes. Most wallets will scramble later. Every Vida wallet already carries an **ML-DSA-65** (NIST-standardized) identity, encrypted at rest alongside your Schnorr funds key. Kaspa’s chain still verifies Schnorr today — so PQ doesn’t secure coins *on-chain yet* — but when Kaspa flips the switch, Vida users are already equipped. Built for today *and* the upgrade path.
 
 **Why free?** Trust first. Review the code. Run the tests. Fund a working balance only when you’re ready. Optional donations support the next modules (covenants, TAO, Bitcoin) — never required.
 
@@ -57,7 +59,7 @@ Vida lets an AI agent **receive, hold, and send KAS autonomously** — inside ha
 - **Password-encrypted wallet.** Everything secret is encrypted with AES-256-GCM under a key derived from your password via scrypt (memory-hard — hostile GPU farms hate it). The wallet file on disk is useless ciphertext without your password.
 - **Time-boxed agent sessions.** You grant the agent spending power for N hours with per-transaction and per-day KAS caps. The agent never learns your password. Revoke in one second by deleting the session file.
 - **Delegation modes.** FULL (autonomous), COMMAND (every spend needs owner approval), HYBRID (autonomous below a threshold, approval above).
-- **Post-quantum ready.** Every wallet carries an ML-DSA-65 (NIST Level 3) identity, encrypted at rest. Kaspa's chain doesn't verify PQ signatures yet — the day it does, Vida wallets are ready without migration.
+- **Post-quantum ready (ML-DSA-65).** Every wallet carries a NIST Level 3 post-quantum identity, encrypted at rest next to your Schnorr funds key. Kaspa still verifies Schnorr on-chain today — so PQ doesn't secure coins on the chain yet — but when Kaspa upgrades, Vida users are already equipped. No migration scramble. Built for today and the upgrade path.
 - **Verified sends.** Vida never trusts "submitted." Every broadcast is re-checked against the network before success is reported.
 
 ## What Vida is not (honesty section)
