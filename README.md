@@ -101,6 +101,16 @@ tests/                   # 23 automated tests
 
 This is ~1,100 lines of Python across five files. For a wallet, don't trust — read it. Start with `vida/secure_wallet.py` (encryption + sessions) and `vida/transactions.py` (signing + broadcast). Run the 24 tests. Then decide whether to fund it.
 
+## Support the project (optional)
+
+Vida is free forever (MIT). If it helps you and you want to support ongoing development — the covenant module, TAO, Bitcoin, and maintenance — you can send KAS to the **Vida Wallet Development Fund**:
+
+```
+kaspa:qqc5cnjk03hfmjzuxvylfsxddddqr5qk65r6rqm5j7076c8szj5nkw6s42v3e
+```
+
+Any amount is appreciated. Nothing is required to use the software. No ads, no telemetry, no paid tier for the core wallet.
+
 ## License
 
 MIT — free forever. Built by the Kaspa community, for the agent economy.

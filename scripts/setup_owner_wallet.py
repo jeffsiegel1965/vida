@@ -87,6 +87,8 @@ def main():
 
     print("\nDone. To let the agent spend autonomously (with limits), run:")
     print("  python scripts/grant_session.py")
+    print("\nOptional — support Vida development with KAS:")
+    print("  kaspa:qqc5cnjk03hfmjzuxvylfsxddddqr5qk65r6rqm5j7076c8szj5nkw6s42v3e")
 
 
 if __name__ == "__main__":
