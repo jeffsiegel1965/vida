@@ -1,4 +1,4 @@
-# Vida — give your AI agent a pulse on Kaspa
+# Vida — give your AI agent a life on Kaspa
 
 **Vida** (Spanish for *life*) is a free, open-source wallet that lets an AI agent — Hermes or any local agent — **receive, hold, and send real KAS** without ever owning your money.
 
