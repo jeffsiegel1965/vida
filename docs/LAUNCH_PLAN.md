@@ -95,7 +95,7 @@ Receipts, not hype.
 Real mainnet send by Vida’s code:
 https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7
 
-24/24 tests. Review the ~1,100 lines yourself.
+26 automated tests. Review the code yourself.
 
 **7/**
 Honest limits (we say this up front):
@@ -125,7 +125,7 @@ Problem: agents that can talk but can’t safely hold/spend KAS.
 Solution: you hold the 24-word seed; agent gets time-boxed limited sessions.
 First free owner-custody agent wallet built for Kaspa. Works with Hermes and other local agents.
 Post-quantum ready (ML-DSA-65 / NIST Level 3) — identity on every wallet for when Kaspa upgrades.
-Mainnet-proven. 24/24 tests.
+Mainnet-proven. 26 automated tests.
 
 GitHub: [REPO_URL]
 Mainnet receipt: https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7

@@ -111,7 +111,7 @@ Nothing required to use it.
 Mainnet receipt (agent-executed send):
 https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7
 
-Code + 24/24 tests:
+Code + 26 automated tests:
 [REPO_URL]
 
 Don’t trust us — verify the tx and run the tests.
@@ -139,8 +139,8 @@ Full README: [REPO_URL]
 You shouldn’t — blindly.
 
 What we offer instead:
-1. Small codebase (~1,100 lines) — readable in an afternoon
-2. 24/24 automated tests you can run
+1. Small, readable codebase — reviewable in an afternoon
+2. 26 automated tests you can run (13 + 13)
 3. Public mainnet receipts
 4. Honest “what Vida is not” section (we document limits up front)
 5. MIT — fork it, audit it, reject it
