@@ -78,18 +78,67 @@ def _decrypt(key: bytes, blob: dict, aad: bytes | None = None) -> bytes:
     return AESGCM(key).decrypt(bytes.fromhex(blob["nonce"]), bytes.fromhex(blob["ct"]), aad)
 
 
-def _session_aad(wallet_address: str, expires_at: float, limits: dict) -> bytes:
-    """Canonical AAD binding a session's key ciphertext to its expiry + limits.
-    Editing any of these fields in the file breaks decryption (tamper-evident)."""
+def _host_fingerprint() -> str:
+    """Stable host id so session files do not unlock if copied to another machine."""
+    for path in ("/etc/machine-id", "/var/lib/dbus/machine-id"):
+        try:
+            raw = Path(path).read_text().strip()
+            if raw:
+                return raw
+        except Exception:
+            continue
+    # Fallback: hostname (weaker) — still better than unbound
+    import socket
+    return f"host:{socket.gethostname()}"
+
+
+def _session_aad(
+    wallet_address: str,
+    expires_at: float,
+    limits: dict,
+    host_id: str | None = None,
+) -> bytes:
+    """Canonical AAD binding key ciphertext to expiry, limits, host, destinations.
+
+    Editing any bound field breaks decryption (tamper-evident).
+    """
+    lim = {
+        "max_kas_per_tx": float(limits.get("max_kas_per_tx", 0.0) or 0.0),
+        "max_kas_per_day": float(limits.get("max_kas_per_day", 0.0) or 0.0),
+    }
+    dests = limits.get("allowed_destinations")
+    if dests is not None:
+        lim["allowed_destinations"] = sorted(list(dests))
     payload = {
+        "v": 2,
         "wallet_address": wallet_address,
         "expires_at": expires_at,
-        "limits": {
-            "max_kas_per_tx": limits.get("max_kas_per_tx", 0.0),
-            "max_kas_per_day": limits.get("max_kas_per_day", 0.0),
-        },
+        "host_id": host_id if host_id is not None else _host_fingerprint(),
+        "limits": lim,
     }
     return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _seal_spend(machine_key: bytes, day: str, daily_spent: float) -> dict:
+    """Authenticate daily spend so an attacker cannot lower the counter in the file."""
+    pt = json.dumps(
+        {"day": day, "daily_spent": float(daily_spent)},
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return _encrypt(machine_key, pt, aad=b"vida-session-spend-v1")
+
+
+def _open_spend(machine_key: bytes, blob: dict | None) -> tuple[str, float]:
+    if not blob:
+        return "", 0.0
+    try:
+        pt = _decrypt(machine_key, blob, aad=b"vida-session-spend-v1")
+        data = json.loads(pt.decode("utf-8"))
+        return str(data.get("day") or ""), float(data.get("daily_spent") or 0.0)
+    except Exception:
+        # Tampered spend blob → treat as max spent for the day? Safer: refuse all spends
+        raise ValueError("Session spend counter tampered or corrupt")
 
 
 def _write_0600(path: Path, data: dict):
@@ -201,6 +250,14 @@ class SecureVida:
         self._pq_sk: Optional[bytes] = None
         self._session_keys = {}
         self._session_privkeys = {}
+        # Secure agent session policy (set only by _unlock_with_session)
+        self.session_limits: Optional[dict] = None
+        self.session_expires_at: Optional[float] = None
+        self._session_file: Optional[Path] = None
+        self.session_daily_spent: float = 0.0
+        self._session_spend_day: str = ""
+        self._session_machine_key: Optional[bytes] = None
+        self._session_format: int = 0
 
         if password is not None:
             self._unlock_with_password(password)
@@ -234,18 +291,56 @@ class SecureVida:
                 pass
             raise ValueError("Agent session expired — owner must grant a new one")
         machine_key = bytes.fromhex(sess["machine_key"])
-        # expiry + limits are bound as AAD: if anyone edited them in the file,
-        # decryption fails (CR-2). This makes tampering detectable even though
-        # the machine_key itself is necessarily readable (see README honesty note).
-        aad = _session_aad(sess["wallet_address"], sess["expires_at"], sess.get("limits", {}))
+        host_id = sess.get("host_id") or _host_fingerprint()
+        if sess.get("host_id") and sess["host_id"] != _host_fingerprint():
+            raise ValueError("Session bound to a different host — refusing unlock")
+        # expiry + limits + host bound as AAD (v2). v1 sessions used older AAD.
+        limits = sess.get("limits", {}) or {}
         try:
+            aad = _session_aad(
+                sess["wallet_address"], sess["expires_at"], limits, host_id=host_id
+            )
             self._private_key_hex = _decrypt(machine_key, sess["enc_schnorr"], aad).decode()
+            self._session_format = 2
         except Exception:
-            raise ValueError("Session file tampered or corrupt (auth check failed)")
-        # PQ secret intentionally NOT included in agent sessions:
-        # agents only need the funds key; PQ identity stays owner-only.
+            # Backward-compatible unlock for v1 sessions (pre host-bind)
+            try:
+                aad_v1 = json.dumps(
+                    {
+                        "wallet_address": sess["wallet_address"],
+                        "expires_at": sess["expires_at"],
+                        "limits": {
+                            "max_kas_per_tx": limits.get("max_kas_per_tx", 0.0),
+                            "max_kas_per_day": limits.get("max_kas_per_day", 0.0),
+                        },
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+                self._private_key_hex = _decrypt(
+                    machine_key, sess["enc_schnorr"], aad_v1
+                ).decode()
+                self._session_format = 1
+            except Exception:
+                raise ValueError("Session file tampered or corrupt (auth check failed)")
+        # PQ secret intentionally NOT included in agent sessions
         self.session_expires_at = sess["expires_at"]
-        self.session_limits = sess.get("limits", {})
+        self.session_limits = limits
+        self._session_file = session_path
+        self._session_machine_key = machine_key
+        # Authenticated spend counter (v2); plain spend accepted only for v1
+        try:
+            if sess.get("enc_spend"):
+                day, spent = _open_spend(machine_key, sess.get("enc_spend"))
+                self._session_spend_day = day
+                self.session_daily_spent = spent
+            else:
+                spend = sess.get("spend") or {}
+                self._session_spend_day = str(spend.get("day") or "")
+                self.session_daily_spent = float(spend.get("daily_spent") or 0.0)
+        except ValueError:
+            raise
+        self._roll_session_day()
 
     # -- signing (same surface as wallet.Vida) --
 
@@ -269,6 +364,91 @@ class SecureVida:
             raise ValueError("No PQ public key on this wallet")
         return pq_verify(message, signature, bytes.fromhex(self.pq_public_key))
 
+    def _roll_session_day(self) -> None:
+        """Reset daily spend when the UTC calendar day changes."""
+        today = time.strftime("%Y-%m-%d", time.gmtime())
+        if self._session_spend_day != today:
+            self._session_spend_day = today
+            self.session_daily_spent = 0.0
+
+    def check_session_spend(
+        self, amount_kas: float, dest_address: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Enforce secure agent session caps. Returns error string or None if OK.
+
+        Owner password unlocks leave session_limits is None → no session cap.
+        max_kas_per_tx / max_kas_per_day of 0 means unlimited on that axis.
+        If allowed_destinations is a non-empty list, dest must be in it.
+        """
+        if self.session_limits is None:
+            return None
+        if self.session_expires_at is not None and time.time() > float(self.session_expires_at):
+            return "Agent session expired"
+        import math
+        if not isinstance(amount_kas, (int, float)) or not math.isfinite(amount_kas) or amount_kas <= 0:
+            return "Amount must be a positive finite number"
+        max_tx = float(self.session_limits.get("max_kas_per_tx") or 0.0)
+        max_day = float(self.session_limits.get("max_kas_per_day") or 0.0)
+        if max_tx > 0 and amount_kas > max_tx + 1e-12:
+            return (
+                f"Session policy rejected: amount {amount_kas} KAS exceeds "
+                f"max_kas_per_tx {max_tx}"
+            )
+        dests = self.session_limits.get("allowed_destinations")
+        if dests is not None:
+            allow = set(dests)
+            if not allow:
+                return "Session policy rejected: allowed_destinations is empty (deny all)"
+            if dest_address is None:
+                return "Session policy rejected: destination required by allowlist"
+            if dest_address not in allow:
+                return (
+                    f"Session policy rejected: destination not in allowed_destinations"
+                )
+        self._roll_session_day()
+        if max_day > 0 and (self.session_daily_spent + amount_kas) > max_day + 1e-12:
+            return (
+                f"Session policy rejected: amount would exceed max_kas_per_day "
+                f"{max_day} (spent {self.session_daily_spent})"
+            )
+        return None
+
+    def record_session_spend(self, amount_kas: float) -> None:
+        """Record a successful spend against the secure session daily cap."""
+        if self.session_limits is None:
+            return
+        self._roll_session_day()
+        self.session_daily_spent += max(float(amount_kas), 0.0)
+        if self._session_file is None:
+            return
+        try:
+            path = Path(self._session_file)
+            if not path.is_file():
+                return
+            with open(path) as f:
+                sess = json.load(f)
+            mk = getattr(self, "_session_machine_key", None)
+            if mk is not None:
+                sess["enc_spend"] = _seal_spend(
+                    mk, self._session_spend_day, self.session_daily_spent
+                )
+                sess.pop("spend", None)
+            else:
+                sess["spend"] = {
+                    "day": self._session_spend_day,
+                    "daily_spent": self.session_daily_spent,
+                }
+            raw = json.dumps(sess, indent=2, sort_keys=True)
+            tmp = path.with_suffix(".tmp")
+            with open(tmp, "w") as f:
+                f.write(raw)
+            os.chmod(tmp, 0o600)
+            tmp.replace(path)
+            os.chmod(path, 0o600)
+        except Exception:
+            pass
+
     def lock(self):
         """Best-effort scrub of secrets from this object."""
         self._private_key_hex = None
@@ -284,33 +464,61 @@ def grant_agent_session(
     hours: float = 24.0,
     max_kas_per_tx: float = 0.0,
     max_kas_per_day: float = 0.0,
+    allowed_destinations: Optional[list] = None,
+    allow_unlimited: bool = False,
 ) -> dict:
     """
-    Owner grants the agent time-boxed autonomous access.
+    Owner grants the agent time-boxed autonomous access (session format v2).
 
     Decrypts the funds key with the owner password, re-encrypts it under a
-    fresh random machine key, writes both into a 0600 session file with an
-    expiry. The agent unlocks with the session file — never the password.
-    Revoke anytime: delete the session file.
+    fresh random machine key, binds host + limits + optional destination
+    allowlist as AAD, writes a 0600 session file. Agent never gets password.
+    Revoke: delete/scrub the session file.
+
+    If allowed_destinations is a non-empty list, sends only to those addresses.
+    If it is an empty list, all destinations are denied.
+    If None, destinations are unrestricted (amount caps still apply).
     """
+    if not allow_unlimited:
+        if float(max_kas_per_tx) <= 0 or float(max_kas_per_day) <= 0:
+            raise ValueError(
+                "Agent sessions require positive max_kas_per_tx and max_kas_per_day "
+                "(pass allow_unlimited=True only for explicit owner override)"
+            )
+        if float(max_kas_per_day) + 1e-12 < float(max_kas_per_tx):
+            raise ValueError("max_kas_per_day must be >= max_kas_per_tx")
     wallet = SecureVida(wallet_path, password=password)  # validates password
     machine_key = AESGCM.generate_key(bit_length=256)
     expires_at = time.time() + hours * 3600
-    limits = {"max_kas_per_tx": max_kas_per_tx, "max_kas_per_day": max_kas_per_day}
-    aad = _session_aad(wallet.address, expires_at, limits)
+    host_id = _host_fingerprint()
+    limits = {
+        "max_kas_per_tx": float(max_kas_per_tx),
+        "max_kas_per_day": float(max_kas_per_day),
+    }
+    if allowed_destinations is not None:
+        limits["allowed_destinations"] = list(allowed_destinations)
+    aad = _session_aad(wallet.address, expires_at, limits, host_id=host_id)
 
     sess = {
+        "version": 2,
         "wallet_address": wallet.address,
         "expires_at": expires_at,
+        "host_id": host_id,
         "machine_key": machine_key.hex(),
         "enc_schnorr": _encrypt(machine_key, wallet._private_key_hex.encode(), aad),
+        "enc_spend": _seal_spend(machine_key, time.strftime("%Y-%m-%d", time.gmtime()), 0.0),
         "limits": limits,
     }
     session_path = Path(session_path)
     _write_0600(session_path, sess)
     wallet.lock()
-    return {"session_path": str(session_path), "expires_at": expires_at,
-            "limits": sess["limits"]}
+    return {
+        "session_path": str(session_path),
+        "expires_at": expires_at,
+        "limits": sess["limits"],
+        "host_bound": True,
+        "version": 2,
+    }
 
 
 def revoke_agent_session(session_path: str | Path) -> bool:

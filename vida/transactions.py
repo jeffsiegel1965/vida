@@ -157,6 +157,7 @@ class VidaTransactor:
         amount_kas: float,
         session_pubkey: Optional[str] = None,
         priority_fee_sompi: int = DEFAULT_PRIORITY_FEE_SOMPI,
+        confirm: bool = False,
     ) -> SendResult:
         """
         Build, sign, broadcast, and verify a KAS transfer.
@@ -212,6 +213,21 @@ class VidaTransactor:
                         f"amount={amount_kas} KAS, active={session.is_active}"
                     ),
                 )
+
+        # Agent session path: require explicit confirm=True (same footgun guard as TAO)
+        if getattr(self.vida, "session_limits", None) is not None and not confirm:
+            return SendResult(
+                success=False,
+                error="confirm=True required for agent session spends",
+            )
+
+        # ── Policy gate (SecureVida agent session file unlock) ──
+        # grant_agent_session caps must be enforced here (not only AAD-bound).
+        check = getattr(self.vida, "check_session_spend", None)
+        if callable(check):
+            err = check(amount_kas, dest_address=to_address)
+            if err:
+                return SendResult(success=False, error=str(err))
 
         try:
             client = await self.connect()
@@ -279,6 +295,9 @@ class VidaTransactor:
             # ── Record spend against session daily limit ──
             if session_pubkey is not None:
                 self.vida._session_keys[session_pubkey].record_spend(amount_kas)
+            rec = getattr(self.vida, "record_session_spend", None)
+            if callable(rec):
+                rec(amount_kas)
 
             # ── Verify: best-effort ONLY. The broadcast already succeeded above;
             #    a verification error must NEVER flip success to False, or the

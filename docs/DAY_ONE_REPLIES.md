@@ -41,7 +41,7 @@ Works with other local agents too. Not locked to one product.
 
 ---
 
-## Is it really the first of its kind on Kaspa?
+## Is it really the built for Kaspa agent micropayments?
 
 First **free, owner-custody agent wallet for Kaspa** with:
 - password-encrypted wallet

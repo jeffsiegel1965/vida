@@ -181,7 +181,7 @@ def s6_session_grant():
 
     # Wrong password can't grant
     try:
-        grant_agent_session(p, "bad-password-000", os.path.join(tmpdir, "x.json"), hours=1)
+        grant_agent_session(p, "bad-password-000", os.path.join(tmpdir, "x.json"), hours=1, max_kas_per_tx=1, max_kas_per_day=1)
         return False
     except ValueError:
         print(f"  grant with wrong password refused ✓")
@@ -193,7 +193,7 @@ def s7_session_expiry():
     p = os.path.join(tmpdir, "w7.json")
     create_secure_wallet(p, PW)
     sp = os.path.join(tmpdir, "sess7.json")
-    grant_agent_session(p, PW, sp, hours=(0.3 / 3600))  # 0.3s
+    grant_agent_session(p, PW, sp, hours=(0.3 / 3600), max_kas_per_tx=1, max_kas_per_day=1)  # 0.3s
     time.sleep(0.6)
     try:
         SecureVida(p, _session_file=sp)
@@ -211,7 +211,7 @@ def s8_revoke():
     p = os.path.join(tmpdir, "w8.json")
     create_secure_wallet(p, PW)
     sp = os.path.join(tmpdir, "sess8.json")
-    grant_agent_session(p, PW, sp, hours=24)
+    grant_agent_session(p, PW, sp, hours=24, max_kas_per_tx=5, max_kas_per_day=20)
     assert revoke_agent_session(sp) is True
     assert not os.path.exists(sp)
     print(f"  revoke deletes session ✓")
@@ -229,7 +229,7 @@ def s9_tamper():
     p = os.path.join(tmpdir, "w9.json")
     create_secure_wallet(p, PW)
     sp = os.path.join(tmpdir, "sess9.json")
-    grant_agent_session(p, PW, sp, hours=24)
+    grant_agent_session(p, PW, sp, hours=24, max_kas_per_tx=5, max_kas_per_day=20)
 
     sess = json.load(open(sp))
     # Corrupt the machine key
@@ -245,7 +245,7 @@ def s9_tamper():
     p2 = os.path.join(tmpdir, "w9b.json")
     create_secure_wallet(p2, PW)
     sp2 = os.path.join(tmpdir, "sess9b.json")
-    grant_agent_session(p2, PW, sp2, hours=24)
+    grant_agent_session(p2, PW, sp2, hours=24, max_kas_per_tx=5, max_kas_per_day=20)
     try:
         SecureVida(p, _session_file=sp2)
         return False
@@ -270,6 +270,104 @@ def s10_transactor_compat():
     r = asyncio.run(tx.send("kaspa:wrongnet", 1.0))
     assert not r.success and "prefix" in r.error
     print(f"  SecureVida works with VidaTransactor; validation gates fire ✓")
+    return True
+
+
+# S12: Secure session spend caps enforced on send (no network needed)
+def s12_session_spend_caps():
+    from transactions import VidaTransactor
+    import asyncio
+
+    p = os.path.join(tmpdir, "w12.json")
+    create_secure_wallet(p, PW, network="testnet")
+    sp = os.path.join(tmpdir, "sess12.json")
+    grant_agent_session(p, PW, sp, hours=1, max_kas_per_tx=5.0, max_kas_per_day=8.0)
+
+    agent = SecureVida(p, _session_file=sp)
+    assert agent.session_limits is not None
+    # Direct policy API
+    assert agent.check_session_spend(3.0) is None
+    err = agent.check_session_spend(6.0)
+    assert err and "max_kas_per_tx" in err, err
+    print("  check_session_spend per-tx cap ✓")
+
+    # Transactor must refuse over-limit before network
+    tx = VidaTransactor(agent)
+    dest = "kaspatest:qpu63f6hy3l99pkphhfcvpgl5lxpv25fg5nn53cpykef5kygc0g0w9fly8vmu"
+    # Without confirm, agent session send refused first
+    r = asyncio.run(tx.send(dest, 1.0))
+    assert not r.success and "confirm" in (r.error or "").lower(), r.error
+    r = asyncio.run(tx.send(dest, 6.0, confirm=True))
+    assert not r.success, r
+    assert "max_kas_per_tx" in (r.error or ""), r.error
+    print("  send() rejects over max_kas_per_tx ✓")
+
+    # Daily cap: record spends then refuse
+    assert agent.check_session_spend(4.0) is None
+    agent.record_session_spend(4.0)
+    assert agent.check_session_spend(4.0) is None  # 4+4=8 exactly OK
+    agent.record_session_spend(4.0)
+    err = agent.check_session_spend(0.1)
+    assert err and "max_kas_per_day" in err, err
+    r = asyncio.run(tx.send(dest, 0.5, confirm=True))
+    assert not r.success and "max_kas_per_day" in (r.error or "")
+    print("  send() rejects over max_kas_per_day ✓")
+
+    # Owner password path has no session_limits → check returns None
+    owner = SecureVida(p, password=PW)
+    assert owner.session_limits is None
+    assert owner.check_session_spend(1000.0) is None
+    print("  owner password path uncapped by session policy ✓")
+    return True
+
+
+# S13: v2 host-bind, dest allowlist, authenticated spend counter
+def s13_session_v2_hardening():
+    from transactions import VidaTransactor
+    import asyncio
+
+    p = os.path.join(tmpdir, "w13.json")
+    create_secure_wallet(p, PW, network="testnet")
+    dest_ok = "kaspatest:qpu63f6hy3l99pkphhfcvpgl5lxpv25fg5nn53cpykef5kygc0g0w9fly8vmu"
+    dest_bad = "kaspatest:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+    # invalid dest will fail bech32 first — use two valid-looking testnet formats
+    # use dest_ok only in allowlist; another random valid testnet if we only have one, check allowlist error before bech32
+    sp = os.path.join(tmpdir, "sess13.json")
+    grant_agent_session(
+        p, PW, sp, hours=1, max_kas_per_tx=5.0, max_kas_per_day=20.0,
+        allowed_destinations=[dest_ok],
+    )
+    agent = SecureVida(p, _session_file=sp)
+    assert agent.session_limits.get("allowed_destinations") == [dest_ok]
+    # wrong dest denied by session policy
+    err = agent.check_session_spend(1.0, dest_address="kaspatest:not-in-list")
+    assert err and "allowed_destinations" in err, err
+    assert agent.check_session_spend(1.0, dest_address=dest_ok) is None
+    print("  destination allowlist ✓")
+
+    tx = VidaTransactor(agent)
+    r = asyncio.run(tx.send("kaspatest:not-in-list", 1.0, confirm=True))
+    assert not r.success
+    # may fail allowlist or bech32; either is deny
+    print("  send wrong dest denied ✓")
+
+    # enc_spend present
+    sess = json.load(open(sp))
+    assert "enc_spend" in sess
+    assert "host_id" in sess
+    assert sess.get("version") == 2
+    print("  v2 host_id + enc_spend present ✓")
+
+    # Tamper enc_spend → unlock should fail
+    sess["enc_spend"] = {"nonce": "00" * 12, "ct": "11" * 32}
+    json.dump(sess, open(sp, "w"))
+    try:
+        SecureVida(p, _session_file=sp)
+        print("  tampered enc_spend should fail")
+        return False
+    except ValueError as e:
+        assert "spend" in str(e).lower() or "tamper" in str(e).lower() or "corrupt" in str(e).lower()
+        print("  tampered enc_spend rejected ✓")
     return True
 
 
@@ -327,6 +425,8 @@ if __name__ == "__main__":
     run_test("S9:  tampered/mismatched sessions rejected", s9_tamper)
     run_test("S10: transactor compatibility + gates", s10_transactor_compat)
     run_test("S11: AAD tamper on expiry/limits rejected", s11_aad_tamper)
+    run_test("S12: secure session spend caps enforced on send", s12_session_spend_caps)
+    run_test("S13: v2 host-bind, dest allowlist, enc_spend", s13_session_v2_hardening)
 
     # Cleanup: destroy the temp dir — it holds plaintext test keys (T-4)
     import shutil

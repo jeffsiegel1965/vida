@@ -11,7 +11,7 @@
 
 ## Bio (X, under 160)
 ```
-Vida = life for your AI on Kaspa. Free agent wallet. You hold the seed. Agent spends only inside your limits. Post-quantum ready (ML-DSA-65). First of its kind on Kaspa. MIT.
+Vida = life for your AI on Kaspa. Free agent wallet. You hold the seed. Agent spends only inside your limits. Post-quantum ready (ML-DSA-65). Built for Kaspa agent micropayments. MIT.
 ```
 
 ## Location / website
@@ -34,7 +34,7 @@ Do NOT spam. One solid post per venue. Reply to genuine questions.
 Your AI can talk.
 Vida lets it live on Kaspa.
 
-Free agent wallet — first of its kind on Kaspa.
+Free agent wallet — built for Kaspa agent micropayments.
 You hold the 24-word seed.
 Your agent spends only inside limits you set.
 Post-quantum ready (ML-DSA-65 / NIST Level 3).
@@ -62,7 +62,7 @@ Why it exists:
 Hand an agent a raw private key → one bad prompt drains you.
 Use a big corporate EVM “agent wallet” → they don’t speak Kaspa.
 
-Vida is the first free agent wallet built for Kaspa with full owner custody.
+Vida is the free agent wallet built for Kaspa with full owner custody.
 
 **3/**
 How it works:
