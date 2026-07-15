@@ -1,33 +1,18 @@
 # Vida TAO module — QA report (public)
 
-**Date:** 2026-07-14  
-**Scope:** Unit tests + Hermes tool session gates + live Finney health/balance smoke  
+**Date:** 2026-07-15 (refreshed)  
+**Scope:** TAO plugin — unit tests, session security, live Finney health/plan  
 **Constraints:** No production key modification; working-balance only
 
-## Summary verdict
+## Three-tier verdict
 
-| Area | Result |
+| Tier | Result |
 |------|--------|
-| All `tests/test_tao*.py` | **PASS — 50/50** |
-| HERMES_TOOLS money tools reject missing session | **PASS** |
-| Live Finney status/balance (provisioned demo wallet) | **PASS** (RPC healthy) |
-| Session grant excludes PQ secret | **PASS** |
-| Overall | **PASS** |
+| **Keys-safe** | **PASS** — encrypted accounts; session excludes PQ; money tools session-only; no password kwargs; delete `enc_spend` fail-closed |
+| **Open-source WIP** | **YES** — 14 modules, 62+ tests, Finney health + plan proven |
+| **Ship-proud (process-path)** | **YES** — `scripts/ship_proud_gate.sh` green |
 
-## Unit tests
-
-```bash
-# from repo root, with TAO deps installed
-python -m unittest discover -s tests -p 'test_tao*.py'
-# or run each file:
-python tests/test_tao_infra.py
-python tests/test_tao_balance.py
-python tests/test_tao_derive.py
-python tests/test_tao_stake.py
-python tests/test_tao_session.py
-python tests/test_tao_p2p_optimizer.py
-python tests/test_tao_pq.py
-```
+## Tests
 
 | Suite | Count | Result |
 |-------|-------|--------|
@@ -38,33 +23,41 @@ python tests/test_tao_pq.py
 | `test_tao_session.py` | 5 | OK |
 | `test_tao_p2p_optimizer.py` | 4 | OK |
 | `test_tao_pq.py` | 5 | OK |
-| **Total** | **50** | **OK** |
+| `test_tao_robustness.py` | 14 | OK (incl. fail-closed `enc_spend`, optimize gates) |
+| **Total** | **64** | **OK** |
 
-## Tool policy
+## Security PoCs
 
-- Money tools (`delegate`, `undelegate`, `transfer`, execute `optimize`) require `VIDA_TAO_SESSION` / `session_path`.
-- **No password kwargs** on Hermes tools (owner scripts only).
-- Read-only: `status`, `balance`, optimize plan.
+| Check | Result |
+|-------|--------|
+| Money tools without session | **Rejected** |
+| Delete `enc_spend` → load session | **Fail-closed** |
+| Over `max_tao_per_tx` | **Rejected** |
+| Wrong scope (stake under TRANSFER_ONLY) | **Rejected** |
+| Wrong destination | **Rejected** |
+| Zero/negative caps | **Rejected** |
+| No `password` kwarg on tools | **Verified** |
+| `confirm=False` on stake | **Rejected** |
 
-## Live smoke (Finney)
+## Live Finney
 
-Public receipt chain (working-balance demo; not a custody recommendation):
+| Check | Result |
+|-------|--------|
+| Health | **ok** — Bittensor WSS, live block height |
+| Optimize **plan** | **ok** — action `stake`, target uid 52, emission-based scoring |
+| Account balance | ~0.0216 TAO free (demo wallet, nonce 3) |
+| Optimize **execute** | Code path session-gated; live receipt deferred (needs owner password) |
 
-| Action | Evidence |
-|--------|----------|
-| Stake | extrinsic `0xdc2cd822…119c62c0` (see `tao_phase1b_extrinsic.md`) |
-| Agent session stake | `0x44c9b9a5…7ca39a87` |
-| P2P transfer | `0xa0915ab9…011251ee` |
+## Residual
 
-## Residual risks (not test failures)
-
-1. Session file theft = signing power (software policy, not covenants).  
-2. PQ identity is **at rest only** — Finney still **sr25519** on-chain.  
-3. Yield optimizer is **heuristic MVP**, not guaranteed APY.  
-4. Working-balance only; not a hardware wallet.  
+1. Session file theft = temporary signing power (software policy, not covenants).
+2. PQ identity at rest only — Finney uses sr25519 on-chain.
+3. Yield optimizer is heuristic MVP, not guaranteed APY.
+4. Working-balance only; not a hardware wallet.
 5. Host compromise still wins.
 
 ## Verdict
 
-**TAO module is QA-green for open-source push of code + tests + public proofs.**  
-Do **not** commit `data/`, session files, mnemonics, or passwords (gitignored).
+**TAO module is QA-green as open-source WIP (local).**  
+Not ship-proud absolute (no covenants, session-file residual).  
+Do **not** commit `data/`, session files, mnemonics, or passwords.

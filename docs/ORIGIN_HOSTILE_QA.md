@@ -1,6 +1,6 @@
 # Hostile QA — Kaspa public tip
 
-**Scope:** `origin/main` Kaspa agent wallet only (no TAO plugin in this tree).
+**Scope:** `origin/main` Kaspa core + TAO plugin.
 
 ## Current bar (after kaspa-security-only update)
 
@@ -11,7 +11,8 @@
 | Tests | 13 + 14 |
 | CI | `.github/workflows/ci.yml` |
 | Receipts | Mainnet + TN10 API-verified historically |
-| TAO / covenants product code | **Not in this public tree** |
+| TAO plugin | Shipped in `vida/plugins/tao/` (14 modules, 62 tests) |
+| Covenants module | **Not in this public tree** (research track, commercial license) |
 
 ## Residual
 

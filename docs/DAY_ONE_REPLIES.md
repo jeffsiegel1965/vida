@@ -11,7 +11,7 @@ Those are solid — for EVM chains.
 
 Vida is built for **Kaspa**:
 - You hold the 24-word seed (owner custody, not a corporate wallet product)
-- Free MIT open source
+- MIT open source (Kaspa core + TAO)
 - Time-boxed agent sessions with per-tx and per-day limits
 - Post-quantum identity (ML-DSA-65) ready for when Kaspa upgrades
 - Mainnet-proven sends with public receipts
@@ -96,7 +96,7 @@ We’re building toward covenant-enforced limits when Kaspa support is solid.
 
 ## Is it free? What’s the catch?
 
-**Free forever. MIT license.**
+**Owner-custody. MIT core.**
 
 No ads. No telemetry. No paid tier for the core wallet.
 

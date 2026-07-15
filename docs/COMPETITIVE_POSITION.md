@@ -94,7 +94,7 @@ Hermes/OpenClaw alone   ○                  ○                   N/A          
 | Unique in the world? | **No** as a category (“agent moves crypto”). |
 | Unique in a useful way? | **Yes:** Kaspa-native local agent wallet + owner sessions + TAO plugin, with receipts. |
 | Closest shapes? | OpenClawCash (EVM/Sol agent money). Stakao-class (TAO stake automation). |
-| Moat today? | Kaspa niche + dual-rail + proof + MIT — **not** network effects yet if unpublished. |
+| Moat today? | Kaspa niche + dual-rail + proof — **not** network effects yet. |
 | Moat later? | Covenants, polished Hermes tools, public adoption, multi-agent payment norms. |
 
 ---

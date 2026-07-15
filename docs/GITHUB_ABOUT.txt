@@ -3,7 +3,7 @@
 ## Short description (GitHub “About” field, ≤350 chars)
 
 ```
-One agent wallet (not two apps): Kaspa pay + TAO plugin (stake, P2P, emission auto-stake). Hermes-driven. COMMAND→FULL. Owner-custody. MIT. Proofs.
+One agent wallet (not two apps): Kaspa pay + TAO plugin (stake, P2P, emission auto-stake). Hermes-driven. COMMAND→FULL. Owner-custody. Proofs.
 ```
 
 ## Topics

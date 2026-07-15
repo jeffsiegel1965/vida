@@ -11,7 +11,7 @@
 
 ## Bio (X, under 160)
 ```
-Agentic wallet for Kaspa. You hold the seed. Agent spends only inside policy limits you set. PQ identity at rest (ML-DSA-65). Mainnet receipts. MIT. Not a bank.
+Agentic wallet for Kaspa. You hold the seed. Agent spends only inside policy limits you set. PQ identity at rest (ML-DSA-65). Mainnet receipts. Owner-custody. Not a bank.
 ```
 
 ## Location / website
@@ -35,7 +35,7 @@ Agentic wallet. You hold the seed.
 
 Vida: local AI agents can send KAS inside limits you set.
 Owner custody. Policy caps on send (not chain covenants yet).
-ML-DSA-65 identity at rest. Mainnet receipts. MIT.
+ML-DSA-65 identity at rest. Mainnet receipts. Owner-custody.
 
 GitHub: [REPO_URL]
 ```
@@ -100,7 +100,7 @@ Missing daily counter → unlock refused; a full FS writer can still reseal spen
 Keep only a working balance in an agent-accessible wallet.
 
 **8/**
-MIT. Optional KAS development fund (never required).
+Optional KAS development fund (never required).
 
 Code + docs: [REPO_URL]
 
@@ -110,7 +110,7 @@ Agentic wallet. You hold the seed.
 
 ## Discord / Reddit short version
 ```
-Vida — free agent wallet for Kaspa (MIT).
+Vida — agent wallet for Kaspa.
 
 Problem: agents that can talk but can’t safely hold/spend KAS.
 Solution: you hold the 24-word seed; agent gets time-boxed limited sessions.
