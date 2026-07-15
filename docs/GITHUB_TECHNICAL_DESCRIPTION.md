@@ -1,7 +1,7 @@
 # Vida — GitHub technical description
 
 ## Tagline
-**Life for your AI agent on Kaspa** — free, owner-custody agent wallet; optional TAO (Bittensor) plugin.
+**Life for your AI agent on Kaspa** — free, owner-custody agent wallet; TAO (Bittensor) plugin.
 
 ## About (repo short blurb — ~350 chars)
 Vida is one open-source agent wallet (not a standalone bank, not a separate TAO app): Kaspa core for pay; TAO **plugin rail** for agentic stake, P2P, and emission-aware auto-stake. Hermes/OpenClaw drive it; you set COMMAND→FULL. Owner-custody. MIT. Session caps are software policy until covenants land.

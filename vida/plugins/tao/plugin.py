@@ -36,12 +36,9 @@ class TaoPlugin:
         elif self.config.network == TaoNetwork.MOCK:
             self.client = MockTaoClient(network=self.config.network.value)
         else:
-            try:
-                from .substrate_client import SubstrateTaoClient
+            from .substrate_client import SubstrateTaoClient
 
-                self.client = SubstrateTaoClient(config=self.config)
-            except ImportError:
-                self.client = None  # type: ignore[assignment]
+            self.client = SubstrateTaoClient(config=self.config)
         self.account_store = account_store
         from .staking import SpendTracker
         self._spend = SpendTracker()
@@ -105,7 +102,7 @@ class TaoPlugin:
         if self.client is None:
             out["client"] = {
                 "ok": False,
-                "error": "no client configured (install substrate-interface for live RPC)",
+                "error": "no client configured",
             }
             out["ok"] = False
             return out

@@ -50,7 +50,7 @@ Hermes helps configure and operate. Full agentic still = **your** limits.
 ## Install honesty
 
 - Core Kaspa: `requirements.txt`  
-- TAO rail: also `requirements-tao.txt` (Bittensor stack) — still **Vida**, not a second repo story  
+- TAO rail: `requirements.txt` includes substrate-interface + mnemonic — still **Vida**, not a second repo story  
 
 ---
 

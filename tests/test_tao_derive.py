@@ -22,15 +22,6 @@ EXPECTED_COLD = "5EPCUjPxiHAcNooYipQFWr9NmmXJKpNG5RhcntXwbtUySrgH"
 EXPECTED_HOT = "5DUfE6odm5zHq9GqArraUFKDny34ormTU5FPLAhgKnSWUd8y"
 
 
-def _has_substrate() -> bool:
-    try:
-        import substrateinterface  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
-
-@unittest.skipUnless(_has_substrate(), "substrate-interface not installed")
 class TestDerive(unittest.TestCase):
     def test_deterministic_addresses(self):
         from vida.plugins.tao.derive import derive_tao_keys, wipe_secrets
@@ -54,7 +45,6 @@ class TestDerive(unittest.TestCase):
             derive_tao_keys("not a real mnemonic phrase at all here")
 
 
-@unittest.skipUnless(_has_substrate(), "substrate-interface not installed")
 class TestProvision(unittest.TestCase):
     def test_provision_encrypt_unlock(self):
         from vida.plugins.tao.accounts import TaoAccountStore
@@ -111,7 +101,6 @@ class TestProvision(unittest.TestCase):
             self.assertFalse(r2["ok"])
 
 
-@unittest.skipUnless(_has_substrate(), "substrate-interface not installed")
 class TestPluginOwnerProvision(unittest.TestCase):
     def test_agent_path_blocked_owner_path_works(self):
         from vida.plugins.tao import TaoPlugin, TaoConfig, TaoNetwork, TaoAccountStore

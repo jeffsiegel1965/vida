@@ -4,12 +4,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if [[ -n "${VIDA_PYTHON:-}" && -x "${VIDA_PYTHON}" ]]; then
-  PY="${VIDA_PYTHON}"
-elif [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
-  PY="${VIRTUAL_ENV}/bin/python"
-else
-  PY=python3
+PY="${ROOT}/.venv/bin/python"
+if [[ ! -x "$PY" ]]; then
+  if python3 -c "import kaspa" 2>/dev/null; then
+    PY=python3
+  elif [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
+    PY="${VIRTUAL_ENV}/bin/python"
+  else
+    PY=python3
+  fi
 fi
 
 echo "Using: $PY"

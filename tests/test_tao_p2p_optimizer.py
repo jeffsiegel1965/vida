@@ -33,14 +33,6 @@ TEST_MNEMONIC = (
 )
 
 
-def _has_substrate() -> bool:
-    try:
-        import substrateinterface  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
-
 class TestYieldPlan(unittest.TestCase):
     def test_plan_stake(self):
         cands = [
@@ -62,7 +54,6 @@ class TestYieldPlan(unittest.TestCase):
         self.assertEqual(plan.action, "none")
 
 
-@unittest.skipUnless(_has_substrate(), "substrate-interface required")
 class TestTransferAndOptimize(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()

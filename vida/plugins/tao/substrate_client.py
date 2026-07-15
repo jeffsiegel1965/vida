@@ -1,8 +1,7 @@
 """
 Live Bittensor/Substrate client for Vida TAO plugin.
 
-Requires optional dependency: substrate-interface
-(install via requirements-tao.txt / kaspa-suite venv).
+Dependency: substrate-interface (installed via requirements.txt).
 
 Scope for T1.1:
 - connect with endpoint fallback
@@ -27,16 +26,7 @@ logger = logging.getLogger(__name__)
 RAO_PER_TAO = Decimal("1000000000")
 
 
-def _import_substrate():
-    try:
-        from substrateinterface import SubstrateInterface  # type: ignore
-        return SubstrateInterface
-    except ImportError as e:
-        raise ImportError(
-            "substrate-interface is required for live TAO RPC. "
-            "Install with: pip install substrate-interface "
-            "(see requirements-tao.txt). MockTaoClient works offline without it."
-        ) from e
+from substrateinterface import SubstrateInterface  # type: ignore
 
 
 def _scale_rao(value: Any) -> Decimal:

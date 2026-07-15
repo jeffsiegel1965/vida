@@ -44,15 +44,10 @@ class TaoDerivedKeys:
         }
 
 
+from substrateinterface import Keypair as _Keypair  # type: ignore
+
 def _import_keypair():
-    try:
-        from substrateinterface import Keypair  # type: ignore
-        return Keypair
-    except ImportError as e:
-        raise ImportError(
-            "substrate-interface required for TAO derivation. "
-            "Install requirements-tao.txt"
-        ) from e
+    return _Keypair
 
 
 def validate_mnemonic(mnemonic: str) -> str:

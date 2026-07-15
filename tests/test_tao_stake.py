@@ -28,15 +28,6 @@ TEST_MNEMONIC = (
 )
 
 
-def _has_substrate() -> bool:
-    try:
-        import substrateinterface  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
-
-
 class TestStakePolicy(unittest.TestCase):
     def test_command_denied(self):
         d = evaluate_stake(
@@ -94,7 +85,6 @@ class TestStakePolicy(unittest.TestCase):
         self.assertFalse(d.allowed)
 
 
-@unittest.skipUnless(_has_substrate(), "substrate-interface required for provision")
 class TestStakeMockPath(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()

@@ -2,3 +2,5 @@ kaspa>=2.0
 cryptography>=42.0
 pqcrypto>=0.4
 aiohttp>=3.9
+substrate-interface>=1.7.0,<2
+mnemonic>=0.21

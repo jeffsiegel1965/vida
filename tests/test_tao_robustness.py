@@ -32,14 +32,6 @@ TEST_MNEMONIC = (
 )
 
 
-def _has_substrate() -> bool:
-    try:
-        import substrateinterface  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
-
 class TestScopeMaps(unittest.TestCase):
     def test_stake_only_no_transfer(self):
         acts = actions_for_scope("STAKE_ONLY")
@@ -86,7 +78,6 @@ class TestPathsEnv(unittest.TestCase):
         self.assertEqual(resolve_store_dir("/tmp/explicit_store_x"), "/tmp/explicit_store_x")
 
 
-@unittest.skipUnless(_has_substrate(), "substrate-interface required")
 class TestGrantAndScopeEnforcement(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()
