@@ -371,6 +371,28 @@ def s13_session_v2_hardening():
     return True
 
 
+# S14: deleting enc_spend must refuse unlock (fail-closed daily counter)
+def s14_delete_enc_spend_fail_closed():
+    p = os.path.join(tmpdir, "w14.json")
+    create_secure_wallet(p, PW, network="testnet")
+    sp = os.path.join(tmpdir, "sess14.json")
+    grant_agent_session(p, PW, sp, hours=1, max_kas_per_tx=1.0, max_kas_per_day=2.0)
+
+    sess = json.load(open(sp))
+    assert "enc_spend" in sess
+    del sess["enc_spend"]
+    json.dump(sess, open(sp, "w"))
+    try:
+        SecureVida(p, _session_file=sp)
+        print("  deleted enc_spend unlocked — FAIL-OPEN")
+        return False
+    except ValueError as e:
+        msg = str(e).lower()
+        assert "enc_spend" in msg or "missing" in msg or "tamper" in msg
+        print("  deleted enc_spend refused unlock ✓")
+    return True
+
+
 # S11: AAD binding — editing expiry or limits in the session file breaks unlock
 def s11_aad_tamper():
     p = os.path.join(tmpdir, "w11.json")
@@ -427,6 +449,7 @@ if __name__ == "__main__":
     run_test("S11: AAD tamper on expiry/limits rejected", s11_aad_tamper)
     run_test("S12: secure session spend caps enforced on send", s12_session_spend_caps)
     run_test("S13: v2 host-bind, dest allowlist, enc_spend", s13_session_v2_hardening)
+    run_test("S14: delete enc_spend fails closed", s14_delete_enc_spend_fail_closed)
 
     # Cleanup: destroy the temp dir — it holds plaintext test keys (T-4)
     import shutil

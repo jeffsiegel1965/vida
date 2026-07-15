@@ -11,7 +11,7 @@
 
 ## Bio (X, under 160)
 ```
-Vida = life for your AI on Kaspa. Free agent wallet. You hold the seed. Agent spends only inside your limits. Post-quantum ready (ML-DSA-65). Built for Kaspa agent micropayments. MIT.
+Agentic wallet for Kaspa. You hold the seed. Agent spends only inside policy limits you set. PQ identity at rest (ML-DSA-65). Mainnet receipts. MIT. Not a bank.
 ```
 
 ## Location / website
@@ -31,14 +31,11 @@ Do NOT spam. One solid post per venue. Reply to genuine questions.
 
 ## Intro post (single, under 280)
 ```
-Your AI can talk.
-Vida lets it live on Kaspa.
+Agentic wallet. You hold the seed.
 
-Free agent wallet — built for Kaspa agent micropayments.
-You hold the 24-word seed.
-Your agent spends only inside limits you set.
-Post-quantum ready (ML-DSA-65 / NIST Level 3).
-Proven on mainnet. MIT. No custody.
+Vida: local AI agents can send KAS inside limits you set.
+Owner custody. Policy caps on send (not chain covenants yet).
+ML-DSA-65 identity at rest. Mainnet receipts. MIT.
 
 GitHub: [REPO_URL]
 ```
@@ -48,21 +45,21 @@ GitHub: [REPO_URL]
 ## Intro thread (recommended pin)
 
 **1/**
-Vida means life.
+Agentic wallet. You hold the seed.
 
 Most AI agents can talk.
-Almost none can pay — safely.
+Few can pay without taking your keys.
 
-Vida is a free agent wallet for Kaspa.
-It gives Hermes (or any local agent) a pulse on-chain — without ever owning your money.
+Vida is an owner-custody agent wallet for Kaspa.
+Hermes (or any local agent) can act on-chain inside sessions you grant.
 
 **2/**
 Why it exists:
 
 Hand an agent a raw private key → one bad prompt drains you.
-Use a big corporate EVM “agent wallet” → they don’t speak Kaspa.
+Many EVM “agent wallets” don’t speak Kaspa.
 
-Vida is the free agent wallet built for Kaspa with full owner custody.
+Vida is built for Kaspa owner custody + agent sessions (policy caps, not magic).
 
 **3/**
 How it works:
@@ -74,46 +71,40 @@ How it works:
 • Revoke in one second
 
 **4/**
-Post-quantum ready — today.
+Post-quantum identity at rest (ML-DSA-65).
 
-Every Vida wallet carries an ML-DSA-65 identity (NIST Level 3 standard).
-Kaspa still verifies Schnorr on-chain today — so PQ doesn’t secure coins on the chain *yet*.
-When Kaspa upgrades, Vida users don’t scramble. They’re already equipped.
-
-Built for today. Ready for tomorrow.
+Every Vida wallet carries an ML-DSA-65 key encrypted next to Schnorr funds material.
+Kaspa still verifies Schnorr on-chain today — coins are not PQ-secured by the network yet.
+When Kaspa upgrades, you are not starting from zero.
 
 **5/**
 Why Kaspa:
 
 Sub-cent fees. Fast confirmation.
-Agent micropayments actually make sense here.
-EVM agent wallets ignored Kaspa. We didn’t.
+Agent micropayments make sense here.
+Many EVM agent wallets ignore Kaspa. Vida does not.
 
 **6/**
 Receipts, not hype.
 
-Real mainnet send by Vida’s code:
+Mainnet send built by this code:
 https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7
 
-26 automated tests. Review the code yourself.
+Run the tests yourself (core 13 + secure 14). CI workflow ships with the repo.
 
 **7/**
-Honest limits (we say this up front):
+Honest limits:
 
-Session caps are policy-enforced in the wallet process — not on-chain covenants yet.
-Keep only a working balance in an agent wallet.
-Serious money stays in your cold storage.
+Session caps are **policy** in the wallet process — not on-chain covenants yet.
+Missing daily counter → unlock refused; a full FS writer can still reseal spend (machine_key colocated).
+Keep only a working balance in an agent-accessible wallet.
 
 **8/**
-Free forever. MIT.
+MIT. Optional KAS development fund (never required).
 
-Optional support — Vida Wallet Development Fund:
-kaspa:qqnnn7wlwz92a70v7km4j3c74lgvnymc60rl2p4gza7dgu6l4pv8g0560yzzn
+Code + docs: [REPO_URL]
 
-Code + docs:
-[REPO_URL]
-
-Give your agent a life on Kaspa. 🦋
+Agentic wallet. You hold the seed.
 
 ---
 

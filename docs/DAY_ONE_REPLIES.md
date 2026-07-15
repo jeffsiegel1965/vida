@@ -41,15 +41,16 @@ Works with other local agents too. Not locked to one product.
 
 ---
 
-## Is it really the built for Kaspa agent micropayments?
+## Is this an agentic wallet for Kaspa?
 
-First **free, owner-custody agent wallet for Kaspa** with:
-- password-encrypted wallet
-- time-boxed limited agent sessions
-- mainnet-proven sends
-- post-quantum identity on every wallet
+**Yes — owner-custody agentic wallet for Kaspa (MIT):**
+- You hold the 24-word seed
+- password-encrypted wallet file
+- time-boxed agent sessions with per-tx / per-day **policy** caps (enforced on send in-process)
+- mainnet-proven sends (public txids in README)
+- ML-DSA-65 PQ identity at rest (not on-chain funds protection today)
 
-There are Kaspa tools, MCP demos, and DeFi agent experiments — none of those are this full stack as a free product you can run yourself. If we’re wrong, show us and we’ll update the claim. That’s how it should work.
+We do **not** claim “first,” “only,” or “unbreakable.” Other Kaspa tools and agent demos exist. If a claim is wrong, show us and we update it.
 
 ---
 

@@ -1,149 +1,132 @@
-# Vida — give your AI agent a life on Kaspa
+# Vida
 
-**Vida** (Spanish for *life*) is a free, open-source wallet that lets an AI agent — Hermes or any local agent — **receive, hold, and send real KAS** without ever owning your money.
+**Agentic wallet. You hold the seed. Your agent acts inside limits you set.**
 
-You hold the seed.  
-You set the limits.  
-The agent works inside them.
+Vida (*life* in Spanish) is a free, open-source **agent wallet for Kaspa** for local AI agents (Hermes and others). It is **not** a bank, **not** cloud custody, and **not** a raw private key in the agent’s chat.
 
-Built for the agent economy. Proven on Kaspa mainnet. MIT forever.
+| You | The agent |
+|-----|-----------|
+| Hold the 24-word seed | Never sees the seed or password |
+| Set hours, max/tx, max/day, mode | Sends KAS only inside that session |
+| Revoke by deleting the session file | Needs a new grant after revoke |
+
+**MIT · Owner-custody · Working balances only**
 
 ---
 
-## Why Vida exists
+## Why it exists
 
-Most AI agents can talk. Almost none can **pay** — safely.
+Most AI agents can talk. Few can **pay** without taking your keys.
 
-Until now, giving an agent money meant either:
-- handing it a raw private key (one bad prompt = drained wallet), or
-- using a big corporate EVM “agent wallet” that doesn’t speak Kaspa
-
-**Vida is a free agent wallet built for Kaspa** with the full owner-custody stack:
+Vida is built for **Kaspa** (fast confirmation, low fees) with full owner-custody:
 
 | What you get | Why it matters |
 |---|---|
 | **You hold the 24-word seed** | The agent never sees it. No cloud custody. |
-| **Password-encrypted wallet** | Stolen file = useless ciphertext. |
-| **Time-boxed agent sessions** | Hours, max per tx, max per day. Revoke in one second. |
-| **Mainnet-proven sends** | Real receipts, not a pitch deck. |
-| **Post-quantum ready (ML-DSA-65)** | NIST Level 3 PQ identity on every wallet — ready the day Kaspa upgrades. No migration scramble. |
-| **Works with Hermes** | Your agent stops being a chat bot and starts being able to *act* on-chain. |
-
-**Why Kaspa?** Sub-cent fees and fast confirmation make agent micropayments actually work. EVM agent wallets ignore Kaspa. Vida doesn’t.
-
-**Why post-quantum now?** Quantum computers will eventually break today’s signature schemes. Most wallets will scramble later. Every Vida wallet already carries an **ML-DSA-65** (NIST-standardized) identity, encrypted at rest alongside your Schnorr funds key. Kaspa’s chain still verifies Schnorr today — so PQ doesn’t secure coins *on-chain yet* — but when Kaspa flips the switch, Vida users are already equipped. Built for today *and* the upgrade path.
-
-**Why free?** Trust first. Review the code. Run the tests. Fund a working balance only when you’re ready. Optional donations support the next modules (covenants, TAO, Bitcoin) — never required.
+| **Password-encrypted wallet** | Stolen file = useless ciphertext without the password. |
+| **Time-boxed agent sessions** | Hours, max per tx, max per day — **enforced on send** in this process. |
+| **Mainnet-proven sends** | Public receipts below. |
+| **Post-quantum identity (ML-DSA-65)** | At rest; Kaspa still verifies Schnorr **on-chain today**. |
+| **Works with Hermes** | Local agent can act on-chain inside your grant. |
 
 ---
 
 ## Receipts first
 
-We don't ask you to trust claims. These transactions were built, signed, and broadcast by Vida's code, then verified on-chain:
-
 | What | Network | Transaction |
 |---|---|---|
-| Agent-executed send, 10 KAS | **Kaspa mainnet** | [`d32b4504...5825e7`](https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7) |
-| Owner send, 5 KAS | testnet-10 | [`75dc9254...07d27c`](https://explorer-tn10.kaspa.org/txs/75dc925425eeb107a65f9bcbf41496320769d82809ea7f440dbdc7f00d07d27c) |
-| Policy-gated agent send, 1.5 KAS | testnet-10 | [`915bce02...3b0ac3`](https://explorer-tn10.kaspa.org/txs/915bce0262de48d56796d6c5a54230249c4a6314cc660d024f852ae5c63b0ac3) |
+| Agent-executed send, 10 KAS | **Kaspa mainnet** | [`d32b4504…5825e7`](https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7) |
+| Owner send, 5 KAS | testnet-10 | [`75dc9254…07d27c`](https://explorer-tn10.kaspa.org/txs/75dc925425eeb107a65f9bcbf41496320769d82809ea7f440dbdc7f00d07d27c) |
+| Policy-gated agent send, 1.5 KAS | testnet-10 | [`915bce02…3b0ac3`](https://explorer-tn10.kaspa.org/txs/915bce0262de48d56796d6c5a54230249c4a6314cc660d024f852ae5c63b0ac3) |
 
-**26 automated tests** pass on a proper install (`qa_tests` 13 + `qa_secure_tests` 13). Run them yourself (see below).
-
----
-
-## What Vida is
-
-Vida lets an AI agent **receive, hold, and send KAS autonomously** — inside **owner-set limits** (enforced in the wallet process—see honesty section, not on-chain covenants):
-
-- **Owner holds the seed.** A 24-word phrase (maximum BIP39 strength), generated by a script *you* run in your own terminal. It is shown once, on your screen, and never stored. No AI, no cloud service, no third party ever sees it.
-- **Password-encrypted wallet.** Everything secret is encrypted with AES-256-GCM under a key derived from your password via scrypt (memory-hard — hostile GPU farms hate it). The wallet file on disk is useless ciphertext without your password.
-- **Time-boxed agent sessions.** You grant the agent spending power for N hours with per-transaction and per-day KAS caps (**enforced on send** in this wallet process). The agent never learns your password. Revoke by deleting the session file. Caps are still **not** on-chain covenants—see honesty section.
-- **Delegation modes.** FULL (autonomous), COMMAND (every spend needs owner approval), HYBRID (autonomous below a threshold, approval above).
-- **Post-quantum ready (ML-DSA-65).** Every wallet carries a NIST Level 3 post-quantum identity, encrypted at rest next to your Schnorr funds key. Kaspa still verifies Schnorr on-chain today — so PQ doesn't secure coins on the chain yet — but when Kaspa upgrades, Vida users are already equipped. No migration scramble. Built for today and the upgrade path.
-- **Verified sends.** Vida never trusts "submitted." Every broadcast is re-checked against the network before success is reported.
-
-## What Vida is not (honesty section)
-
-- **Not PQ-secured on-chain today.** Kaspa mainnet currently verifies Schnorr signatures only. The PQ keys are a forward identity, not current on-chain protection. Anyone telling you otherwise about any Kaspa wallet is lying.
-- **Session limits are policy-enforced, not cryptographic.** The per-transaction and per-day KAS caps, and the expiry, are enforced by the wallet process — they are tamper-*evident* (the session file's expiry and limits are cryptographically bound via AES-GCM AAD, so editing them breaks it), but an attacker or a malicious agent with **filesystem read access to the session file can extract the session signing key** and bypass every limit. Grant sessions only to agents you trust on machines you control, and keep only working-balance funds in an agent-accessible wallet. True cryptographic caps require on-chain covenants (see roadmap).
-- **`vida/wallet.py` stores keys unencrypted.** It is the legacy/session-policy layer used by tests and the CLI helpers; it writes private keys to plaintext JSON (0600). For real funds always use `secure_wallet.py` (password-encrypted). Do not point `wallet.py::create_wallet` at mainnet money.
-- **Not a hardware wallet.** The funds key exists in process memory while unlocked, and Python cannot reliably wipe it from RAM/swap. Keep serious money in self-custody; give the agent working-balance amounts.
-- **Not custodial.** We hold nothing. Lose your 24 words and password and your funds are gone forever.
-- **PQ key is not seed-derivable** (a limitation of the PQClean reference implementation). Your 24 words recover funds; the encrypted wallet file backs up the PQ identity. Copy the file anywhere — it's safe without the password.
-- **Dust change is forfeited to fee.** If the leftover change on a send is below the ~0.02 KAS dust threshold, it is added to the network fee rather than created as an unspendable output (standard Kaspa behavior).
+**27 automated tests** on a proper install (`qa_tests` 13 + `qa_secure_tests` 14). CI runs them on push/PR.
 
 ---
 
 ## Quickstart
 
 ```bash
-# 1. Install deps (Python 3.11+)
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
-# 2. Create your wallet — RUN THIS YOURSELF, not through an agent
-python scripts/setup_owner_wallet.py
-#    -> shows your 24 words ONCE. Write them on paper.
+# Run yourself — not through an agent
+python scripts/setup_owner_wallet.py   # write down the 24 words
+python scripts/grant_session.py        # hours + max KAS/tx + max KAS/day
 
-# 3. Fund the address it prints, then grant your agent limited access
-python scripts/grant_session.py
-#    -> e.g. 24 hours, max 5 KAS/tx, max 20 KAS/day
-
-# 4. Your agent can now use the wallet within those limits
-#    (see vida/transactions.py — VidaTransactor)
-
-# Revoke agent access instantly:
+# Revoke anytime
 python scripts/grant_session.py --revoke
 ```
+
+Agent spend path: `vida/transactions.py` with a granted session (`confirm=True` for agent sends).
 
 ## Run the tests
 
 ```bash
-python tests/qa_tests.py          # core wallet: 13 tests
-python tests/qa_secure_tests.py   # encryption + sessions: 13 tests
+python tests/qa_tests.py          # core wallet: 13
+python tests/qa_secure_tests.py   # encryption + sessions: 14
 ```
+
+---
+
+## Honesty (read before funding)
+
+| Claim people hear | Reality |
+|-------------------|---------|
+| “Hard limits” | **Policy in the wallet process.** Not chain covenants (yet). |
+| “Safe if the session file is stolen” | **No.** A reader can abuse the session; keep a **working balance** only. |
+| “Authenticated daily is FS-proof” | **No.** Missing `enc_spend` → **unlock refused**; a **writer** with the session file can still reseal spend (colocated machine key). |
+| “Post-quantum protected coins” | **Not on Kaspa today.** PQ identity at rest; chain still uses Schnorr for spends. |
+| “Production bank / SLA” | **No.** Local MIT software. |
+
+Also:
+- Prefer **`secure_wallet.py`** for real funds. Legacy `wallet.py` can write plaintext keys (tests/helpers).
+- Not a hardware wallet — keys exist in process memory while unlocked.
+- Lose seed + password → funds gone.
+- Dust change below ~0.02 KAS may be forfeited to fee (standard Kaspa behavior).
+
+See [SECURITY.md](SECURITY.md).
+
+---
 
 ## Architecture
 
 ```
 vida/
-  wallet.py         # keys, signing, delegation modes, session policies
-  secure_wallet.py  # 24-word seed, scrypt+AES-GCM encryption, agent sessions
-  transactions.py   # UTXO selection, mass-based fees, broadcast, verification
-  ml_dsa_65.py      # post-quantum ML-DSA-65 (PQClean/pqcrypto wrapper)
+  wallet.py         # keys, signing, delegation modes (legacy plaintext path)
+  secure_wallet.py  # 24-word seed, scrypt+AES-GCM, agent sessions (v2)
+  transactions.py   # UTXO selection, fees, broadcast, verification, cap checks
+  ml_dsa_65.py      # post-quantum ML-DSA-65 wrapper
 scripts/
-  setup_owner_wallet.py  # owner-run: creates wallet, shows seed once
-  grant_session.py       # owner-run: grants/revokes agent sessions
-tests/                   # 26 automated tests (13 + 13)
+  setup_owner_wallet.py
+  grant_session.py
+tests/              # 27 automated tests (13 + 14)
 ```
 
 ## Roadmap
 
-- [x] Core wallet: Schnorr + PQ identity, delegation modes
-- [x] Real transactions on Kaspa mainnet (see receipts above)
-- [x] Owner-custody seed + password encryption + agent sessions
-- [ ] Covenant module (blocked on Kaspa consensus support — tracking [rusty-kaspa #1073](https://github.com/kaspanet/rusty-kaspa/issues/1073))
-- [ ] TAO (Bittensor) module
-- [ ] Bitcoin module
+- [x] Kaspa agentic wallet (seed, sessions, caps on send, mainnet receipts)
+- [x] Session v2 (host-bind, dest allowlist, fail-closed daily counter)
+- [ ] On-chain covenants (Kaspa toolchain)
+- [ ] Optional rails (e.g. other chains) — **not in this tree yet**
+
+---
 
 ## Security disclosure
 
-**Do not open a public issue for security vulnerabilities.** Use GitHub's private vulnerability reporting (repo → Security → Report a vulnerability), or see [SECURITY.md](SECURITY.md). Please give us a chance to fix before public disclosure.
+**Do not open a public issue for vulnerabilities.** Use GitHub private reporting (Security → Report a vulnerability) or see [SECURITY.md](SECURITY.md).
 
-## Review it yourself
+## License & support
 
-Small readable codebase. For a wallet, don't trust — read it. Start with `vida/secure_wallet.py` (encryption + sessions) and `vida/transactions.py` (signing + broadcast). Run the tests. Then decide whether to fund it.
+**MIT** — free forever. No ads, no telemetry, no paid core tier.
 
-## Support the project (optional)
-
-Vida is free forever (MIT). If it helps you and you want to support ongoing development — the covenant module, TAO, Bitcoin, and maintenance — you can send KAS to the **Vida Wallet Development Fund**:
+Optional development fund (KAS):
 
 ```
 kaspa:qqnnn7wlwz92a70v7km4j3c74lgvnymc60rl2p4gza7dgu6l4pv8g0560yzzn
 ```
 
-Any amount is appreciated. Nothing is required to use the software. No ads, no telemetry, no paid tier for the core wallet.
+Nothing required to use the software.
 
-## License
+---
 
-MIT — free forever. Built by the Kaspa community, for the agent economy.
+**Don’t trust marketing. Run the tests. Read `vida/secure_wallet.py` and `vida/transactions.py`. Fund only what you can afford to experiment with.**

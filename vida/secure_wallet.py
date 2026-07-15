@@ -328,9 +328,19 @@ class SecureVida:
         self.session_limits = limits
         self._session_file = session_path
         self._session_machine_key = machine_key
-        # Authenticated spend counter (v2); plain spend accepted only for v1
+        # Authenticated spend counter (v2): required. Missing/deleted is fail-closed.
+        # Note: machine_key lives in the same file, so a writer who can re-seal
+        # enc_spend can still reset daily — residual FS threat, not fixed here.
         try:
-            if sess.get("enc_spend"):
+            if self._session_format >= 2:
+                if not sess.get("enc_spend"):
+                    raise ValueError(
+                        "Session missing enc_spend (tamper/delete) — refuse unlock"
+                    )
+                day, spent = _open_spend(machine_key, sess.get("enc_spend"))
+                self._session_spend_day = day
+                self.session_daily_spent = spent
+            elif sess.get("enc_spend"):
                 day, spent = _open_spend(machine_key, sess.get("enc_spend"))
                 self._session_spend_day = day
                 self.session_daily_spent = spent
@@ -412,6 +422,22 @@ class SecureVida:
                 f"Session policy rejected: amount would exceed max_kas_per_day "
                 f"{max_day} (spent {self.session_daily_spent})"
             )
+        # Optional agent-pot overlay (covenant pot record) — stricter dual gate
+        try:
+            from vida.pot_policy import check_pot_overlay
+        except ImportError:
+            try:
+                from pot_policy import check_pot_overlay  # type: ignore
+            except ImportError:
+                check_pot_overlay = None  # type: ignore
+        if check_pot_overlay is not None:
+            pot_err = check_pot_overlay(
+                amount_kas,
+                dest_address,
+                owner_address=getattr(self, "address", None),
+            )
+            if pot_err:
+                return pot_err
         return None
 
     def record_session_spend(self, amount_kas: float) -> None:
