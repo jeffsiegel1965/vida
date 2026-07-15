@@ -103,20 +103,20 @@ python scripts/grant_tao_session.py --help
 
 ---
 
-## Honesty (read before funding)
+## Honesty
 
-| Claim people hear | Reality |
-|-------------------|---------|
-| "Hard limits" | **Policy in the wallet process.** Not chain covenants (yet). |
-| "Safe if the session file is stolen" | **No.** A reader can abuse the session. **Recommend working balances only.** |
-| "Authenticated daily spend is FS-proof" | **No.** Missing counter is refused on unlock; a **writer** with the session file can still reseal spend (colocated machine key). |
-| "Post-quantum protected coins" | **Not on Kaspa / Finney funds keys today.** PQ identity at rest; chain still uses classical schemes for spends. |
+| If you hear | The truth |
+|-------------|----------|
+| "Hard on-chain limits" | **Software policy enforced in this process.** Not chain covenants. |
+| "Safe if session file is stolen" | **No.** Anyone who reads the file can spend within caps. **Recommend working balances only.** |
+| "Daily spend counter is filesystem-proof" | **No.** A writer with the session file can reseal the daily counter. |
+| "Post-quantum protected funds" | **Not on-chain.** PQ identity at rest only. Kaspa uses Schnorr, Finney uses sr25519. |
 | "Guaranteed TAO yield" | **No.** Optimizer is a heuristic plan. |
-| "Production bank / SLA" | **No.** Local software. |
+| "Production bank / SLA" | **No.** Local software. Self-custody means self-responsibility. |
 
 Also:
-- Prefer **`secure_wallet.py`** for real funds. Legacy `wallet.py` can write plaintext keys (tests/helpers).
-- Not a hardware wallet — keys exist in process memory while unlocked.
+- Prefer `secure_wallet.py` for real funds. Legacy `wallet.py` can write plaintext keys.
+- Keys exist in process memory while unlocked — not a hardware wallet.
 - Lose seed + password → funds gone.
 
 More: [`docs/SECURITY_HARDENING.md`](docs/SECURITY_HARDENING.md) · [`SECURITY.md`](SECURITY.md)
