@@ -41,7 +41,7 @@ Most agents can talk. Almost none can **move value** or **work yield** safely.
 - On **Kaspa**, the agent can pay (micropayments that actually make sense).  
 - On **TAO**, the agent can **auto-stake** free balance toward validators scoring high on **on-chain emission** (heuristic for “where the network is rewarding activity”)—plan-only by default, execute only with session + confirm.  
 
-Built for Hermes, OpenClaw, and other local agents. MIT forever. Proofs, not pitch decks.
+Built for Hermes, OpenClaw, and other local agents. Owner-custody. Proofs, not pitch decks.
 
 ---
 

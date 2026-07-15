@@ -8,7 +8,7 @@ on:
 
 jobs:
   kaspa-core:
-    name: Kaspa core tests
+    name: Kaspa core + TAO tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,3 +28,6 @@ jobs:
 
       - name: Secure wallet QA (14)
         run: python tests/qa_secure_tests.py
+
+      - name: TAO plugin tests (62)
+        run: python -m unittest discover -s tests -p 'test_tao*.py'
