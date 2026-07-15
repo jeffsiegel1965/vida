@@ -1,4 +1,4 @@
-# Vida
+# Vida Wallet
 
 **Powering the agent economy.** Revocable autonomy. Agentic P2P payments and transfers.
 
