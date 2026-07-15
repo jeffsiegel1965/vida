@@ -2,7 +2,7 @@
 
 **Powering the agent economy.** Revocable autonomy. Agentic P2P payments and transfers.
 
-Vida is an open-source **agent wallet** for Kaspa and Bittensor (TAO). Give your agent authority to send, stake, and transfer — inside limits you set, revocable at any time. Not a bank. Not cloud custody. Not a raw key in chat.
+Vida is an open-source **agent wallet** for Kaspa and Bittensor (TAO). Give your agent authority to send, stake, and transfer — inside limits you set, revocable at any time.
 
 | You | The agent |
 |-----|-----------|
