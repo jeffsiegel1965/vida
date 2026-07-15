@@ -22,7 +22,10 @@ keystore*
 # Specific wallet-data filenames this project writes
 vida_secure.json
 vida_mainnet.json
-agent_session*
+agent_session.json
+agent_session*.json
+!docs/proofs/
+!docs/proofs/**/*.md
 deployer*
 
 # Python
@@ -34,3 +37,15 @@ venv/
 
 # OS
 .DS_Store
+
+# Plugin local stores (TAO accounts, etc.)
+data/
+
+# TAO local secrets / sessions
+tao_agent_session.json
+agent_session*.json
+!docs/proofs/
+!docs/proofs/**/*.md
+*tao_account.json
+mnemonic.txt
+password.txt

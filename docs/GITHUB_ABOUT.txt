@@ -1,0 +1,13 @@
+# Vida — GitHub repository description (copy-paste)
+
+## Short description (GitHub “About” field, ≤350 chars)
+
+```
+One agent wallet (not two apps): Kaspa pay + TAO plugin (stake, P2P, emission auto-stake). Hermes-driven. COMMAND→FULL. Owner-custody. MIT. Proofs.
+```
+
+## Topics
+kaspa, bittensor, tao, staking, ai-agents, hermes-agent, openclaw, self-custody, agentic, open-source
+
+## Social preview alt text
+Vida — One product: Kaspa agent pay + TAO agentic stake/P2P. Hermes-driven. You set the limits.

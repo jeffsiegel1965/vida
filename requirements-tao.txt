@@ -1,0 +1,22 @@
+# Optional deps for Vida TAO plugin (Bittensor)
+
+Not required for Kaspa core wallet or mock-only unit tests.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt -r requirements-tao.txt
+```
+
+```
+substrate-interface>=1.7.0,<2
+cryptography>=42.0
+pqcrypto>=0.4
+mnemonic>=0.21
+```
+
+## Notes
+
+- Live Finney needs a Subtensor WebSocket endpoint.
+- `mnemonic` is used for BIP39 validation / owner provision helpers.
+- Store accounts under `data/` (gitignored). Never commit sessions or seeds.

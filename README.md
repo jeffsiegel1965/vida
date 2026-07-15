@@ -2,48 +2,63 @@
 
 **Agentic wallet. You hold the seed. Your agent acts inside limits you set.**
 
-Vida (*life* in Spanish) is a free, open-source **agent wallet for Kaspa** for local AI agents (Hermes and others). It is **not** a bank, **not** cloud custody, and **not** a raw private key in the agent’s chat.
+Vida (*life* in Spanish) is a free, open-source **agent wallet** for local AI agents (Hermes, OpenClaw, and others). It is **not** a bank, **not** cloud custody, and **not** a raw private key in the agent’s chat.
 
 | You | The agent |
 |-----|-----------|
 | Hold the 24-word seed | Never sees the seed or password |
-| Set hours, max/tx, max/day, mode | Sends KAS only inside that session |
+| Set hours, max/tx, max/day, mode | Pays / stakes only inside that session |
 | Revoke by deleting the session file | Needs a new grant after revoke |
+
+**One product:** Kaspa core + optional **TAO plugin rail**. Not a standalone bank. Not a standalone TAO app.
 
 **MIT · Owner-custody · Working balances only**
 
 ---
 
-## Why it exists
+## What it is (plain language)
 
-Most AI agents can talk. Few can **pay** without taking your keys.
+An **agentic wallet** means: software your agent can use to **pay and act on-chain**, while **you** keep ownership and policy.
 
-Vida is built for **Kaspa** (fast confirmation, low fees) with full owner-custody:
+```
+Owner only  →  COMMAND  →  HYBRID  →  FULL
+              (ask you)   (small OK)  (agentic inside caps)
+```
 
-| What you get | Why it matters |
-|---|---|
-| **You hold the 24-word seed** | The agent never sees it. No cloud custody. |
-| **Password-encrypted wallet** | Stolen file = useless ciphertext without the password. |
-| **Time-boxed agent sessions** | Hours, max per tx, max per day — **enforced on send** in this process. |
-| **Mainnet-proven sends** | Public receipts below. |
-| **Post-quantum identity (ML-DSA-65)** | At rest; Kaspa still verifies Schnorr **on-chain today**. |
-| **Works with Hermes** | Local agent can act on-chain inside your grant. |
+| Rail | What the agent can do (inside your grant) |
+|------|-------------------------------------------|
+| **Kaspa core** | Receive, hold, send **KAS** (mainnet-proven) |
+| **TAO plugin** | Stake / unstake, **P2P TAO**, emission-based **plan** (execute only with session + confirm — **not** guaranteed yield) |
 
 ---
 
-## Receipts first
+## Proof, not pitch
 
-| What | Network | Transaction |
-|---|---|---|
-| Agent-executed send, 10 KAS | **Kaspa mainnet** | [`d32b4504…5825e7`](https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7) |
+### Kaspa
+
+| What | Network | Tx |
+|------|---------|-----|
+| Agent send, 10 KAS | **mainnet** | [`d32b4504…5825e7`](https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7) |
 | Owner send, 5 KAS | testnet-10 | [`75dc9254…07d27c`](https://explorer-tn10.kaspa.org/txs/75dc925425eeb107a65f9bcbf41496320769d82809ea7f440dbdc7f00d07d27c) |
 | Policy-gated agent send, 1.5 KAS | testnet-10 | [`915bce02…3b0ac3`](https://explorer-tn10.kaspa.org/txs/915bce0262de48d56796d6c5a54230249c4a6314cc660d024f852ae5c63b0ac3) |
 
-**27 automated tests** on a proper install (`qa_tests` 13 + `qa_secure_tests` 14). CI runs them on push/PR.
+### TAO (Finney)
+
+Live **stake** + **P2P** receipts and session notes: [`docs/proofs/`](docs/proofs/).  
+Optimizer: **plan** proven on Finney; **execute** is session-gated MVP — not APY marketing.
+
+### Tests (run them yourself)
+
+```bash
+python tests/qa_tests.py          # Kaspa core — 13
+python tests/qa_secure_tests.py   # encryption + sessions — 13
+# full tree (needs TAO deps — see requirements-tao.txt):
+bash scripts/ci_tao.sh
+```
 
 ---
 
-## Quickstart
+## Quickstart (Kaspa)
 
 ```bash
 python3 -m venv venv && source venv/bin/activate
@@ -59,12 +74,29 @@ python scripts/grant_session.py --revoke
 
 Agent spend path: `vida/transactions.py` with a granted session (`confirm=True` for agent sends).
 
-## Run the tests
+---
+
+## Optional: TAO plugin rail
+
+Same owner-custody model (session, caps, confirm). Extra deps:
 
 ```bash
-python tests/qa_tests.py          # core wallet: 13
-python tests/qa_secure_tests.py   # encryption + sessions: 14
+pip install -r requirements-tao.txt
+python scripts/grant_tao_session.py --help
+python scripts/vida_status.py --help
 ```
+
+Guide: [`docs/plugins/tao.md`](docs/plugins/tao.md) · Product: [`docs/PRODUCT.md`](docs/PRODUCT.md) · Tools: [`docs/HERMES_TOOLS.md`](docs/HERMES_TOOLS.md)
+
+---
+
+## How owner-custody works
+
+1. **You** create the wallet on your machine. Seed shown once.  
+2. Wallet file is **password-encrypted** (scrypt + AES-GCM).  
+3. **You** grant a **time-boxed session** with caps.  
+4. The agent uses that session — **no password in chat**.  
+5. Caps are enforced on money paths in **this process**. They are **software policy**, not on-chain covenants.
 
 ---
 
@@ -73,47 +105,49 @@ python tests/qa_secure_tests.py   # encryption + sessions: 14
 | Claim people hear | Reality |
 |-------------------|---------|
 | “Hard limits” | **Policy in the wallet process.** Not chain covenants (yet). |
-| “Safe if the session file is stolen” | **No.** A reader can abuse the session; keep a **working balance** only. |
-| “Authenticated daily is FS-proof” | **No.** Missing `enc_spend` → **unlock refused**; a **writer** with the session file can still reseal spend (colocated machine key). |
-| “Post-quantum protected coins” | **Not on Kaspa today.** PQ identity at rest; chain still uses Schnorr for spends. |
+| “Safe if the session file is stolen” | **No.** On a machine you control, a reader can abuse the session; keep a **working balance** only. |
+| “Authenticated daily spend is FS-proof” | **No.** Missing counter is refused on unlock; a **writer** with the session file can still reseal spend (colocated machine key). |
+| “Post-quantum protected coins” | **Not on Kaspa / Finney funds keys today.** PQ identity at rest; chain still uses classical schemes for spends. |
+| “Guaranteed TAO yield” | **No.** Optimizer is a heuristic plan. |
 | “Production bank / SLA” | **No.** Local MIT software. |
 
 Also:
-- Prefer **`secure_wallet.py`** for real funds. Legacy `wallet.py` can write plaintext keys (tests/helpers).
-- Not a hardware wallet — keys exist in process memory while unlocked.
-- Lose seed + password → funds gone.
-- Dust change below ~0.02 KAS may be forfeited to fee (standard Kaspa behavior).
 
-See [SECURITY.md](SECURITY.md).
+- Prefer **`secure_wallet.py`** for real funds. Legacy `wallet.py` can write plaintext keys (tests/helpers).  
+- Not a hardware wallet — keys exist in process memory while unlocked.  
+- Lose seed + password → funds gone.
+
+More: [`docs/SECURITY_HARDENING.md`](docs/SECURITY_HARDENING.md) · [`SECURITY.md`](SECURITY.md)
 
 ---
 
-## Architecture
+## Docs map
 
-```
-vida/
-  wallet.py         # keys, signing, delegation modes (legacy plaintext path)
-  secure_wallet.py  # 24-word seed, scrypt+AES-GCM, agent sessions (v2)
-  transactions.py   # UTXO selection, fees, broadcast, verification, cap checks
-  ml_dsa_65.py      # post-quantum ML-DSA-65 wrapper
-scripts/
-  setup_owner_wallet.py
-  grant_session.py
-tests/              # 27 automated tests (13 + 14)
-```
+| Doc | For |
+|-----|-----|
+| [`docs/PRODUCT.md`](docs/PRODUCT.md) | Product definition |
+| [`docs/HERMES_TOOLS.md`](docs/HERMES_TOOLS.md) | Agent tool rules (session-only money) |
+| [`docs/HERMES_INTEGRATION.md`](docs/HERMES_INTEGRATION.md) | Hermes wiring |
+| [`docs/COMPETITIVE_POSITION.md`](docs/COMPETITIVE_POSITION.md) | Niche vs others (no monopoly claims) |
+
+Status: `python scripts/vida_status.py`
+
+---
 
 ## Roadmap
 
-- [x] Kaspa agentic wallet (seed, sessions, caps on send, mainnet receipts)
-- [x] Session v2 (host-bind, dest allowlist, fail-closed daily counter)
-- [ ] On-chain covenants (Kaspa toolchain)
-- [ ] Optional rails (e.g. other chains) — **not in this tree yet**
+- [x] Kaspa agentic wallet (seed, sessions, caps on send, mainnet receipts)  
+- [x] TAO plugin rail (sessions, stake, P2P; optimize **plan** MVP)  
+- [ ] On-chain covenants (Kaspa toolchain — [rusty-kaspa #1073](https://github.com/kaspanet/rusty-kaspa/issues/1073))  
+- [ ] Bitcoin rail (later)
 
 ---
 
 ## Security disclosure
 
 **Do not open a public issue for vulnerabilities.** Use GitHub private reporting (Security → Report a vulnerability) or see [SECURITY.md](SECURITY.md).
+
+---
 
 ## License & support
 
@@ -129,4 +163,4 @@ Nothing required to use the software.
 
 ---
 
-**Don’t trust marketing. Run the tests. Read `vida/secure_wallet.py` and `vida/transactions.py`. Fund only what you can afford to experiment with.**
+**Don’t trust marketing. Run the tests. Read `vida/secure_wallet.py`, `vida/transactions.py`, and `vida/plugins/tao/`. Fund only what you can afford to experiment with.**

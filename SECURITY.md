@@ -21,13 +21,12 @@ In scope:
 - Session-grant bypass beyond the documented limitations
 - Transaction-construction bugs that lose or misdirect funds
 
-Known and documented limitations (see README honesty section) are **not** vulnerabilities:
-- Session limits are **software policy**, not on-chain covenants
-- A **reader** of the agent session file can extract the session signing key and spend until revoke/expiry
-- A **writer** who can edit the session file can also reseal the authenticated daily counter (`enc_spend`) because `machine_key` is stored in the same file — delete/missing counter is **fail-closed** on unlock; full FS-adversary resistance is not claimed
-- `vida/wallet.py` stores keys unencrypted (legacy/test layer) — use `secure_wallet.py` for real funds
+Known and documented limitations (see README "What Vida is not") are **not** vulnerabilities:
+- Session limits are policy-enforced, not cryptographic; a reader of the session file can extract the session key
+- `vida/wallet.py` stores keys unencrypted (legacy/test layer)
 - Post-quantum keys are not verified on-chain (Kaspa consensus does not yet support PQ signatures)
-- Agent session files contain signing material — treat as secret; keep working balances only
+- TAO plugin: Finney uses sr25519 on-chain; ML-DSA-65 is forward identity only
+- TAO/Kaspa agent session files contain signing material — treat as secret; software caps only
 - Python cannot reliably wipe key material from RAM
 
 ## Supported versions
