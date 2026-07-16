@@ -1,35 +1,86 @@
 # Vida Wallet
 
-**Powering the agent economy.** Revocable autonomy. Agentic P2P payments and transfers.
+**Powering the agent economy. Revocable autonomy. Agentic P2P payments and transfers.**
 
-Vida is an open-source **agent wallet** for Kaspa and Bittensor (TAO). Give your agent authority to send, stake, and transfer — inside limits you set, revocable at any time.
+Vida is an open-source agent wallet for Kaspa and Bittensor (TAO). You hold the seed. Your agent sends, stakes, and transfers — inside limits you set, revocable at any time.
 
-| You | The agent |
-|-----|-----------|
-| Hold the 24-word seed | Never sees the seed or password |
-| Grant autonomy with caps (tx, day, dest, scope) | Sends / stakes / transfers inside those caps |
-| Revoke by deleting the session file | Needs a new grant after revoke |
-
-**Owner-custody**
-
-The agent operates autonomously within your caps. You stay in control. That is **revocable autonomy** — the core idea.
-
-From a grant you can go:
-```
-COMMAND  →  HYBRID  →  FULL
-(ask you)   (small OK)  (agentic inside caps)
-```
+Owner-custody. Not cloud custody. Not raw keys in chat. Just a session file with caps.
 
 ---
 
 ## Rails
 
-| Rail | What the agent can do (inside your grant) |
-|------|-------------------------------------------|
-| **Kaspa core** | Receive, hold, send **KAS** (mainnet-proven) |
-| **TAO plugin** | Stake / unstake, **P2P TAO**, emission-based optimize **plan** (execute with session + confirm — **not** guaranteed yield) |
+| Rail | License | Status | What the agent can do (inside your grant) |
+|------|---------|--------|-------------------------------------------|
+| **Kaspa core** | MIT | Shipped | Receive, hold, send KAS. Mainnet-proven. |
+| **TAO plugin** | MIT | Shipped | Stake / unstake, P2P TAO, emission-based optimize plan. |
+| **Covenant module** | Commercial | **Not yet shipped** | On-chain policy enforcement. Learning negotiation engine. |
 
-Both use the same session model: owner grants caps, agent acts inside them, no password in chat.
+---
+
+## Honesty
+
+| If you hear | The truth |
+|-------------|----------|
+| "Hard on-chain limits" | **Software policy enforced in this process.** Not chain covenants. |
+| "Safe if session file is stolen" | **No.** Anyone who reads the file can spend within caps. Recommend working balances only. |
+| "Daily spend counter is filesystem-proof" | **No.** A writer with the session file can reseal the daily counter. |
+| "Post-quantum protected funds" | **Not on-chain.** PQ identity at rest only. Kaspa uses Schnorr, Finney uses sr25519. |
+| "Guaranteed TAO yield" | **No.** Optimizer is a heuristic plan. |
+| "Production bank / SLA" | **No.** Local software. Self-custody means self-responsibility. |
+
+Also:
+- Prefer `secure_wallet.py` for real funds. Legacy `wallet.py` can write plaintext keys.
+- Keys exist in process memory while unlocked — not a hardware wallet.
+- Lose seed + password → funds gone.
+
+Docs: [`docs/SECURITY_HARDENING.md`](docs/SECURITY_HARDENING.md) · [`SECURITY.md`](SECURITY.md)
+
+---
+
+## Learning negotiation system
+
+The covenant module learns from every deal. More Vida deployments → more negotiation data → better strategy models → better prices for repeat users.
+
+| Stage | What happens |
+|-------|-------------|
+| 1–10 deployments | Static fee. Simple caps. Manual strategy. |
+| 10–100 deployments | Fee model adapts. Common patterns recognized. Strategy suggestions. |
+| 100+ deployments | Negotiated pricing per agent profile. Optimal caps suggested. Automated deal terms. |
+
+This is the arrow of scale: **more users → more data → better negotiation strategies → better prices.** Early deployers help train the system and lock in favorable terms.
+
+---
+
+## Pricing
+
+| Usage | Model |
+|-------|-------|
+| Personal / dev | Flat per-deployment fee. |
+| 10+ deployments/month | **Volume discount.** Negotiated rate. |
+| 50+ deployments/month | **Subscription tier.** Fixed monthly rate, unlimited deployments. Priority learning access. |
+
+The open-source core (Kaspa + TAO) is always MIT — free to use, modify, distribute. The covenant module is the commercial layer. Volume discounts and subscriptions apply to covenant module usage only.
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/jeffsiegel1965/vida.git
+cd vida
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+# Owner-run (not through the agent)
+python scripts/setup_owner_wallet.py   # write down the 24 words
+python scripts/grant_session.py        # hours + max KAS/tx + max KAS/day
+
+# Revoke anytime
+python scripts/grant_session.py --revoke
+```
+
+TAO deps are in the same requirements file. Install once, use both rails.
 
 ---
 
@@ -62,96 +113,33 @@ Docs: [`docs/proofs/`](docs/proofs/) · [`docs/plugins/tao.md`](docs/plugins/tao
 python tests/qa_tests.py          # 13
 python tests/qa_secure_tests.py   # 14
 
-# TAO (requires requirements-tao.txt)
-python -m unittest discover -s tests -p 'test_tao*.py'   # 64
+# TAO
+python -m unittest discover -s tests -p 'test_tao*.py'   # 62
 ```
 
 ---
 
-## Quickstart
+## Plugin platform
 
-```bash
-git clone https://github.com/jeffsiegel1965/vida.git
-cd vida
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+Vida's rail system is extensible. Each plugin follows the same session model:
 
-# Owner-run (not through the agent)
-python scripts/setup_owner_wallet.py   # write down the 24 words
-python scripts/grant_session.py        # hours + max KAS/tx + max KAS/day
+- **Owner grants caps** per plugin
+- **Agent acts inside those caps** — no password exposure
+- **Revoke by deleting the session file**
 
-# Revoke anytime
-python scripts/grant_session.py --revoke
-```
+| Plugin | Rail | Status |
+|--------|------|--------|
+| Kaspa core | Native KAS | Shipped (MIT) |
+| TAO | Stake, P2P, optimize | Shipped (MIT) |
+| Covenant module | On-chain policy, learning negotiation | In development (Commercial) |
 
-For TAO:
-
-```bash
-pip install -r requirements-tao.txt
-python scripts/grant_tao_session.py --help
-```
-
----
-
-## How owner-custody works
-
-1. **You** create the wallet on your machine. Seed shown once.
-2. Wallet file is **password-encrypted** (scrypt + AES-GCM).
-3. **You** grant a **time-boxed session** with caps.
-4. The agent uses that session — **no password in chat**.
-5. Caps are enforced on money paths in **this process**. They are **software policy**, not on-chain covenants.
-
----
-
-## Honesty
-
-| If you hear | The truth |
-|-------------|----------|
-| "Hard on-chain limits" | **Software policy enforced in this process.** Not chain covenants. |
-| "Safe if session file is stolen" | **No.** Anyone who reads the file can spend within caps. **Recommend working balances only.** |
-| "Daily spend counter is filesystem-proof" | **No.** A writer with the session file can reseal the daily counter. |
-| "Post-quantum protected funds" | **Not on-chain.** PQ identity at rest only. Kaspa uses Schnorr, Finney uses sr25519. |
-| "Guaranteed TAO yield" | **No.** Optimizer is a heuristic plan. |
-| "Production bank / SLA" | **No.** Local software. Self-custody means self-responsibility. |
-
-Also:
-- Prefer `secure_wallet.py` for real funds. Legacy `wallet.py` can write plaintext keys.
-- Keys exist in process memory while unlocked — not a hardware wallet.
-- Lose seed + password → funds gone.
-
-More: [`docs/SECURITY_HARDENING.md`](docs/SECURITY_HARDENING.md) · [`SECURITY.md`](SECURITY.md)
-
----
-
-## Docs map
-
-| Doc | For |
-|-----|-----|
-| [`docs/PRODUCT.md`](docs/PRODUCT.md) | Product definition |
-| [`docs/HERMES_TOOLS.md`](docs/HERMES_TOOLS.md) | Agent tool rules (session-only money) |
-| [`docs/HERMES_INTEGRATION.md`](docs/HERMES_INTEGRATION.md) | Hermes wiring |
-| [`docs/COMPETITIVE_POSITION.md`](docs/COMPETITIVE_POSITION.md) | Niche vs others |
-
----
-
-## Roadmap
-
-- [x] Kaspa agentic wallet (seed, sessions, caps on send, mainnet receipts)
-- [x] TAO plugin rail (sessions, stake, P2P, optimize **plan** MVP)
-- [ ] On-chain covenants (Kaspa toolchain)
-- [ ] Bitcoin rail (later)
-
----
-
-## Security disclosure
-
-**Do not open a public issue for vulnerabilities.** Use GitHub private reporting (Security → Report a vulnerability) or see [SECURITY.md](SECURITY.md).
+To build a plugin: implement the rail interface, register it, and submit a PR. Docs: [`docs/plugins/`](docs/plugins/).
 
 ---
 
 ## License
 
-- **Kaspa core + TAO plugin:** MIT (see [`LICENSE`](LICENSE)). Free to use, modify, distribute.
+- **Kaspa core + TAO plugin:** MIT ([`LICENSE`](LICENSE)). Free to use, modify, distribute.
 - **Covenant module:** Commercial license. Not yet shipped.
 
 Optional development fund (KAS):
