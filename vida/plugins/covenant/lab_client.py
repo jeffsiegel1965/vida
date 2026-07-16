@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Optional, Sequence
 
 
-# Repo-relative defaults for JS helpers
+# Repo-relative defaults
 _REPO = Path(__file__).resolve().parents[3]
 
 # kascov-lab binary and WASM dirs are host-specific.

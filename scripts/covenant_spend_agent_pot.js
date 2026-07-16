@@ -60,6 +60,7 @@ async function main() {
     ComputeCommit,
     CovenantBinding,
     covenantId,
+    Hash,
   } = kaspa;
 
   const keyPath = cfg.key_path || '/tmp/kascov-lab-key.hex';
@@ -171,10 +172,38 @@ async function main() {
     ];
   }
 
+  // ===== FIX: Covenant transition binding =====
+  // The RPC returns UtxoEntryReference objects WITHOUT covenantId.
+  // For a covenant transition spend, createTransaction MUST see the
+  // covenant ID on the input entry so the WASM recognizes it as a
+  // covenant UTXO and validates the transition correctly.
+  let spendEntry = best;
+  let covenantHash = null;
+  if (filterCov && filterCov.length === 64) {
+    try {
+      covenantHash = new Hash(filterCov);
+      // Build a plain IUtxoEntry-compatible object with covenantId set.
+      // The WASM reads covenantId as HexString (string) from IUtxoEntry
+      // and uses it internally for covenant transition validation.
+      spendEntry = {
+        address: best.address,
+        outpoint: best.outpoint,
+        amount: best.amount,
+        scriptPublicKey: best.scriptPublicKey,
+        blockDaaScore: best.blockDaaScore,
+        isCoinbase: best.isCoinbase,
+        covenantId: filterCov,
+      };
+    } catch (e) {
+      await rpc.disconnect();
+      fail(e, { step: 'reconstruct_utxo' });
+    }
+  }
+
   let tx;
   try {
     tx = createTransaction(
-      [best],
+      [spendEntry],
       outs,
       0n,
       undefined,
@@ -187,33 +216,12 @@ async function main() {
   }
 
   // Continue covenant on change (index 1) if present; payment is unbound (or rebind pot)
-  // Lab style for transition: re-bind same id on the continuing pot output.
-  // When payment goes external, change keeps covenant lineage.
   let covenantIdStr = filterCov || null;
   try {
-    if (tx.outputs.length >= 2) {
-      const op = tx.inputs[0].previousOutpoint;
-      // Use existing filter id if provided; else compute new from change as auth out index 1? 
-      // For continuation, authorizing_input 0, same id as spent covenant.
-      if (filterCov && filterCov.length === 64) {
-        // reconstruct Hash via covenantId on a dummy is hard; set binding from recompute
-        // Recompute genesis-style id is WRONG for transition. For transition, reuse spent id.
-        // WASM: new CovenantBinding(0, Hash) — try Hash from string if available
-        let idObj = null;
-        if (kaspa.Hash && kaspa.Hash.fromHex) {
-          idObj = kaspa.Hash.fromHex(filterCov);
-        } else if (kaspa.Hash) {
-          try {
-            idObj = new kaspa.Hash(filterCov);
-          } catch (_) {
-            idObj = null;
-          }
-        }
-        if (idObj) {
-          tx.outputs[1].covenant = new CovenantBinding(0, idObj);
-          covenantIdStr = filterCov;
-        }
-      }
+    if (tx.outputs.length >= 2 && covenantHash) {
+      // Authorizing input index 0, same covenant ID as the spent covenant UTXO
+      tx.outputs[1].covenant = new CovenantBinding(0, covenantHash);
+      covenantIdStr = filterCov;
     }
     for (const inp of tx.inputs) {
       if (inp.computeBudget == null) inp.computeBudget = budget;
