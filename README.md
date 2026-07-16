@@ -16,7 +16,7 @@ Not cloud custody. Not raw keys in chat. A session file with caps.
 |------|---------|--------|-------------------------------------------|
 | **Kaspa core** | MIT | Shipped | Receive, hold, send KAS. Mainnet-proven. |
 | **TAO plugin** | MIT | Shipped | Stake / unstake, P2P TAO, emission-based optimization plans. |
-| **Covenant module** | Commercial | **Shipped** | On-chain policy pots (testnet-10), learning negotiation engine. |
+| **Covenant module** | Commercial | **Shipped** (CLI) | kascov-lab lifecycle (testnet-10), pot policy, terms templates. Plugin deploy/spend: work in progress. |
 
 ---
 
@@ -40,29 +40,19 @@ Docs: [`docs/SECURITY_HARDENING.md`](docs/SECURITY_HARDENING.md) · [`SECURITY.m
 
 ---
 
-## Learning negotiation system
+## Covenant terms
 
-The covenant module learns from every deal. More Vida deployments → more negotiation data → better strategy models → better prices for repeat users.
+| Parameter | What it does | Default |
+|-----------|-------------|---------|
+| `max_kas_per_tx` | Max agent can spend per transaction | Required |
+| `max_kas_per_day` | Max agent can spend per day | Required |
+| `allowed_destinations` | Addresses the agent can send to | Empty (any) |
+| `duration_hours` | How long the grant lasts | 24 |
+| `volume_discount_pct` | Fee discount for high-volume pots (0–50%) | 0 |
+| `subscription_interval_hours` | Auto-refill interval (0 = one-time) | 0 |
+| `auto_renew` | Auto-renew covenant on expiry | False |
 
-| Stage | What happens |
-|-------|-------------|
-| 1–10 deployments | Static fee. Simple caps. Manual strategy. |
-| 10–100 deployments | Fee model adapts. Common patterns recognized. Strategy suggestions. |
-| 100+ deployments | Negotiated pricing per agent profile. Optimal caps suggested. Automated deal terms. |
-
-Early deployers help train the system and lock in favorable terms.
-
----
-
-## Pricing
-
-| Usage | Model |
-|-------|-------|
-| Personal / dev | Flat per-deployment fee. |
-| 10+ deployments/month | **Volume discount.** Negotiated rate. |
-| 50+ deployments/month | **Subscription tier.** Fixed monthly rate, unlimited deployments. Priority learning access. |
-
-The open-source core (Kaspa + TAO) is always MIT — free to use, modify, distribute. The covenant module is the commercial layer. Volume discounts and subscriptions apply to covenant module usage only.
+All terms are encoded in a deterministic `deal_hash` (SHA-256). Repeat terms produce the same hash — no surprises.
 
 ---
 
@@ -143,7 +133,7 @@ Vida's rail system is extensible. Each plugin follows the same session model:
 |--------|------|--------|
 | Kaspa core | Native KAS | Shipped (MIT) |
 | TAO | Stake, P2P, optimize | Shipped (MIT) |
-| Covenant module | On-chain policy, learning negotiation | Shipped (Commercial) |
+| Covenant module | On-chain policy, terms templates, volume discounts | Shipped (CLI) — Commercial |
 
 To build a plugin: implement the rail interface, register it, and submit a PR. Docs: [`docs/plugins/`](docs/plugins/).
 
