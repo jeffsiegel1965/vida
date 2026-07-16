@@ -5,7 +5,7 @@ from .agent_pot_script import build_agent_pot_script_template, verify_policy_has
 from .config import CovenantConfig, load_covenant_config
 from .lab_client import live_gates_ok, run_lab_demo
 from .plugin import CovenantPlugin, register_covenant_plugin
-from .pot_spend import check_spend_allowed, check_spend_kas
+from .pot_spend import check_spend_allowed, check_spend_kas, load_pot_record, save_pot_record, check_subscription_status
 from .proofs import tn10_microproof
 from .scripts import (
     compile_placeholder_timelock_meta,

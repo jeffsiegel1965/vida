@@ -51,24 +51,28 @@ class FeeSchedule:
 FEE_SCHEDULE = FeeSchedule()
 
 
-def calc_fund_fee(pot_kas: float) -> float:
+def calc_fund_fee(pot_kas: float, volume_discount_pct: float = 0.0) -> float:
     """Calculate fee for funding a covenant pot. Returns 0 for invalid input."""
     if not isinstance(pot_kas, (int, float)) or not math.isfinite(pot_kas) or pot_kas <= 0:
         return 0.0
     fee = pot_kas * FEE_SCHEDULE.fund_fee_pct
     fee = max(fee, FEE_SCHEDULE.fund_fee_min_kas)
     fee = min(fee, FEE_SCHEDULE.fund_fee_max_kas)
-    return round(fee, 6)
+    if volume_discount_pct > 0:
+        fee = fee * (1 - min(volume_discount_pct, 0.5))
+    return round(max(fee, 0.0), 6)
 
 
-def calc_spend_fee(amount_kas: float) -> float:
+def calc_spend_fee(amount_kas: float, volume_discount_pct: float = 0.0) -> float:
     """Calculate fee for spending from a covenant pot. Returns 0 for invalid input."""
     if not isinstance(amount_kas, (int, float)) or not math.isfinite(amount_kas) or amount_kas <= 0:
         return 0.0
     fee = amount_kas * FEE_SCHEDULE.spend_fee_pct
     fee = max(fee, FEE_SCHEDULE.spend_fee_min_kas)
     fee = min(fee, FEE_SCHEDULE.spend_fee_max_kas)
-    return round(fee, 6)
+    if volume_discount_pct > 0:
+        fee = fee * (1 - min(volume_discount_pct, 0.5))
+    return round(max(fee, 0.0), 6)
 
 
 def get_dev_address(network: str = "mainnet") -> str:

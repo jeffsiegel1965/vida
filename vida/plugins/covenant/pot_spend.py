@@ -116,6 +116,7 @@ def save_pot_record(
     template = record.get("template") or record.get("policy_template")
     if template and not verify_policy_hash(template) and template.get("ok"):
         return {"ok": False, "error": "template policy_hash mismatch"}
+    now = time.time()
     data = {
         "wallet_id": wallet_id,
         "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -128,6 +129,10 @@ def save_pot_record(
         "policy": (template or {}).get("policy") or record.get("policy"),
         "policy_hash": (template or {}).get("policy_hash") or record.get("policy_hash"),
         "hard_rules_attached": record.get("hard_rules_attached"),
+        "subscription_interval_hours": record.get("subscription_interval_hours", 0),
+        "auto_renew": record.get("auto_renew", False),
+        "last_refill_at": record.get("last_refill_at", now),
+        "next_refill_at": record.get("next_refill_at", 0),
         "note": "software pot record — not a private key store",
     }
     path.write_text(json.dumps(data, indent=2) + "\n")
@@ -136,6 +141,34 @@ def save_pot_record(
     except OSError:
         pass
     return {"ok": True, "path": str(path), "record": data}
+
+
+def check_subscription_status(record: dict[str, Any]) -> dict[str, Any]:
+    """Check if a pot is due for refill based on subscription interval.
+
+    Returns:
+      due: True if refill is due
+      next_refill_at: timestamp of next refill
+      auto_renew: whether the pot auto-renews
+    """
+    interval = record.get("subscription_interval_hours", 0) or 0
+    last_refill = record.get("last_refill_at", 0) or 0
+    auto_renew = record.get("auto_renew", False)
+    now = time.time()
+
+    if interval <= 0:
+        return {"due": False, "auto_renew": False, "reason": "one_time"}
+
+    next_refill = last_refill + interval * 3600
+    due = now >= next_refill
+
+    return {
+        "due": due,
+        "next_refill_at": next_refill,
+        "auto_renew": auto_renew,
+        "reason": "subscription_due" if due else "subscription_pending",
+        "hours_until_refill": round(max(0, next_refill - now) / 3600, 1) if not due else 0,
+    }
 
 
 def load_pot_record(wallet_id: str, *, base: Optional[Path] = None) -> dict[str, Any]:
