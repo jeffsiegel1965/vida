@@ -2,9 +2,11 @@
 
 **Powering the agent economy. Revocable autonomy. Agentic P2P payments and transfers.**
 
-Vida is an open-source agent wallet for Kaspa and Bittensor (TAO). You hold the seed. Your agent sends, stakes, and transfers — inside limits you set, revocable at any time.
+Vida is an agentic wallet for Bittensor (TAO) and Kaspa, with working covenants. You hold the seed. Your agent sends, receives, and stakes. You set the autonomy parameters. Owner-custody.
 
-Owner-custody. Not cloud custody. Not raw keys in chat. Just a session file with caps.
+Not cloud custody. Not raw keys in chat. Just a session file with caps.
+
+**License:** Kaspa core + TAO plugin are MIT (open source). The covenant module is a commercial license.
 
 ---
 
@@ -144,7 +146,7 @@ To build a plugin: implement the rail interface, register it, and submit a PR. D
 
 Optional development fund (KAS):
 ```
-kaspa:qqnnn7wlwz92a70v7km4j3c74lgvnymc60rl2p4gza7dgu6l4pv8g0560yzzn
+kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k
 ```
 
 ---
