@@ -186,10 +186,15 @@ async function main() {
       // The WASM reads covenantId as HexString (string) from IUtxoEntry
       // and uses it internally for covenant transition validation.
       spendEntry = {
-        address: best.address,
-        outpoint: best.outpoint,
         amount: best.amount,
-        scriptPublicKey: best.scriptPublicKey,
+        outpoint: {
+          transactionId: best.outpoint.transactionId,
+          index: best.outpoint.index,
+        },
+        scriptPublicKey: {
+          version: best.scriptPublicKey.version,
+          script: best.scriptPublicKey.script,
+        },
         blockDaaScore: best.blockDaaScore,
         isCoinbase: best.isCoinbase,
         covenantId: filterCov,
