@@ -4,7 +4,7 @@
 
 Vida is an agentic wallet for Bittensor (TAO) and Kaspa, with working covenants. You hold the seed. Your agent sends, receives, and stakes. You set the autonomy parameters. Owner-custody.
 
-Not cloud custody. Not raw keys in chat. Just a session file with caps.
+Not cloud custody. Not raw keys in chat. A session file with caps.
 
 **License:** Kaspa core + TAO plugin are MIT (open source). The covenant module is a commercial license.
 
@@ -15,15 +15,15 @@ Not cloud custody. Not raw keys in chat. Just a session file with caps.
 | Rail | License | Status | What the agent can do (inside your grant) |
 |------|---------|--------|-------------------------------------------|
 | **Kaspa core** | MIT | Shipped | Receive, hold, send KAS. Mainnet-proven. |
-| **TAO plugin** | MIT | Shipped | Stake / unstake, P2P TAO, emission-based optimize plan. |
-| **Covenant module** | Commercial | **Not yet shipped** | On-chain policy enforcement. Learning negotiation engine. |
+| **TAO plugin** | MIT | Shipped | Stake / unstake, P2P TAO, emission-based optimization plans. |
+| **Covenant module** | Commercial | **Shipped** | On-chain policy pots (testnet-10), learning negotiation engine. |
 
 ---
 
 ## Honesty
 
 | If you hear | The truth |
-|-------------|----------|
+|-------------|-----------|
 | "Hard on-chain limits" | **Software policy enforced in this process.** Not chain covenants. |
 | "Safe if session file is stolen" | **No.** Anyone who reads the file can spend within caps. Recommend working balances only. |
 | "Daily spend counter is filesystem-proof" | **No.** A writer with the session file can reseal the daily counter. |
@@ -50,7 +50,7 @@ The covenant module learns from every deal. More Vida deployments → more negot
 | 10–100 deployments | Fee model adapts. Common patterns recognized. Strategy suggestions. |
 | 100+ deployments | Negotiated pricing per agent profile. Optimal caps suggested. Automated deal terms. |
 
-This is the arrow of scale: **more users → more data → better negotiation strategies → better prices.** Early deployers help train the system and lock in favorable terms.
+Early deployers help train the system and lock in favorable terms.
 
 ---
 
@@ -108,6 +108,16 @@ TAO deps are in the same requirements file. Install once, use both rails.
 
 Docs: [`docs/proofs/`](docs/proofs/) · [`docs/plugins/tao.md`](docs/plugins/tao.md)
 
+### Covenant (testnet-10)
+
+| What | Covenant ID | Tx |
+|------|-------------|-----|
+| Genesis → Transition → Burn | `04420a33…` | [`aac176cf…`](https://explorer-tn10.kaspa.org/txs/aac176cfd71e264af907220c58588128479767ac22fc878588bae6c0ab32069f) |
+| | | [`f0884a74…`](https://explorer-tn10.kaspa.org/txs/f0884a747cd3c741f584b3a9dbc52f6c2c8c9bc8ff856f8a37d8a34227ab02af) |
+| | | [`927efe12…`](https://explorer-tn10.kaspa.org/txs/927efe1285516643af2c5dae3ebbae60347198bc4be35d3591c0860219acd4e3) |
+
+Proof doc: [`docs/proofs/covenant_tn10_microproof.md`](docs/proofs/covenant_tn10_microproof.md)
+
 ### Tests
 
 ```bash
@@ -133,7 +143,7 @@ Vida's rail system is extensible. Each plugin follows the same session model:
 |--------|------|--------|
 | Kaspa core | Native KAS | Shipped (MIT) |
 | TAO | Stake, P2P, optimize | Shipped (MIT) |
-| Covenant module | On-chain policy, learning negotiation | In development (Commercial) |
+| Covenant module | On-chain policy, learning negotiation | Shipped (Commercial) |
 
 To build a plugin: implement the rail interface, register it, and submit a PR. Docs: [`docs/plugins/`](docs/plugins/).
 
@@ -142,7 +152,7 @@ To build a plugin: implement the rail interface, register it, and submit a PR. D
 ## License
 
 - **Kaspa core + TAO plugin:** MIT ([`LICENSE`](LICENSE)). Free to use, modify, distribute.
-- **Covenant module:** Commercial license. Not yet shipped.
+- **Covenant module:** Commercial license. Shipped.
 
 Optional development fund (KAS):
 ```
