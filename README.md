@@ -48,9 +48,6 @@ Docs: [`docs/SECURITY_HARDENING.md`](docs/SECURITY_HARDENING.md) · [`SECURITY.m
 | `max_kas_per_day` | Max agent can spend per day | Required |
 | `allowed_destinations` | Addresses the agent can send to | Empty (any) |
 | `duration_hours` | How long the grant lasts | 24 |
-| `volume_discount_pct` | Fee discount for high-volume pots (0–50%) | 0 |
-| `subscription_interval_hours` | Auto-refill interval (0 = one-time) | 0 |
-| `auto_renew` | Auto-renew covenant on expiry | False |
 
 All terms are encoded in a deterministic `deal_hash` (SHA-256). Repeat terms produce the same hash — no surprises.
 
@@ -133,7 +130,7 @@ Vida's rail system is extensible. Each plugin follows the same session model:
 |--------|------|--------|
 | Kaspa core | Native KAS | Shipped (MIT) |
 | TAO | Stake, P2P, optimize | Shipped (MIT) |
-| Covenant module | On-chain policy, terms templates, volume discounts | Shipped (CLI) — Commercial |
+| Covenant module | On-chain policy, terms templates, pot spending | Shipped (CLI) — Commercial |
 
 To build a plugin: implement the rail interface, register it, and submit a PR. Docs: [`docs/plugins/`](docs/plugins/).
 

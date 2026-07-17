@@ -30,6 +30,12 @@ deployer*
 
 # Python
 __pycache__/
+.pytest_cache/
+*.egg-info/
+
+# Brand assets (large PNGs, not source code)
+docs/brand/*.png
+docs/brand/x/
 *.pyc
 venv/
 .venv/
