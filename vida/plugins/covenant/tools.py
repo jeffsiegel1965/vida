@@ -15,7 +15,7 @@ from .agent_pot import plan_agent_pot, SOMPI_PER_KAS
 from .agent_pot_script import build_agent_pot_script_template, verify_policy_hash
 from .fees import calc_fund_fee, calc_spend_fee, get_dev_address, describe_fees
 from .lab_client import live_gates_ok
-from .negotiation import CovenantTerms, create_deal
+from .negotiation import CovenantTerms, create_deal, Negotiator, UserControls
 
 
 # ── Plugin instance (shared across tools) ──
@@ -142,6 +142,8 @@ def covenant_negotiate_terms(
     *,
     agent_offer: dict[str, Any],
     owner_policy: Optional[dict[str, Any]] = None,
+    strategy: str = "covenant_bound_p2pk_pot",
+    counterparty_id: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Agent proposes covenant terms; owner policy constrains them.
@@ -157,6 +159,8 @@ def covenant_negotiate_terms(
       - max_kas_per_day: float (hard ceiling)
       - allowed_destinations: list[str] (intersection)
       - max_duration_hours: float
+
+    strategy (optional): "covenant_bound_p2pk_pot" (MVP) or "self_replicating_quine_pot"
 
     Returns agreed-upon terms or error.
     """
@@ -189,10 +193,16 @@ def covenant_negotiate_terms(
         "allowed_destinations": offer_dests,
         "duration_hours": max(offer_hours, 1.0),
     }
+
+    # Build template with selected strategy
+    quine_gen = int(agreed["duration_hours"]) if strategy == "self_replicating_quine_pot" else 0
     template = build_agent_pot_script_template(
         max_kas_per_tx=agreed["max_kas_per_tx"],
         max_kas_per_day=agreed["max_kas_per_day"],
         allowed_destinations=agreed["allowed_destinations"],
+        strategy=strategy,
+        quine_generations=quine_gen,
+        auto_renew=(strategy == "self_replicating_quine_pot"),
     )
     if not template.get("ok"):
         return {"ok": False, "error": template.get("error", "template build failed")}
@@ -204,16 +214,164 @@ def covenant_negotiate_terms(
         session_hours=agreed["duration_hours"],
     )
 
+    # If counterparty_id provided, record in DealBook via Negotiator
+    deal_book_info = {}
+    if counterparty_id:
+        from vida.plugins.covenant.negotiation import Negotiator
+        neg = Negotiator(owner_id="agent_vida")
+        result = neg.template_deal(
+            max_kas_per_tx=agreed["max_kas_per_tx"],
+            max_kas_per_day=agreed["max_kas_per_day"],
+            allowed_destinations=agreed["allowed_destinations"],
+            duration_hours=agreed["duration_hours"],
+            counterparty_id=counterparty_id,
+        )
+        deal_book_info = {
+            "counterparty_id": counterparty_id,
+            "is_first_deal": result.get("is_first_deal", False),
+            "escalated": result.get("escalated", False),
+        }
+
     return {
         "ok": True,
         "agreed_terms": agreed,
         "policy_hash": template["policy_hash"],
         "policy_template": template,
         "fund_plan": plan,
+        "strategy": strategy,
         "enforcement": {
             "soft_session": True,
             "covenant_pot": True,
-            "hard_script": False,
+            "hard_script": strategy == "self_replicating_quine_pot",
+            "self_replicating": strategy == "self_replicating_quine_pot",
+        },
+        **deal_book_info,
+    }
+
+
+def covenant_multi_round_negotiate(
+    *,
+    owner_id: str = "agent_vida",
+    agent_id: str,
+    offers: list[dict[str, Any]],
+    counterparty_id: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Multi-round negotiation using the full Negotiator session.
+
+    offers: ordered list of offer dicts, each with:
+      - max_kas_per_tx, max_kas_per_day, optional: allowed_destinations, duration_hours
+      - party: "owner" or "agent"
+      - note: optional round note
+
+    Returns final deal with audit log, or escalation/error info.
+    """
+    from vida.plugins.covenant.negotiation import Negotiator, UserControls, NegotiationError
+    neg = Negotiator(owner_id=owner_id, controls=UserControls.defaults())
+    session = neg.start_session(agent_id=agent_id)
+
+    for i, offer in enumerate(offers):
+        offer_tx = float(offer.get("max_kas_per_tx", 0))
+        offer_day = float(offer.get("max_kas_per_day", 0))
+        offer_dests = list(offer.get("allowed_destinations") or [])
+        offer_hours = float(offer.get("duration_hours", 24.0))
+        party = offer.get("party", "agent")
+        note = offer.get("note", f"Round {i+1}")
+
+        if i == 0:
+            # First offer starts the session
+            session.make_offer(
+                max_kas_per_tx=offer_tx,
+                max_kas_per_day=offer_day,
+                allowed_destinations=offer_dests,
+                duration_hours=offer_hours,
+                note=note,
+                is_first_deal=(counterparty_id is not None and neg.book.is_first_deal(counterparty_id)),
+            )
+        else:
+            try:
+                session.counter_offer(
+                    max_kas_per_tx=offer_tx,
+                    max_kas_per_day=offer_day,
+                    allowed_destinations=offer_dests,
+                    duration_hours=offer_hours,
+                    party=party,
+                    note=note,
+                )
+            except NegotiationError as e:
+                return {
+                    "ok": False,
+                    "error": str(e),
+                    "round": i + 1,
+                    "audit_log": session.audit_log(),
+                    "phase": session.phase.value,
+                }
+
+    # Check escalation
+    if session.phase.value == "escalated":
+        return {
+            "ok": False,
+            "escalated": True,
+            "audit_log": session.audit_log(),
+            "phase": "escalated",
+            "message": "Deal requires human approval",
+        }
+
+    # Accept
+    final = session.accept(party="owner")
+    if counterparty_id:
+        neg.book.record_deal(
+            counterparty_id=counterparty_id,
+            terms=final.terms,
+            session_id=session.session_id,
+        )
+
+    return {
+        "ok": True,
+        "session_id": session.session_id,
+        "final_terms": {
+            "max_kas_per_tx": final.terms.max_kas_per_tx,
+            "max_kas_per_day": final.terms.max_kas_per_day,
+            "allowed_destinations": final.terms.allowed_destinations,
+            "duration_hours": final.terms.duration_hours,
+        },
+        "deal_hash": final.terms.deal_hash(),
+        "rounds": len(session.rounds),
+        "audit_log": session.audit_log(),
+        "phase": session.phase.value,
+    }
+
+
+def covenant_quine_info() -> dict[str, Any]:
+    """Get SilverScript quine covenant deployment info and Toccata resources."""
+    return {
+        "ok": True,
+        "silverscript": {
+            "source": "vida/plugins/covenant/silverscript/quine_agent_pot.sil",
+            "compiled": "vida/plugins/covenant/silverscript/quine_agent_pot.json",
+            "compiler": "silverc",
+            "status": "compiled, debugger-verified",
+            "entrypoints": ["withdraw(pubkey)", "burn(sig)"],
+        },
+        "kii_quine": {
+            "covenant_id": "b802c18ba691c4a52c4a89de7f72fe475637e3a70f9f56a32663b5754a1ed4af",
+            "genesis_tx": "1c1a4c549c664147814d9836e623373991622c1dc711a4227f206ad5f6a241c5",
+            "network": "kaspa_mainnet",
+            "generations": "~96 from 1 KAS",
+        },
+        "toccata_resources": {
+            "book": "https://docs.kaspa.org/toccata",
+            "silverscript": "https://github.com/kaspanet/silverscript",
+            "parker_vault": "@parker2017 on X",
+            "kas_smiths": "https://kas-smiths.org",
+        },
+        "deployment": {
+            "status": "SilverScript compiled, ready for on-chain deployment",
+            "next_steps": [
+                "Fund P2SH address from compiled artifact",
+                "Verify on kascov explorer",
+                "Test self-replication with spend transaction",
+            ],
         },
     }
 
@@ -291,11 +449,28 @@ HERMES_TOOLS: dict[str, dict[str, Any]] = {
     },
     "covenant_negotiate_terms": {
         "fn": covenant_negotiate_terms,
-        "description": "Agent proposes covenant terms; owner policy constrains them",
+        "description": "Agent proposes covenant terms; owner policy constrains them. Supports quine strategy",
         "params": {
             "agent_offer": "dict",
             "owner_policy": "dict|None",
+            "strategy": "str (covenant_bound_p2pk_pot|self_replicating_quine_pot)",
+            "counterparty_id": "str|None",
         },
+    },
+    "covenant_multi_round_negotiate": {
+        "fn": covenant_multi_round_negotiate,
+        "description": "Multi-round negotiation with round limits, concession bounds, escalation, audit log",
+        "params": {
+            "owner_id": "str",
+            "agent_id": "str",
+            "offers": "list[dict]",
+            "counterparty_id": "str|None",
+        },
+    },
+    "covenant_quine_info": {
+        "fn": covenant_quine_info,
+        "description": "SilverScript quine covenant deployment info and Toccata resources",
+        "params": {},
     },
     "covenant_validate_pot": {
         "fn": covenant_validate_pot,
