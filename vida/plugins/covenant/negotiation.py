@@ -41,6 +41,11 @@ from enum import Enum
 from typing import Any, Optional
 
 
+class NegotiationError(Exception):
+    """Raised on negotiation protocol violations (round limits, concession bounds, etc.)."""
+    pass
+
+
 # ═══════════════════════════════════════════════════════════════════
 # User Controls
 # ═══════════════════════════════════════════════════════════════════
@@ -332,25 +337,28 @@ class NegotiationSession:
     ) -> NegotiationRound:
         """Counter-offer with updated terms.
 
-        Concession limits are enforced:
-          - max_concession_per_round_pct: can't give away >33% of gap
-          - min_concession_per_round_pct: must move at least 5%
+        Enforces:
+          - Hard round limit (max_negotiation_rounds)
+          - Concession bounds (min/max per round)
+          - No counter-offers on expired/escalated sessions
 
-        Returns the new round. If max rounds reached, session expires.
+        Raises NegotiationError if limits are violated.
+        Returns the new round on success.
         """
-        if self.is_expired():
-            self.phase = NegotiationPhase.EXPIRED
-            round = NegotiationRound(
-                phase=NegotiationPhase.EXPIRED,
-                terms=self.current_terms or create_deal(max_kas_per_tx=1.0, max_kas_per_day=5.0),
-                party=party,
-                note=f"Max rounds ({self.controls.max_negotiation_rounds}) reached",
+        if self.phase in (NegotiationPhase.EXPIRED, NegotiationPhase.ESCALATED):
+            raise NegotiationError(
+                f"Cannot counter — session is {self.phase.value}. "
+                f"Start a new session or use BATNA fallback."
             )
-            self.rounds.append(round)
-            return round
+
+        if self.is_expired():
+            raise NegotiationError(
+                f"Max rounds ({self.controls.max_negotiation_rounds}) reached. "
+                f"Session is expired. Use batna() for fallback terms."
+            )
 
         if self.current_terms is None:
-            raise ValueError("No current terms to counter — make an offer first")
+            raise NegotiationError("No current terms to counter — make an offer first")
 
         base = self.current_terms
         new_tx = max_kas_per_tx if max_kas_per_tx is not None else base.max_kas_per_tx
@@ -358,6 +366,23 @@ class NegotiationSession:
         new_dests = allowed_destinations if allowed_destinations is not None else base.allowed_destinations
         new_dur = duration_hours if duration_hours is not None else base.duration_hours
         new_disc = volume_discount_pct if volume_discount_pct is not None else base.volume_discount_pct
+
+        # ── Concession validation ──
+        # Calculate concession as fraction of gap closed toward the other party's direction
+        if self.rounds:
+            gap = abs(base.max_kas_per_tx - new_tx)
+            if gap > 0:
+                concession = gap / max(base.max_kas_per_tx, 0.001)
+                if concession < self.controls.min_concession_per_round_pct:
+                    raise NegotiationError(
+                        f"Concession {concession:.2%} below minimum "
+                        f"{self.controls.min_concession_per_round_pct:.0%}"
+                    )
+                if concession > self.controls.max_concession_per_round_pct:
+                    raise NegotiationError(
+                        f"Concession {concession:.2%} exceeds maximum "
+                        f"{self.controls.max_concession_per_round_pct:.0%}"
+                    )
 
         terms = create_deal(
             max_kas_per_tx=new_tx,
