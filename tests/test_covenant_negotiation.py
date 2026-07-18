@@ -216,7 +216,8 @@ class TestNegotiationSession(unittest.TestCase):
     def test_accept_on_escalated_fails(self):
         controls = self.UserControls(human_approval_threshold_kas=10.0)
         session = self.NegotiationSession(owner_id="owner1", agent_id="agent1", controls=controls)
-        session.make_offer(max_kas_per_tx=1.0, max_kas_per_day=5.0)
+        # Daily rate 5 KAS * 480h (20 days) / 24 = 100 KAS pot -> exceeds 10 KAS threshold
+        session.make_offer(max_kas_per_tx=1.0, max_kas_per_day=5.0, duration_hours=480.0)
         self.assertEqual(session.phase, self.NegotiationPhase.ESCALATED)
         r = session.accept()
         self.assertEqual(r.phase, self.NegotiationPhase.ESCALATED)
@@ -288,8 +289,10 @@ class TestNegotiatorWrapper(unittest.TestCase):
     def test_template_deal_escalates_on_high_value(self):
         controls = self.UserControls(human_approval_threshold_kas=10.0)
         neg = self.Negotiator(owner_id="owner1", controls=controls)
+        # 10 KAS/day * (480h / 24) = 200 KAS pot -> exceeds 10 KAS threshold
         result = neg.template_deal(
             max_kas_per_tx=5.0, max_kas_per_day=10.0, counterparty_id="agent_abc",
+            duration_hours=480.0,
         )
         self.assertFalse(result["ok"])
         self.assertTrue(result.get("escalated"))
@@ -297,8 +300,9 @@ class TestNegotiatorWrapper(unittest.TestCase):
     def test_template_deal_escalates_first_time(self):
         controls = self.UserControls(human_approval_threshold_kas=100.0)
         neg = self.Negotiator(owner_id="owner1", controls=controls)
+        # 10 KAS/day * (120h / 24) = 50 KAS -> equals half of threshold -> escalates
         result = neg.template_deal(
-            max_kas_per_tx=5.0, max_kas_per_day=10.0, counterparty_id="new_agent", duration_hours=6.0,
+            max_kas_per_tx=5.0, max_kas_per_day=10.0, counterparty_id="new_agent", duration_hours=120.0,
         )
         self.assertFalse(result["ok"])
         self.assertTrue(result.get("escalated"))

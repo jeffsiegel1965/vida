@@ -37,6 +37,16 @@ def check_spend_allowed(
 
     owner = (owner_address or policy.get("owner_address") or "").strip()
     if owner and dest == owner:
+        # Owner return: still enforce max_tx to prevent drain on key compromise
+        max_tx = int(policy.get("max_tx_sompi") or 0)
+        if max_tx > 0 and amount_sompi > max_tx:
+            return {
+                "ok": False,
+                "error": f"owner return amount {amount_sompi} exceeds max_tx_sompi {max_tx}",
+                "enforcement": "soft_policy",
+                "rule": "max_tx_owner",
+                "on_chain_hard_cap": False,
+            }
         return {
             "ok": True,
             "allowed": True,

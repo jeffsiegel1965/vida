@@ -273,15 +273,17 @@ class NegotiationSession:
         return len(self.rounds) >= self.controls.max_negotiation_rounds
 
     def needs_escalation(self, terms: CovenantTerms) -> bool:
-        """Check if a deal exceeds human approval threshold."""
-        pot_value = terms.max_kas_per_day * terms.duration_hours
+        """Check if a deal exceeds human approval threshold.
+        Uses correct daily-rate calculation: (max_kas_per_day * duration_hours / 24)."""
+        pot_value = terms.max_kas_per_day * (terms.duration_hours / 24.0)
         return pot_value >= self.controls.human_approval_threshold_kas
 
     def _check_first_time_escalation(self, is_first_deal: bool, terms: CovenantTerms) -> bool:
-        """Escalate if first-time counterparty and pot is significant."""
+        """Escalate if first-time counterparty and pot is significant.
+        Uses correct daily-rate calculation."""
         if not is_first_deal:
             return False
-        pot_value = terms.max_kas_per_day * terms.duration_hours
+        pot_value = terms.max_kas_per_day * (terms.duration_hours / 24.0)
         half_threshold = self.controls.human_approval_threshold_kas / 2.0
         return pot_value >= half_threshold
 
@@ -616,7 +618,7 @@ class Negotiator:
             return {"ok": False, "error": str(e), "mode": "template"}
 
         # Check escalation
-        pot_value = max_kas_per_day * duration_hours
+        pot_value = max_kas_per_day * (duration_hours / 24.0)
         if pot_value >= self.controls.human_approval_threshold_kas:
             return {
                 "ok": False,
