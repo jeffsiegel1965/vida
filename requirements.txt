@@ -4,3 +4,4 @@ pqcrypto>=0.4
 aiohttp>=3.9
 substrate-interface>=1.7.0,<2
 mnemonic>=0.21
+mcp>=1.28

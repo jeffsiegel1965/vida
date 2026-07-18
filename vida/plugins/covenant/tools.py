@@ -15,6 +15,7 @@ from .agent_pot import plan_agent_pot, SOMPI_PER_KAS
 from .agent_pot_script import build_agent_pot_script_template, verify_policy_hash
 from .fees import calc_fund_fee, calc_spend_fee, get_dev_address, describe_fees
 from .lab_client import live_gates_ok
+from .negotiation import CovenantTerms, create_deal
 
 
 # ── Plugin instance (shared across tools) ──

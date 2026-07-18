@@ -85,10 +85,11 @@ class VidaTransactor:
         result = await tx.send(to_address='kaspa:...', amount_kas=10.0)
     """
 
-    def __init__(self, vida: Vida):
+    def __init__(self, vida: Vida, *, covenant_policy: Optional[dict] = None):
         self.vida = vida
         self.network = "mainnet" if vida.network == "mainnet" else "testnet-10"
         self._client: Optional[RpcClient] = None
+        self.covenant_policy: Optional[dict] = covenant_policy
 
     # ── Connection ────────────────────────────────────────────────────────
 
@@ -228,6 +229,21 @@ class VidaTransactor:
             err = check(amount_kas, dest_address=to_address)
             if err:
                 return SendResult(success=False, error=str(err))
+
+        # ── Covenant pot policy gate (optional hard cap via covenant) ──
+        if self.covenant_policy is not None:
+            try:
+                from vida.plugins.covenant.pot_spend import check_spend_kas
+                cerr = check_spend_kas(
+                    policy=self.covenant_policy,
+                    amount_kas=amount_kas,
+                    destination=to_address,
+                )
+                if not cerr.get("ok"):
+                    return SendResult(success=False, error=cerr.get("error", "covenant policy rejected"))
+            except ImportError:
+                # covenant module not installed; skip check
+                pass
 
         try:
             client = await self.connect()
