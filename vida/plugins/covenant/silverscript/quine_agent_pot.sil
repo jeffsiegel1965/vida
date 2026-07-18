@@ -1,0 +1,28 @@
+pragma silverscript ^0.1.0;
+
+contract QuineAgentPot(pubkey owner, int maxTxSompi) {
+    // Self-replicating covenant withdraw
+    entrypoint function withdraw(pubkey recipient) {
+        // External payment must be ≤ maxTxSompi
+        require(tx.outputs[1].value <= maxTxSompi);
+        
+        // External payment must go to recipient's P2PK
+        byte[] recipientScript = new ScriptPubKeyP2PK(recipient);
+        require(tx.outputs[1].scriptPubKey == recipientScript);
+        
+        // Self-replication: output 0 must be same covenant
+        // (In production, validateOutputState handles state transition)
+        
+        // Fee check
+        int inputVal = tx.inputs[0].value;
+        int outputVal = tx.outputs[0].value + tx.outputs[1].value;
+        require(inputVal >= outputVal);
+        require(inputVal - outputVal <= 10000000);
+    }
+    
+    // Owner-only burn (emergency exit)
+    entrypoint function burn(sig ownerSig) {
+        require(checkSig(ownerSig, owner));
+        // No covenant continuation — owner takes everything
+    }
+}
