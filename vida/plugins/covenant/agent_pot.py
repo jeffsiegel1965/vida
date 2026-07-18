@@ -20,6 +20,9 @@ def plan_agent_pot(
     allowed_destinations: Optional[Sequence[str]] = None,
     session_hours: float = 8.0,
     fee_buffer_kas: float = 0.05,
+    strategy: str = "covenant_bound_p2pk_pot",
+    quine_generations: int = 0,
+    auto_renew: bool = False,
 ) -> dict[str, Any]:
     """
     Recommend pot funding and hard-rule targets for agent working balance.

@@ -82,3 +82,75 @@ class TestNegotiationProtocol(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ── Quine strategy integration tests ──
+
+
+class TestQuineStrategy(unittest.TestCase):
+    """Tests for the self-replicating quine pot strategy."""
+
+    def test_quine_template_ok(self):
+        from vida.plugins.covenant.agent_pot_script import build_agent_pot_script_template
+        t = build_agent_pot_script_template(
+            max_kas_per_tx=1.0,
+            max_kas_per_day=5.0,
+            allowed_destinations=["kaspatest:qtest"],
+            strategy="self_replicating_quine_pot",
+        )
+        self.assertTrue(t["ok"])
+        self.assertEqual(t["strategy"], "self_replicating_quine_pot")
+        self.assertTrue(t["live_script_ready"])
+        self.assertTrue(t["enforcement_now"]["self_replicating"])
+        self.assertIn("quine", t["pseudocode"].lower())
+
+    def test_quine_with_owner_address(self):
+        from vida.plugins.covenant.agent_pot_script import build_agent_pot_script_template
+        t = build_agent_pot_script_template(
+            max_kas_per_tx=1.0,
+            max_kas_per_day=5.0,
+            allowed_destinations=[],
+            owner_address="kaspatest:qowner",
+            strategy="self_replicating_quine_pot",
+        )
+        self.assertTrue(t["ok"])  # owner_address satisfies the dest requirement
+
+    def test_quine_generations(self):
+        from vida.plugins.covenant.agent_pot_script import build_agent_pot_script_template
+        t = build_agent_pot_script_template(
+            max_kas_per_tx=1.0,
+            max_kas_per_day=5.0,
+            allowed_destinations=["kaspatest:qtest"],
+            strategy="self_replicating_quine_pot",
+            quine_generations=10,
+            auto_renew=True,
+        )
+        self.assertTrue(t["ok"])
+        self.assertEqual(t["policy"]["quine_generations"], 10)
+        self.assertEqual(t["policy"]["auto_renew"], True)
+        self.assertIn("10", str(t["enforcement_now"]["generation_limit"]))
+
+    def test_quine_kii_reference(self):
+        """Verify the KII quine covenant ID is referenced in the template."""
+        from vida.plugins.covenant.agent_pot_script import build_agent_pot_script_template
+        t = build_agent_pot_script_template(
+            max_kas_per_tx=1.0,
+            max_kas_per_day=5.0,
+            allowed_destinations=["kaspatest:qtest"],
+            strategy="self_replicating_quine_pot",
+        )
+        cid = t["on_chain_today"]["kii_quine_covenant_id"]
+        self.assertIsNotNone(cid)
+        self.assertIn("b802c18b", cid)
+
+    def test_quine_to_policy_template(self):
+        """Verify that quine terms can generate a policy template via negotiation."""
+        from vida.plugins.covenant.negotiation import create_deal
+        terms = create_deal(
+            max_kas_per_tx=1.0,
+            max_kas_per_day=5.0,
+            allowed_destinations=["kaspatest:qtest"],
+        )
+        template = terms.to_policy_template()
+        self.assertIn("ok", template)
+        self.assertIn("policy_hash", template)

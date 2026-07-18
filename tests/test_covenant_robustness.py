@@ -107,12 +107,13 @@ class TestCovenantRobustness(unittest.TestCase):
         t["policy"]["max_tx_sompi"] = 999999999
         self.assertFalse(verify_policy_hash(t))
 
-    def test_kip17_requires_dests(self):
+    def test_quine_requires_dests(self):
+        """QUINE strategy requires destinations or owner_address."""
         t = build_agent_pot_script_template(
             max_kas_per_tx=1.0,
             max_kas_per_day=5.0,
             allowed_destinations=[],
-            strategy="kip17_max_tx_dest",
+            strategy="self_replicating_quine_pot",
         )
         self.assertFalse(t["ok"])
 
