@@ -5,7 +5,6 @@ Covenant manager — human-side tool for creating, checking, and funding agent p
 Usage:
   python scripts/covenant_manager.py status
   python scripts/covenant_manager.py plan --max-per-tx 1.0 --max-per-day 5.0 --dest kaspatest:...
-  python scripts/covenant_manager.py negotiate --offer '{"max_kas_per_tx": 1.0, "max_kas_per_day": 5.0}'
   python scripts/covenant_manager.py check --amount 0.5 --dest kaspatest:...
   python scripts/covenant_manager.py record <wallet-id>
 """
@@ -34,7 +33,7 @@ from vida.plugins.covenant.tools import (
 def main() -> int:
     ap = argparse.ArgumentParser(description="Covenant manager")
     ap.add_argument("command", choices=[
-        "status", "describe", "gates", "plan", "negotiate", "check", "record"
+        "status", "describe", "gates", "plan", "check", "record"
     ])
 
     ap.add_argument("--wallet-id", default="default")
