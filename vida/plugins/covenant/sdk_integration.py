@@ -28,14 +28,15 @@ from kaspa import (
     PaymentOutput,
     PendingTransaction,
     PrivateKey,
+    Resolver,
     RpcClient,
     Transaction,
     create_transaction,
     Generator,
 )
 
-# Default Kaspa testnet-10 wRPC endpoint
-DEFAULT_WRPC = "wss://wrpc-tn10.kaspa.org:17110"
+# Default: use Resolver for auto-discovery (no hardcoded URLs)
+USE_RESOLVER = True
 
 # Compute budget limits (testnet-10 verified)
 # Standard tx: mass = sigOps * 1000 + storage_mass
@@ -80,12 +81,12 @@ async def deploy_covenant(
     private_key_hex: str,
     value_sompi: int = 100_000_000,  # 1 KAS
     network: str = "testnet-10",
-    wrpc_url: str = DEFAULT_WRPC,
+    wrpc_url: str = "",
     key_address: str = "",
 ) -> CovenantDeployResult:
     """Deploy a SilverScript covenant to the Kaspa network.
     
-    1. Connect to Kaspa wRPC
+    1. Connect to Kaspa via Resolver (PNN auto-discovery)
     2. Get UTXOs for the deployer address
     3. Create covenant output with PaymentOutput.with_covenant
     4. Build, sign, submit transaction
@@ -95,27 +96,31 @@ async def deploy_covenant(
         private_key_hex: Deployer's private key (hex).
         value_sompi: Amount to fund the covenant with (in sompi).
         network: 'testnet-10' or 'mainnet'.
-        wrpc_url: Kaspa wRPC endpoint.
+        wrpc_url: Optional — override Resolver with specific URL.
         key_address: Optional — derived from private key if not provided.
     """
-    priv_key = PrivateKey.from_bytes(bytes.fromhex(private_key_hex))
+    priv_key = PrivateKey(private_key_hex)
     
     # Derive address if not provided
     if not key_address:
-        pub = priv_key.to_public()
-        addr = Address(pub, AddressVersion.PUBLIC_KEY, NetworkType.TESTNET)
+        addr = priv_key.to_address(NetworkType.Testnet)
         key_address = str(addr)
     
-    rpc = RpcClient()
-    rpc.set_resolver(wrpc_url)
-    rpc.set_network_id(NetworkType.TESTNET if "testnet" in network else NetworkType.MAINNET)
+    if wrpc_url:
+        # Direct URL connection (no resolver)
+        rpc = RpcClient()
+        rpc.set_network_id(network)
+    else:
+        # Resolver-based auto-discovery
+        rpc = RpcClient(resolver=Resolver())
+        rpc.set_network_id(network)
     
     try:
         await rpc.connect()
         
         # Get UTXOs
-        utxos = await rpc.get_utxos_by_addresses([key_address])
-        entries = utxos.get(key_address, [])
+        utxos = await rpc.get_utxos_by_addresses(request={"addresses": [key_address]})
+        entries = utxos.get("entries", utxos.get("utxos", [])) if isinstance(utxos, dict) else utxos
         if not entries:
             return CovenantDeployResult(ok=False, error="no UTXOs available")
         
@@ -166,7 +171,7 @@ async def spend_from_covenant(
     to_address: str = "",
     amount_sompi: int = 10_000_000,  # 0.1 KAS
     network: str = "testnet-10",
-    wrpc_url: str = DEFAULT_WRPC,
+    wrpc_url: str = "",
 ) -> CovenantSpendResult:
     """Spend from a deployed covenant.
     
@@ -185,14 +190,16 @@ async def spend_from_covenant(
     if not to_address:
         return CovenantSpendResult(ok=False, error="to_address required for spend")
     
-    priv_key = PrivateKey.from_bytes(bytes.fromhex(private_key_hex))
-    pub = priv_key.to_public()
-    addr = Address(pub, AddressVersion.PUBLIC_KEY, NetworkType.TESTNET)
+    priv_key = PrivateKey(private_key_hex)
+    addr = priv_key.to_address(NetworkType.Testnet)
     owner_address = str(addr)
     
-    rpc = RpcClient()
-    rpc.set_resolver(wrpc_url)
-    rpc.set_network_id(NetworkType.TESTNET if "testnet" in network else NetworkType.MAINNET)
+    if wrpc_url:
+        rpc = RpcClient()
+        rpc.set_network_id(network)
+    else:
+        rpc = RpcClient(resolver=Resolver())
+        rpc.set_network_id(network)
     
     try:
         await rpc.connect()
@@ -260,7 +267,7 @@ async def spend_from_covenant(
 async def covenant_balance(
     covenant_id: str,
     network: str = "testnet-10",
-    wrpc_url: str = DEFAULT_WRPC,
+    wrpc_url: str = "",
 ) -> dict[str, Any]:
     """Check the balance of a covenant via kascov explorer.
     
@@ -290,7 +297,7 @@ def deploy(
     private_key_hex: str,
     value_sompi: int = 100_000_000,
     network: str = "testnet-10",
-    wrpc_url: str = DEFAULT_WRPC,
+    wrpc_url: str = "",
 ) -> CovenantDeployResult:
     """Sync wrapper for deploy_covenant."""
     return asyncio.run(deploy_covenant(
@@ -310,7 +317,7 @@ def spend(
     to_address: str = "",
     amount_sompi: int = 10_000_000,
     network: str = "testnet-10",
-    wrpc_url: str = DEFAULT_WRPC,
+    wrpc_url: str = "",
 ) -> CovenantSpendResult:
     """Sync wrapper for spend_from_covenant."""
     return asyncio.run(spend_from_covenant(

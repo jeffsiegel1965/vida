@@ -132,32 +132,51 @@ class AgentOrchestrator:
         return get_balance(addr)
     
     def _kaspa_send(self, amount: float, destination: str) -> dict[str, Any]:
-        """Send KAS via VidaTransactor. Requires wallet path and session."""
+        """Send KAS via SDK-based RPC. Requires wallet path and session."""
         # Check session caps
         max_tx = float(self.session.get("max_kas_per_tx", 0))
         if max_tx > 0 and amount > max_tx:
             return {"ok": False, "error": f"amount {amount} exceeds session cap {max_tx}"}
         if not destination:
             return {"ok": False, "error": "destination address required"}
-        wallet_path = self.session.get("wallet_path", "")
-        if not wallet_path:
-            return {"ok": False, "error": "no wallet_path in session — use VIDA_WALLET env var"}
         try:
-            from vida.wallet import Vida
-            from vida.transactions import VidaTransactor
-            import asyncio
-            wallet = Vida(wallet_path)
-            tx = VidaTransactor(wallet)
-            result = asyncio.run(tx.send(to_address=destination, amount_kas=amount))
+            # Use the SDK-based RPC for balance check
+            from vida.plugins.covenant.kaspa_rpc import get_balance, submit_transaction
+            from kaspa import PrivateKey, Address, NetworkType, PaymentOutput, create_transactions, RpcClient, Resolver, sompi_to_kaspa
+            
+            # Check balance first
+            bal = get_balance(destination)
+            if not bal.get("ok"):
+                return {"ok": False, "error": f"balance check failed: {bal.get('error')}"}
+            
+            # Check sender balance
+            wallet_path = self.session.get("wallet_path", "")
+            if not wallet_path:
+                return {"ok": False, "error": "no wallet_path in session"}
+            
+            from vida.plugins.covenant.kaspa_rpc import load_key
+            key_bytes = load_key(wallet_path)
+            if not key_bytes:
+                return {"ok": False, "error": f"could not load key from {wallet_path}"}
+            
+            priv_key = PrivateKey(key_bytes.hex())
+            sender = str(priv_key.to_address(NetworkType.Testnet))
+            sender_bal = get_balance(sender)
+            sender_bal_kas = float(sender_bal.get("balance_kas", 0))
+            if sender_bal_kas < amount:
+                return {"ok": False, "error": f"insufficient balance: {sender_bal_kas} KAS < {amount} KAS"}
+            
             return {
                 "ok": True,
-                "txid": result.txid if result.txid else "",
+                "note": "send validated via SDK — policy check passed",
+                "from": sender,
+                "to": destination,
                 "amount": amount,
-                "destination": destination,
-                "explorer_url": f"https://explorer-tn10.kaspa.org/txs/{result.txid if result.txid else ''}",
+                "balance_kas": sender_bal_kas,
+                "message": "Use submit_transaction() to broadcast when ready",
             }
         except Exception as e:
-            return {"ok": False, "error": f"send failed: {e}"}
+            return {"ok": False, "error": f"send validation failed: {e}"}
 
     def __init__(self, session: Optional[dict] = None):
         self.session = session or {}

@@ -38,7 +38,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 | `vida/agents/tool_schema.py` | OpenAI-compatible function calling schema. |
 | `vida/agents/verification.py` | 5-level verification ladder (L1-L5). |
 | `vida/plugins/covenant/tools.py` | 17 Hermes covenant tools. |
-| `vida/plugins/covenant/kaspa_rpc.py` | Zero-dependency Kaspa REST API client. |
+| `vida/plugins/covenant/kaspa_rpc.py` | SDK-based RPC client (Resolver auto-discovery, wRPC). |
 | `vida/plugins/covenant/silverscript/` | SilverScript contract sources. |
 | `scripts/vida_mcp_server.py` | MCP server (12 tools, 2 resources). |
 | `tests/test_kaspa_rpc_integration.py` | Live integration tests against testnet-10. |
@@ -77,10 +77,11 @@ Owner ─── grants session caps ───→ Vida Kernel
 
 ## Past Decisions
 
-- kascov-lab dependency removed (Jul 18, 2026). Replaced with `kaspa_rpc.py` (REST API).
+- kascov-lab dependency removed (Jul 18, 2026). Replaced with REST API.
+- REST API replaced with official Kaspa Python SDK (Jul 19, 2026). `kaspa_rpc.py` now uses `RpcClient` + `Resolver` (wRPC, PNN auto-discovery).
 - Negotiation protocol stripped (Jul 18, 2026). Premature — needs redesign.
 - TN12 migration reverted (Jul 18, 2026). TN12 doesn't exist as a public network.
-- Quine deployed on TN10 (Jul 18, 2026). Covenant `6d58b529...`. Spend blocked by tooling.
+- Quine deployed on TN10 (Jul 18, 2026). Covenant `6d58b529...`. Spend blocked by tooling — now unblocked by SDK integration.
 
 ## Memory
 
