@@ -1,71 +1,69 @@
 # Vida
 
-**Your agent's wallet. You set the limits. Real money on Kaspa and TAO.**
+**Agent-compatible wallet for Kaspa and Bittensor.**
 
-Vida is an agentic wallet — software that lets AI agents send, receive, and stake cryptocurrency under limits you control. The agent never touches your seed phrase. You grant it a session with caps, and you can revoke it anytime.
+Vida is a wallet designed so an AI agent can send, receive, and stake cryptocurrency under limits you control. It is not an agent itself — it is the permission layer an agent operates through.
 
-It works on **Kaspa mainnet** (KAS) and **Bittensor Finney** (TAO). The covenant module creates on-chain smart contracts — the network itself enforces the rules, not a middleman.
-
----
-
-## What it does
-
-### Kaspa core (MIT)
-Send and receive KAS through an agent session. Proven on mainnet. The agent gets spending caps per transaction and per day. You hold the keys.
-
-### TAO plugin (MIT)
-Stake TAO to validators, unstake, do P2P transfers — all through an agent session with caps. Emission-based optimization plans are generated locally (not paid marketing).
-
-### Covenant module (Commercial)
-On-chain Kaspa covenants — smart contracts written in SilverScript that lock funds and enforce rules at the network level. The module handles:
-
-- **Agent pot planning** — calculate how much to fund a covenant, what hard limits to set (per-tx max, per-day max, destination allowlist)
-- **Pot spend policy** — software-level enforcement of max_tx and allowed destinations before broadcast, including for owner return paths
-- **kascov-lab integration** — run the full covenant lifecycle: Genesis (fund a covenant UTXO) → Transition (spend from it under policy) → Burn (owner reclaim)
-- **SilverScript quine** — a self-replicating covenant contract (compiled, debugger-verified) that reproduces its own hash across generations, with an owner burn path. Based on the KII mainnet pattern (96 generations from 1 KAS)
-- **Pot record persistence** — all covenant funding metadata saved to disk (policies, txids, subscription schedules)
-- **Hermes agent tools** — 17 tools for agents to interact with covenants: check status, plan pots, query kascov explorer, validate spend policies
+The wallet runs on Kaspa mainnet (KAS) and Bittensor Finney (TAO). The covenant module creates on-chain SilverScript contracts on testnet-10.
 
 ---
 
-## Architecture
+## Status
 
+| Layer | Status | Detail |
+|-------|--------|--------|
+| Wallet (send/receive KAS) | ✅ Mainnet | Session-gated, capped |
+| TAO (stake/unstake/transfer) | ✅ Finney | Session-gated, capped |
+| Agent loop (LLM → plan → execute) | ✅ Working | K2.5-powered orchestrator |
+| MCP server | ✅ Working | 12 tools, 2 resources |
+| Covenant module | ⚠️ TN10 only | Gated, requires kascov-lab binary |
+| SilverScript quine | ⚠️ Deployed, unspendable | Tooling gap — kascov-lab doesn't recognize custom contracts |
+| Agent negotiation | ❌ Stripped | Needs redesign — backed up to dev/ |
+| Mainnet covenants | ❌ Not possible | Kaspa Toccata not yet on mainnet |
+
+---
+
+## What's real
+
+### Kaspa core
+Send and receive KAS through an agent session. The agent gets per-transaction and per-day caps. You hold the keys. Proven on mainnet.
+
+### TAO plugin
+Stake, unstake, and P2P transfer TAO through a session. Emission-based optimization plans generated locally.
+
+### Agent orchestrator
+`vida/agents/orchestrator.py` — a real agent loop. Takes a natural language goal, calls K2.5 to plan execution, runs each step against real Vida tools, and reports results.
+
+An agent saying "plan a 5 KAS pot and check what covenants are available" gets:
+1. K2.5 decomposes the goal → JSON plan
+2. `covenant_plan_pot(5,5)` runs → pot calculated
+3. `covenant_describe()` runs → capabilities listed
+
+### MCP server
+`scripts/vida_mcp_server.py` — exposes 12 tools + 2 resources. Compatible with Claude Desktop, Cursor, Grok Build. The `vida_agent_goal` tool wraps the agent orchestrator.
+
+### Security model
+`vida/secure_wallet.py` — AES-256-GCM encrypted wallet files, scrypt KDF (2^17 rounds), host-bound session files, authenticated spend counters, atomic TOCTOU-safe writes.
+
+### Covenant TN10 proofs
+Three full covenant lifecycles (genesis → transition → burn) executed on testnet-10:
+
+```text
+Lifecycle 1: covenant b58280037a692f4cd1ae087d9e258505add8e4fd4976a1146c6951b6ee471797
+Lifecycle 2: covenant 6d58b529ca25819a8cc58ae110d1b113cd688cf4b1cbbe15ef3dd7e799434028 (quine)
+Lifecycle 3: covenant 2d0ade44cb97f07350a93848a1d6edb4dcb49fcbce60298e17b3acc351300046 (quine)
 ```
-┌───────────────────────────────────────────────┐
-│                  Owner                          │
-│  (24-word seed phrase — stored offline)         │
-└──────────────────┬────────────────────────────┘
-                   │ grants caps
-                   ▼
-┌───────────────────────────────────────────────┐
-│            Session File                         │
-│  max_kas_per_tx  │  max_kas_per_day             │
-│  allowed_destinations  │  duration_hours         │
-└──────────────────┬────────────────────────────┘
-                   │ agent operates within caps
-                   ▼
-┌───────────────────────────────────────────────┐
-│               Vida Kernel                       │
-│                                                 │
-│  ┌─────────────────┐  ┌───────────────────┐    │
-│  │  Kaspa core      │  │  TAO plugin       │    │
-│  │  · send/receive  │  │  · stake/unstake  │    │
-│  │  · mainnet       │  │  · P2P transfer   │    │
-│  └─────────────────┘  │  · optimizations   │    │
-│                       └───────────────────┘    │
-│  ┌────────────────────────────────────────┐    │
-│  │  Covenant module (commercial)           │    │
-│  │  · pot planning & policy enforcement    │    │
-│  │  · kascov-lab lifecycle (TN10)          │    │
-│  │  · SilverScript quine contracts         │    │
-│  │  · pot record persistence               │    │
-│  │  · 17 Hermes agent tools               │    │
-│  └────────────────────────────────────────┘    │
-└──────────────────┬────────────────────────────┘
-                   │
-                   ▼
-     Kaspa mainnet · TAO Finney · testnet-10
-```
+
+---
+
+## What's not real (yet)
+
+| Claim | Reality |
+|-------|---------|
+| "Agent economy platform" | No agent-to-agent commerce exists. Negotiation protocol was stripped as premature. |
+| "Mainnet covenants" | Kaspa Toccata covenants not deployed on mainnet. All proofs on testnet-10. |
+| "Self-replicating quine spends" | The quine contract compiles and deploys, but kascov-lab cannot spend from it. Tooling gap. |
+| "Agent chooses this autonomously" | The orchestrator exists but has no persistent memory, no inter-agent communication, and no error recovery. |
 
 ---
 
@@ -74,170 +72,152 @@ On-chain Kaspa covenants — smart contracts written in SilverScript that lock f
 ```bash
 git clone https://github.com/jeffsiegel1965/vida.git
 cd vida
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+uv venv && source .venv/bin/activate
+uv pip install -r requirements.txt
 
-# Create your wallet — write down the 24 words
+# Create wallet
 python scripts/setup_owner_wallet.py
 
 # Grant an agent session: 1 KAS/tx, 5 KAS/day, 24 hours
 python scripts/grant_session.py --hours 24 --max-tx 1 --max-day 5
 
-# Revoke anytime
-python scripts/grant_session.py --revoke
+# Run the agent orchestrator
+PYTHONPATH=$PWD python -m vida.agents.staking_optimizer \
+  "Check covenant status and plan a 5 KAS pot"
+
+# Start the MCP server (for Claude Desktop / Cursor / Grok Build)
+VIDA_SESSION=/path/to/session.json python scripts/vida_mcp_server.py
 ```
 
----
-
-## Agent pot system
-
-An agent pot is a funding plan for a covenant. The module calculates how much KAS to fund, what hard rules the covenant should enforce, and estimates network fees.
-
-```python
-from vida.plugins.covenant import plan_agent_pot
-
-plan = plan_agent_pot(
-    max_kas_per_tx=1.0,
-    max_kas_per_day=5.0,
-    allowed_destinations=["kaspa:address..."],
-    session_hours=24,
-)
-# → { "ok": True, "fund_pot_kas": 5.0, "max_tx_sompi": 100000000, ... }
-```
-
-### Pot spend policy
-
-Before broadcasting any spend, Vida checks:
-
-| Check | What it prevents |
-|-------|-----------------|
-| `amount_sompi ≤ max_tx_sompi` | Agent can't exceed per-transaction cap |
-| `destination in allowlist` (optional) | Agent can only send to approved addresses |
-| Owner return also capped by max_tx | Compromised key can't drain the pot |
-
-```python
-from vida.plugins.covenant import check_spend_kas
-
-result = check_spend_kas(
-    policy=plan,
-    amount_kas=2.0,
-    destination="kaspa:address...",
-)
-# → { "ok": False, "error": "amount exceeds max_tx_sompi", ... }
-```
-
-### Covenant lifecycle (via kascov-lab)
-
-Run the full lifecycle on testnet-10:
+Tests:
 
 ```bash
-# Generate a key
-kascov-lab keygen
-
-# Check balance
-kascov-lab balance
-
-# Full lifecycle: Genesis → Transition → Burn
-kascov-lab demo --transitions 2
-```
-
-**Fresh on-chain proof (Jul 18, 2026):**
-
-```
-Covenant: b58280037a692f4cd1ae087d9e258505add8e4fd4976a1146c6951b6ee471797
-Genesis:  https://explorer-tn10.kaspa.org/txs/9b046551ea7ed627...
-View on: https://kascov.io/c/testnet-10/b58280037a692f4cd1ae087d9e258505add8e4fd4976a1146c6951b6ee471797
-```
-
-### SilverScript quine
-
-The quine contract reproduces its own covenant hash in the change output of each spend. Each generation decrements a counter. The owner can burn any generation by signing a burn transaction.
-
-```
-quine_agent_pot.sil  (compiled, debugger-verified)
-  entrypoints: withdraw(pubkey), burn(sig)
-  pattern: KII mainnet quine (96 generations from 1 KAS)
-  covenant: b802c18ba691c4a52c4a89de7f72fe475637e3a70f9f56a32663b5754a1ed4af
+PYTHONPATH=$PWD python -m pytest tests/ -q
+104 passed in 17s
 ```
 
 ---
 
-## Hermes agent tools
+## Agent loop
 
-The covenant module exposes 17 tools for Hermes Agent integration:
+The orchestrator (`vida/agents/orchestrator.py`) implements:
 
-| Tool | What it does |
-|------|-------------|
-| `covenant_status` | Module health check |
-| `covenant_describe` | Capabilities overview |
-| `covenant_live_gates` | Check if kascov-lab is available |
-| `covenant_plan_pot` | Calculate agent pot funding |
-| `covenant_plan_with_fees` | Pot plan with dev fee breakdown |
-| `covenant_estimate_fee` | Fee estimation for fund or spend |
-| `covenant_fee_schedule` | Full fee structure |
-| `covenant_spend_policy_check` | Validate a spend against policy |
-| `covenant_pot_record` | Load stored pot records |
-| `covenant_validate_pot` | Verify policy template hash integrity |
-| `covenant_quine_info` | SilverScript quine deployment info |
-| `covenant_kascov_live` | kascov explorer live feed |
-| `covenant_kascov_verify` | Verify covenant on-chain |
-| `covenant_kascov_search` | Search covenants by query |
-| `covenant_kascov_address` | Check which covenants an address controls |
+```
+Goal ("stake 50 TAO with highest APY")
+  ↓
+K2.5 decomposes → 3-step JSON plan
+  ↓
+covenant_describe() → step 1
+covenant_plan_pot(50, 50) → step 2
+covenant_live_gates() → step 3
+  ↓
+Result: 3/3 steps completed, per-step status + timing
+```
+
+Available tools: 16 covenant tools via `_TOOL_IMPL` + `_safe_tool` dispatcher. Each returns `{"ok": bool, ...}`.
+
+The MCP server exposes these tools to any MCP-compatible client. The `vida_agent_goal` tool takes a natural language goal and runs the full loop.
 
 ---
 
-## Proof
+## Covenant module
 
-| Rail | What | Tx |
-|------|------|-----|
-| Kaspa mainnet | Agent send, 10 KAS | [`d32b4504…`](https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7) |
-| Covenant TN10 | Genesis → Transition → Burn | [`9b046551…`](https://explorer-tn10.kaspa.org/txs/9b046551ea7ed627b3caaa2894f24f48d67fd0ffdabb13055cdac233d8de8272) |
-| TAO Finney | Owner stake, 0.05 TAO | `0xdc2cd8…` (on-chain) |
-| TAO Finney | Agent session stake, 0.02 TAO | `0x44c9b9…` (on-chain) |
-| TAO Finney | P2P transfer, 0.005 TAO | `0xa0915a…` (on-chain) |
+The covenant module (`vida/plugins/covenant/`) is a commercial plugin that creates on-chain Kaspa covenants.
+
+**Current state:** Offline-only by default. Requires `VIDA_COVENANT_LIVE=1` + the `kascov-lab` Rust binary. All on-chain proofs are on testnet-10.
+
+### What's fully working offline
+- Agent pot planning (`plan_agent_pot`): calculate funding, set hard rules
+- Spend policy validation (`check_spend_kas`): enforce caps before broadcast
+- Pot record persistence: metadata saved to disk
+- 17 Hermes agent tools: status, describe, plan, validate, kascov queries
+
+### What needs kascov-lab binary
+- Covenant deploy (`kascov-lab deploy`): birth a compiled SilverScript program
+- Covenant spend (`kascov-lab spend`): spend from a deployed covenant
+- Full lifecycle (`kascov-lab demo`): genesis → transition → burn
+
+### What's blocked
+- Custom SilverScript spends: kascov-lab only knows 3 contract types (Mecenas, Escrow, LastWill)
+- Quine spend: our QuineAgentPot contract is deployed but unspendable via kascov-lab
+- WASM bridge: Node.js covenant helpers have hash mismatch (documented in proof doc)
+
+### QuineAgentPot contract
+
+`vida/plugins/covenant/silverscript/quine_agent_pot.sil`
+
+```silver
+contract QuineAgentPot(pubkey owner, int maxTxSompi) {
+    entrypoint withdraw(pubkey recipient) {
+        require(checkSig(owner));  // Owner must authorize
+        require(output[0].scriptPubKey == input[0].scriptPubKey);  // Self-replicate
+        require(output[1].value <= maxTxSompi);  // Bound payment
+        require(input[0].value >= output[0].value + output[1].value);  // Fee guard
+    }
+    entrypoint burn(sig ownerSig) {
+        require(checkSig(ownerSig, owner));  // Owner-close
+    }
+}
+```
+
+Status: Compiled (113 bytes), deployed on TN10 (covenant `6d58b529`), spend path blocked by kascov-lab tooling gap.
+
+---
+
+## Architecture
+
+```text
+Owner ─── grants session caps ───→ Vida Kernel
+                                       │
+                          ┌────────────┼────────────┐
+                          │            │            │
+                     Kaspa core    TAO plugin   Covenant
+                     (send/recv)  (stake/swap)  (TN10 only)
+                          │            │            │
+                          └────────────┼────────────┘
+                                       │
+                                  Agent tools
+                          (orchestrator.py / MCP server)
+                                       │
+                                  LLM agent
+```
 
 ---
 
 ## Tests
 
-```
+```text
 104 tests · 17s · pytest
-```
 
-| Suite | Tests | Coverage |
-|-------|-------|----------|
-| Covenant scaffold | Scaffolding, basic operations |
-| Covenant robustness | Edge cases, error handling |
-| TAO staking | 62 | Stake, unstake, P2P, session management |
-| Kaspa core | 27 | Wallet, transactions, secure operations |
+Covenant scaffold:    scaffold operations
+Covenant robustness:  edge cases, error handling
+TAO plugin:           62 tests (stake, unstake, P2P, sessions)
+Kaspa core:           27 tests (wallet, transactions, secure ops)
+```
 
 ---
 
 ## Plugin platform
 
 Every plugin follows the same session model:
-
 - Owner grants caps per plugin
-- Agent acts inside those caps — no password exposure
+- Agent acts inside those caps
 - Revoke by deleting the session file
 
 | Plugin | Rail | Status | License |
 |--------|------|--------|---------|
 | Kaspa core | KAS | Shipped | MIT |
 | TAO | TAO | Shipped | MIT |
-| Covenant module | KAS covenants | Shipped | Commercial |
+| Covenant | KAS covenants | TN10 only | Commercial |
 
 ---
 
 ## License
 
-- **Kaspa core + TAO plugin:** MIT — free to use, modify, distribute
+- **Kaspa core + TAO plugin:** MIT
 - **Covenant module:** Commercial license
 
-Development fund (KAS):
-```
-kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k
-```
+Development fund address configurable via `VIDA_DEV_FUND` / `VIDA_DEV_FUND_TESTNET` env vars.
 
 ---
 
