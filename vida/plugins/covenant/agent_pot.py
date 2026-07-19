@@ -70,7 +70,7 @@ def plan_agent_pot(
             "Never fund vault/life savings into the agent pot.",
             "On-chain hard caps need post-Toccata client (see TN10 micro-proof).",
         ],
-        "live_ready": False,
+        "live_ready": False,  # Set True via plan_agent_pot(..., live_ready=True)
         "reference_proof": "docs/proofs/covenant_tn10_microproof.md",
         "design_doc": "docs/plugins/covenant/AGENT_HARD_CAP_DESIGN.md",
     }

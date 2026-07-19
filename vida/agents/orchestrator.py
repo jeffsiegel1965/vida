@@ -34,6 +34,24 @@ from vida.plugins.covenant import (
 
 logger = logging.getLogger("vida.agents")
 
+# ── Tool helpers ──
+
+def _safe_tool(name: str, **kw: Any) -> dict[str, Any]:
+    """Safely call a tool by name from the covenant tools module.
+    
+    Returns {"ok": False, "error": ...} if the tool doesn't exist or errors.
+    """
+    from vida.plugins.covenant.tools import HERMES_TOOLS
+    tool = HERMES_TOOLS.get(name)
+    if not tool:
+        return {"ok": False, "error": f"unknown tool: {name}"}
+    try:
+        fn = tool["fn"]
+        return fn(**kw) if kw else fn()
+    except Exception as e:
+        return {"ok": False, "error": f"{name} failed: {e}"}
+
+
 # ── Type aliases ──
 
 ToolResult = dict[str, Any]
@@ -76,7 +94,9 @@ class AgentOrchestrator:
     """
     
     # ── Tool dispatch ──
-    # Maps tool names to their implementation functions
+    # Maps tool names to their implementation functions.
+    # WARNING: Each tool must return {"ok": bool, ...}. Do NOT alias tools.
+    
     _TOOL_IMPL = {
         "covenant_status": lambda ctx: covenant_status(),
         "covenant_describe": lambda ctx: covenant_describe(),
@@ -84,11 +104,16 @@ class AgentOrchestrator:
         "covenant_plan_pot": lambda ctx, **kw: covenant_plan_pot(**kw),
         "covenant_spend_policy_check": lambda ctx, **kw: covenant_spend_policy_check(**kw),
         "covenant_quine_info": lambda ctx: covenant_quine_info(),
-        "wallet_balance": lambda ctx: covenant_status(),
-        "tao_balance": lambda ctx: covenant_status(),
-        "tao_stake_optimize": lambda ctx, **kw: covenant_plan_pot(**kw),
+        "covenant_kascov_verify": lambda ctx, **kw: _safe_tool("covenant_kascov_verify", **kw),
+        "covenant_kascov_search": lambda ctx, **kw: _safe_tool("covenant_kascov_search", **kw),
+        "covenant_kascov_address": lambda ctx, **kw: _safe_tool("covenant_kascov_address", **kw),
+        "covenant_kascov_live": lambda ctx: _safe_tool("covenant_kascov_live"),
+        "covenant_validate_pot": lambda ctx, **kw: _safe_tool("covenant_validate_pot", **kw),
+        "covenant_estimate_fee": lambda ctx, **kw: _safe_tool("covenant_estimate_fee", **kw),
+        "covenant_fee_schedule": lambda ctx: _safe_tool("covenant_fee_schedule"),
+        "covenant_plan_with_fees": lambda ctx, **kw: _safe_tool("covenant_plan_with_fees", **kw),
     }
-    
+
     def __init__(self, session: Optional[dict] = None):
         self.session = session or {}
         self._plan: Optional[ExecutionPlan] = None
