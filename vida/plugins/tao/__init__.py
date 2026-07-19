@@ -16,6 +16,9 @@ from .tools import (
     vida_tao_transfer,
     vida_tao_optimize,
     vida_tao_session_info,
+    tao_list_subnets,
+    tao_subnet_info,
+    tao_subnet_query,
     HERMES_TOOLS,
 )
 from .session import grant_tao_agent_session, revoke_tao_agent_session, load_tao_session_secrets
@@ -50,5 +53,8 @@ __all__ = [
     "vida_tao_transfer",
     "vida_tao_optimize",
     "vida_tao_session_info",
+    "tao_list_subnets",
+    "tao_subnet_info",
+    "tao_subnet_query",
     "HERMES_TOOLS",
 ]

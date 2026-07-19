@@ -65,6 +65,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 | Covenant deploy (on-chain) | ⚠️ TN10 only, gated |
 | SilverScript quine spend | ⚠️ Compiled, spend blocked (tooling gap) |
 | Agent negotiation | ✅ Rebuilt — templates + memory + subscriptions |
+| TAO subnet marketplace | ✅ Discovery + query tools added |
 | Mainnet covenants | ❌ Waiting for Kaspa Toccata |
 
 ## Common Mistakes

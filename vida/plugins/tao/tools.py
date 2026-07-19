@@ -19,6 +19,8 @@ from .accounts import TaoAccountStore
 from .config import load_tao_config
 from .paths import resolve_session_path, resolve_store_dir
 from .plugin import TaoPlugin
+from .subnet_marketplace import SubnetRegistry
+from .subnet_client import tao_list_subnets, tao_subnet_info, tao_subnet_query
 
 
 def _plugin(
@@ -254,5 +256,20 @@ HERMES_TOOLS = {
         "fn": vida_tao_optimize,
         "description": "Plan or execute TAO yield rebalance (execute needs session)",
         "mutating": True,
+    },
+    "vida_tao_list_subnets": {
+        "fn": tao_list_subnets,
+        "description": "List available Bittensor subnets and their services (compute, LLM, storage, etc.)",
+        "mutating": False,
+    },
+    "vida_tao_subnet_info": {
+        "fn": tao_subnet_info,
+        "description": "Get detailed info about a specific subnet by netuid",
+        "mutating": False,
+    },
+    "vida_tao_subnet_query": {
+        "fn": tao_subnet_query,
+        "description": "Query a subnet's API to consume its service (requires prior payment)",
+        "mutating": False,
     },
 }
