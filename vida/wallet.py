@@ -329,6 +329,15 @@ def create_wallet(
     Returns:
         Vida wallet instance
     """
+    import sys as _sys
+    print("!" * 60, file=_sys.stderr)
+    print("!!! WARNING: PLAINTEXT PRIVATE KEY STORAGE !!!", file=_sys.stderr)
+    print("!!! This wallet saves keys in plaintext JSON. !!!", file=_sys.stderr)
+    print("!!! Use secure_wallet.py for real funds.      !!!", file=_sys.stderr)
+    print("!" * 60, file=_sys.stderr)
+    import time as _time
+    _time.sleep(3)
+    
     wallet_path = Path(wallet_path)
     
     # Generate Kaspa keypair

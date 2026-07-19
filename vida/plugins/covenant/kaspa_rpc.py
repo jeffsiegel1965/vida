@@ -31,7 +31,10 @@ DEFAULT_API = "https://api-tn10.kaspa.org"
 def _api_get(path: str, base: str = DEFAULT_API) -> dict[str, Any]:
     """GET request to the Kaspa REST API."""
     url = f"{base}{path}"
-    req = urllib.request.Request(url, headers={"accept": "application/json"})
+    req = urllib.request.Request(url, headers={
+        "accept": "application/json",
+        "user-agent": "vida/0.1 (integration-test)",
+    })
     try:
         with urllib.request.urlopen(req, timeout=30) as res:
             return json.load(res)
