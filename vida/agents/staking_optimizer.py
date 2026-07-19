@@ -19,7 +19,10 @@ from typing import Any
 
 # ── LLM client ──
 
-API_KEY = os.environ.get("ZYLOO_API_KEY", "sk-zy-57bb206cf1be10d679f54e67a7f2675494931b7a44485cde")
+API_KEY = os.environ.get("ZYLOO_API_KEY")
+if not API_KEY:
+    print("ERROR: ZYLOO_API_KEY environment variable not set", file=sys.stderr)
+    sys.exit(1)
 API_URL = "https://api.zyloo.io/v1/chat/completions"
 MODEL = "zyloo/kimi-k2.5"
 

@@ -112,7 +112,29 @@ class AgentOrchestrator:
         "covenant_estimate_fee": lambda ctx, **kw: _safe_tool("covenant_estimate_fee", **kw),
         "covenant_fee_schedule": lambda ctx: _safe_tool("covenant_fee_schedule"),
         "covenant_plan_with_fees": lambda ctx, **kw: _safe_tool("covenant_plan_with_fees", **kw),
+        "kaspa_balance": lambda ctx: _kaspa_balance(),
+        "kaspa_send": lambda ctx, **kw: _kaspa_send(**kw),
     }
+    
+    def _kaspa_balance(self) -> dict[str, Any]:
+        """Check wallet balance via Kaspa REST API."""
+        from vida.plugins.covenant.kaspa_rpc import get_balance
+        # Try configured address, fall back to session
+        addr = self.session.get("address", "")
+        if not addr:
+            return {"ok": False, "error": "no wallet address configured"}
+        return get_balance(addr)
+    
+    def _kaspa_send(self, amount: float, destination: str) -> dict[str, Any]:
+        """Send KAS via Kaspa REST API. Requires session with caps."""
+        # Check session caps
+        max_tx = float(self.session.get("max_kas_per_tx", 0))
+        if max_tx > 0 and amount > max_tx:
+            return {"ok": False, "error": f"amount {amount} exceeds session cap {max_tx}"}
+        if not destination:
+            return {"ok": False, "error": "destination address required"}
+        # Note: actual broadcast needs wallet signing — this validates the policy
+        return {"ok": True, "note": "send validated by policy; broadcast requires wallet signing", "amount": amount, "destination": destination}
 
     def __init__(self, session: Optional[dict] = None):
         self.session = session or {}

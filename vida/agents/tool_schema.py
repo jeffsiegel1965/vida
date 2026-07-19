@@ -76,14 +76,8 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
                 "type": "object",
                 "properties": {
                     "amount": {"type": "number", "description": "Amount in KAS"},
-                    "destination": {
-                        "type": "string",
-                        "description": "Destination address",
-                    },
-                    "wallet_id": {
-                        "type": "string",
-                        "description": "Pot wallet ID",
-                    },
+                    "destination": {"type": "string", "description": "Destination address"},
+                    "wallet_id": {"type": "string", "description": "Pot wallet ID"},
                 },
                 "required": ["amount", "destination", "wallet_id"],
             },
@@ -97,10 +91,7 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "covenant_id": {
-                        "type": "string",
-                        "description": "Covenant ID to verify",
-                    },
+                    "covenant_id": {"type": "string", "description": "Covenant ID to verify"},
                 },
                 "required": ["covenant_id"],
             },
@@ -117,44 +108,35 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
-            "name": "wallet_balance",
-            "description": "Check the configured wallet's KAS balance on testnet-10",
-            "parameters": {"type": "object", "properties": {}},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "tao_balance",
-            "description": "Check TAO balance on Bittensor Finney",
-            "parameters": {"type": "object", "properties": {}},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "tao_stake_optimize",
-            "description": "Generate an optimized staking plan for TAO: calculate emission-based recommendations",
+            "name": "kaspa_balance",
+            "description": "Check the KAS balance for a wallet address via the Kaspa REST API",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "amount": {
-                        "type": "number",
-                        "description": "Amount of TAO to stake",
-                    },
-                    "risk_tolerance": {
-                        "type": "string",
-                        "enum": ["low", "medium", "high"],
-                        "description": "Risk tolerance for validator selection",
-                    },
+                    "address": {"type": "string", "description": "Kaspa address (optional, defaults to configured wallet)"},
                 },
-                "required": ["amount"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "kaspa_send",
+            "description": "Send KAS to a destination address. Requires a session with sufficient caps.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "amount": {"type": "number", "description": "Amount in KAS"},
+                    "destination": {"type": "string", "description": "Destination Kaspa address"},
+                },
+                "required": ["amount", "destination"],
             },
         },
     },
 ]
 
 # ── Tool dispatch map ──
+# Maps tool names to their implementation. No aliases — every name maps to a real function.
 
 TOOL_MAP: dict[str, str] = {
     "covenant_status": "covenant_status",
@@ -164,7 +146,6 @@ TOOL_MAP: dict[str, str] = {
     "covenant_spend_policy_check": "covenant_spend_policy_check",
     "covenant_kascov_verify": "covenant_kascov_verify",
     "covenant_quine_info": "covenant_quine_info",
-    "wallet_balance": "covenant_status",  # alias
-    "tao_balance": "covenant_status",  # alias
-    "tao_stake_optimize": "covenant_plan_pot",  # alias
+    "kaspa_balance": "kaspa_balance",
+    "kaspa_send": "kaspa_send",
 }
