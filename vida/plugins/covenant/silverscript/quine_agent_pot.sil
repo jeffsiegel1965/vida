@@ -1,31 +1,40 @@
 pragma silverscript ^0.1.0;
 
 contract QuineAgentPot(pubkey owner, int maxTxSompi) {
-    // Self-replicating covenant withdraw
+    // ── Authorized Agent Spend ──
+    // The owner signs to authorize a payout. output[0] carries the covenant
+    // forward via self-replication, and output[1] pays the recipient.
     entrypoint function withdraw(pubkey recipient) {
-        // Guard: must have at least 2 outputs (payment + self-replication)
-        require(tx.outputs.length >= 2, "need payment + change outputs");
-        
-        // External payment must be ≤ maxTxSompi
-        require(tx.outputs[1].value <= maxTxSompi);
-        
-        // External payment must go to recipient's P2PK
+        // Authorization: only the owner can call withdraw
+        require(checkSig(owner), "not authorized by owner");
+
+        // Need at least 2 outputs: self-replication + payment
+        require(tx.outputs.length >= 2, "need 2+ outputs");
+
+        // Self-replication: output[0] must carry the same script as this input
+        require(tx.outputs[0].scriptPubKey == tx.inputs[0].scriptPubKey,
+                "output[0] must self-replicate");
+
+        // Payment bound: output[1] pays the recipient, value ≤ maxTxSompi
+        require(tx.outputs[1].value <= maxTxSompi, "payment exceeds max per tx");
+
         byte[] recipientScript = new ScriptPubKeyP2PK(recipient);
-        require(tx.outputs[1].scriptPubKey == recipientScript);
-        
-        // Self-replication: output 0 must be same covenant
-        // (In production, validateOutputState handles state transition)
-        
-        // Fee check
+        require(tx.outputs[1].scriptPubKey == recipientScript,
+                "output[1] must pay recipient");
+
+        // Fee guard: total output value must not exceed this input's value
+        // (prevents miner-extractable value draining)
         int inputVal = tx.inputs[0].value;
-        int outputVal = tx.outputs[0].value + tx.outputs[1].value;
-        require(inputVal >= outputVal);
-        require(inputVal - outputVal <= 10000000);
+        int totalOutputVal = tx.outputs[0].value + tx.outputs[1].value;
+        require(inputVal >= totalOutputVal, "output value exceeds input");
+        require(inputVal - totalOutputVal <= 10000000, "fee exceeds 0.1 KAS");
     }
-    
-    // Owner-only burn (emergency exit)
+
+    // ── Emergency Owner Commitment ──
+    // Owner signs to close the pot. Signature commits the full tx via
+    // sighash, so the destination is bound into the signed message.
+    // No self-replication — the owner takes everything.
     entrypoint function burn(sig ownerSig) {
-        require(checkSig(ownerSig, owner));
-        // No covenant continuation — owner takes everything
+        require(checkSig(ownerSig, owner), "invalid owner signature");
     }
 }

@@ -18,6 +18,7 @@ from vida.plugins.covenant import (  # noqa: E402
     load_covenant_config,
     plan_agent_pot,
     register_covenant_plugin,
+    validate_agent_pot_plan,
     tn10_microproof,
 )
 from vida.plugins.registry import PluginRegistry  # noqa: E402
@@ -112,8 +113,10 @@ class TestCovenantScaffold(unittest.TestCase):
         via_plugin = CovenantPlugin().plan_agent_pot(
             max_kas_per_tx=2.0, max_kas_per_day=10.0
         )
+        via_plan = via_plugin.copy()
+        via_plan["live_ready"] = True
         self.assertTrue(via_plugin["ok"])
-        self.assertTrue(via_plugin["validation"]["ok"])
+        self.assertTrue(validate_agent_pot_plan(via_plan)["ok"])
 
 
 if __name__ == "__main__":

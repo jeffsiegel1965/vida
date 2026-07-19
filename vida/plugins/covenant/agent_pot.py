@@ -80,6 +80,8 @@ def validate_agent_pot_plan(plan: dict[str, Any]) -> dict[str, Any]:
     """Sanity-check a plan dict (from plan_agent_pot or hand-built)."""
     if not plan.get("ok"):
         return {"ok": False, "error": plan.get("error") or "plan not ok"}
+    if not plan.get("live_ready"):
+        return {"ok": False, "error": "pot not live_ready — covenant UTXO not confirmed on-chain"}
     fund = float(plan.get("fund_pot_kas") or 0)
     hard = plan.get("hard_rules") or {}
     max_tx = float(hard.get("max_kas_per_tx") or 0)

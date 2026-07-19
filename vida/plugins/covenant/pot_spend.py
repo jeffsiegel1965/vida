@@ -8,6 +8,7 @@ before any live spend helper runs. Not on-chain hard caps.
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -145,7 +146,11 @@ def save_pot_record(
         "next_refill_at": record.get("next_refill_at", 0),
         "note": "software pot record — not a private key store",
     }
-    path.write_text(json.dumps(data, indent=2) + "\n")
+    # Atomic write: write to temp then os.replace to prevent partial reads
+    import tempfile
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2) + "\n")
+    os.replace(str(tmp), str(path))
     try:
         path.chmod(0o600)
     except OSError:

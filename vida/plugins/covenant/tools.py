@@ -18,13 +18,16 @@ from .lab_client import live_gates_ok
 
 
 # ── Plugin instance (shared across tools) ──
+import threading
 _COVENANT_PLUGIN: CovenantPlugin | None = None
-
+_PLUGIN_LOCK = threading.Lock()
 
 def _plugin() -> CovenantPlugin:
     global _COVENANT_PLUGIN
     if _COVENANT_PLUGIN is None:
-        _COVENANT_PLUGIN = CovenantPlugin()
+        with _PLUGIN_LOCK:
+            if _COVENANT_PLUGIN is None:
+                _COVENANT_PLUGIN = CovenantPlugin()
     return _COVENANT_PLUGIN
 
 
