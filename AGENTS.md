@@ -41,7 +41,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 | `vida/plugins/covenant/kaspa_rpc.py` | SDK-based RPC client (Resolver auto-discovery, wRPC). |
 | `vida/plugins/covenant/silverscript/` | SilverScript contract sources. |
 | `scripts/vida_mcp_server.py` | MCP server (12 tools, 2 resources). |
-| `tests/test_kaspa_rpc_integration.py` | Live integration tests against testnet-10. |
+| `vida/agents/memory.py` | Persistent cross-session agent memory. |
 
 ## Rules
 

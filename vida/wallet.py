@@ -13,6 +13,12 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Optional
 
+# Runtime guard: prevent accidental mainnet use
+_TESTING = os.environ.get("VIDA_LEGACY_WALLET_ALLOWED", "").lower() in ("1", "true", "yes")
+if not _TESTING:
+    print("FATAL: legacy wallet (plaintext keys). Set VIDA_LEGACY_WALLET_ALLOWED=1", file=__import__("sys").stderr)
+    __import__("sys").exit(1)
+
 from kaspa import Address, Keypair, NetworkType, PrivateKey, PublicKey
 import kaspa as kas
 

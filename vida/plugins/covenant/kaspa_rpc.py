@@ -14,10 +14,13 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import os
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
+
+logger = logging.getLogger(__name__)
 
 from kaspa import (
     Address,
@@ -27,6 +30,48 @@ from kaspa import (
     RpcClient,
     sompi_to_kaspa,
 )
+
+
+# ── Structured error types ──
+
+
+class KaspaRpcError(Exception):
+    """Base error for Kaspa RPC operations."""
+    def __init__(self, message: str, original: Optional[Exception] = None):
+        self.original = original
+        super().__init__(message)
+
+
+class ConnectionError_(KaspaRpcError):
+    """Connection to Kaspa node failed. The Resolver may not have found
+    a reachable node, or the previously cached connection is stale."""
+
+
+class TimeoutError_(KaspaRpcError):
+    """RPC call timed out. The node is reachable but not responding."""
+
+
+class BalanceError(KaspaRpcError):
+    """Balance query failed (invalid address, node not synced)."""
+
+
+class TransactionError(KaspaRpcError):
+    """Transaction submission/query failed."""
+
+
+class KeyError_(KaspaRpcError):
+    """Key generation or loading failed."""
+
+
+def _error_response(error: KaspaRpcError) -> dict[str, Any]:
+    """Build a standard error dict from a structured exception."""
+    return {
+        "ok": False,
+        "error": str(error),
+        "error_type": type(error).__name__,
+        "error_detail": str(error.original) if error.original else None,
+    }
+
 
 # ── Singleton connection ──
 
@@ -48,20 +93,23 @@ async def _get_client() -> RpcClient:
     global _client, _resolver
     if _client is not None:
         try:
-            # Quick health check
             await _client.get_block_dag_info()
             return _client
-        except Exception:
+        except (asyncio.TimeoutError, OSError, RuntimeError) as e:
+            logger.warning("RPC connection stale, reconnecting: %s", e)
+            await _disconnect()
+        except Exception as e:
+            logger.warning("RPC health check failed: %s", e)
             await _disconnect()
     
     # Create new connection
-    _resolver = Resolver()
-    _client = RpcClient(resolver=_resolver)
-    
-    # Set network
-    _client.set_network_id(_network_id)
-    
-    await _client.connect()
+    try:
+        _resolver = Resolver()
+        _client = RpcClient(resolver=_resolver)
+        _client.set_network_id(_network_id)
+        await _client.connect()
+    except (OSError, RuntimeError, ConnectionError) as e:
+        raise ConnectionError_(f"failed to connect to {_network_id}", original=e)
     return _client
 
 
@@ -72,7 +120,7 @@ async def _disconnect() -> None:
         try:
             await _client.disconnect()
         except Exception:
-            pass
+            pass  # Cleanup only — ignore errors
         _client = None
     _resolver = None
 
@@ -118,8 +166,12 @@ async def get_balance(address: str) -> dict[str, Any]:
                 "balance_kas": str(sompi_to_kaspa(int(bal))),
             }
         return {"ok": True, "balance_sompi": 0, "balance_kas": "0"}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+    except ConnectionError_ as e:
+        return _error_response(e)
+    except (asyncio.TimeoutError, asyncio.CancelledError) as e:
+        return _error_response(TimeoutError_(f"balance query timed out for {address}", original=e))
+    except (ValueError, TypeError, RuntimeError) as e:
+        return _error_response(BalanceError(f"balance query failed for {address}", original=e))
 
 
 @_sync
@@ -134,8 +186,12 @@ async def get_utxos(address: str) -> dict[str, Any]:
         utxos = await client.get_utxos_by_addresses(request={"addresses": [address]})
         utxo_list = utxos.get("utxos", utxos.get("entries", [])) if isinstance(utxos, dict) else utxos
         return {"ok": True, "utxos": utxo_list}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+    except ConnectionError_ as e:
+        return _error_response(e)
+    except (asyncio.TimeoutError, asyncio.CancelledError) as e:
+        return _error_response(TimeoutError_(f"UTXO query timed out for {address}", original=e))
+    except (ValueError, TypeError, RuntimeError) as e:
+        return _error_response(BalanceError(f"UTXO query failed for {address}", original=e))
 
 
 @_sync
@@ -154,11 +210,14 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
         tx_bytes = bytes.fromhex(tx_hex)
         # SDK expects a dict or Transaction object
         # Use the raw submission endpoint
-        result = await client.submit_transaction(transaction=tx_bytes)
-        txid = result.get("txid", "") if isinstance(result, dict) else str(result)
-        return {"ok": True, "txid": txid}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+        result = await client.submit_transaction(request=tx_hex)
+        return {"ok": True, "txid": result.get("txid") or result.get("transaction_id", tx_hex[:16])}
+    except ConnectionError_ as e:
+        return _error_response(e)
+    except (asyncio.TimeoutError, asyncio.CancelledError) as e:
+        return _error_response(TimeoutError_("transaction submission timed out", original=e))
+    except (ValueError, TypeError, RuntimeError, OSError) as e:
+        return _error_response(TransactionError(f"transaction submission failed", original=e))
 
 
 @_sync
