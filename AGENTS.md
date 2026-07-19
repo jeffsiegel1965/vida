@@ -64,7 +64,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 | Covenant pot planning | ✅ Offline |
 | Covenant deploy (on-chain) | ⚠️ TN10 only, gated |
 | SilverScript quine spend | ⚠️ Compiled, spend blocked (tooling gap) |
-| Agent negotiation | ❌ Stripped, needs redesign |
+| Agent negotiation | ✅ Rebuilt — templates + memory + subscriptions |
 | Mainnet covenants | ❌ Waiting for Kaspa Toccata |
 
 ## Common Mistakes
