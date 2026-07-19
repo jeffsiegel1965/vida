@@ -23,6 +23,12 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from vida.agents.verification import (
+    VerificationLevel,
+    VerifiedResult,
+    verify_plan_output,
+    verify_spend_policy,
+)
 from vida.plugins.covenant import (
     covenant_describe,
     covenant_live_gates,
