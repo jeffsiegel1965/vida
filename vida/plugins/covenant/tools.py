@@ -44,12 +44,18 @@ def covenant_status(wallet_id: str = "default") -> dict[str, Any]:
 
 def covenant_describe() -> dict[str, Any]:
     """Describe covenant capabilities and phase."""
-    return _plugin().describe()
+    result = _plugin().describe()
+    if "ok" not in result:
+        result["ok"] = True
+    return result
 
 
 def covenant_live_gates() -> dict[str, Any]:
     """Check if live covenant tooling is available on this host."""
-    return live_gates_ok()
+    result = live_gates_ok()
+    if "ok" not in result:
+        result["ok"] = True
+    return result
 
 
 def covenant_plan_pot(
