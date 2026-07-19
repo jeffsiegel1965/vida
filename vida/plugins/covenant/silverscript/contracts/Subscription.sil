@@ -1,0 +1,68 @@
+// Subscription.sil — Recurring payment covenant
+// 
+// An agent pot that auto-releases a fixed amount per DAA period.
+// The owner funds it once. The agent withdraws up to `amountPerPeriod`
+// every `periodLength` DAA seconds. Unused allowance does NOT roll over.
+//
+// Entrypoints:
+//   claim(pubkey recipient) — Agent claims this period's allowance
+//   ownerCancel(sig ownerSig) — Owner cancels and reclaims remaining funds
+//   extend(sig ownerSig, uint64 newPeriods) — Owner extends the total periods
+//
+// Constructor args:
+//   0: pubkey ownerPubkey
+//   1: pubkey agentPubkey  
+//   2: uint64 amountPerPeriod  (sompi)
+//   3: uint64 periodLength     (DAA seconds, e.g. 86400 = 1 day)
+//   4: uint64 totalPeriods     (e.g. 30 = 30 days)
+
+// Storage layout:
+//   [0..32]  ownerPubkey
+//   [32..64] agentPubkey
+//   [64..72] amountPerPeriod
+//   [72..80] periodLength
+//   [80..88] totalPeriods
+//   [88..96] periodsClaimed     (increments each claim)
+//   [96..104] lastClaimDaa      (last DAA timestamp of claim)
+
+entrypoint claim(pubkey recipient) {
+    // Verify caller is the agent
+    assert(checkSig(agentPubkey, recipient));  // reuse sig for recipient
+    
+    // Check period hasn't been claimed yet
+    let currentDaa = daaScore();
+    let periodsElapsed = (currentDaa - lastClaimDaa) / periodLength;
+    assert(periodsElapsed >= 1, "period not yet elapsed");
+    
+    // Calculate how many periods can be claimed (catch-up)
+    let claimable = min(periodsElapsed, totalPeriods - periodsClaimed);
+    assert(claimable > 0, "no periods remaining");
+    
+    // Update state
+    periodsClaimed += claimable;
+    lastClaimDaa = currentDaa;
+    
+    // Payment: amountPerPeriod * claimable
+    let payment = amountPerPeriod * claimable;
+    assert(payment <= value, "insufficient funds");
+    
+    // Output 0: payment to recipient
+    // Output 1: self-replicate with updated state
+    output(0, recipient, payment);
+    output(1, self, value - payment);
+}
+
+entrypoint ownerCancel(sig ownerSig) {
+    assert(checkSig(ownerPubkey, ownerSig), "unauthorized");
+    // Return all remaining funds to owner
+    output(0, ownerPubkey, value);
+    // No self-replication — covenant ends
+}
+
+entrypoint extend(sig ownerSig, uint64 newTotalPeriods) {
+    assert(checkSig(ownerPubkey, ownerSig), "unauthorized");
+    assert(newTotalPeriods > totalPeriods, "must extend, not reduce");
+    totalPeriods = newTotalPeriods;
+    // Self-replicate with updated total
+    output(0, self, value);
+}

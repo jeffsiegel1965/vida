@@ -26,7 +26,6 @@ from vida.plugins.covenant.tools import (
     covenant_describe,
     covenant_live_gates,
     covenant_plan_pot,
-    covenant_negotiate_terms,
     covenant_spend_policy_check,
     covenant_pot_record,
 )
@@ -61,10 +60,6 @@ def main() -> int:
             max_kas_per_day=args.max_per_day,
             allowed_destinations=args.dest,
         )
-    elif args.command == "negotiate":
-        offer = json.loads(args.offer) if args.offer else {}
-        policy = json.loads(args.owner_policy) if args.owner_policy else None
-        r = covenant_negotiate_terms(agent_offer=offer, owner_policy=policy)
     elif args.command == "check":
         rec = covenant_pot_record(args.wallet_id)
         if not rec.get("ok"):

@@ -21,13 +21,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
+import os
 from typing import Optional
 
-# Dev fund address for fee collection
-DEV_FUND_ADDRESS = "kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+# Dev fund address — loaded from env var with fallback.
+# Set VIDA_DEV_FUND=kaspa:your_address to override.
+# This is a good-faith support mechanism, not technical enforcement.
+# The fee is transparent and can be removed by any forker.
+_DEV_FUND_ENV = "VIDA_DEV_FUND"
+DEV_FUND_ADDRESS = os.environ.get(
+    _DEV_FUND_ENV,
+    "kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+)
 
 # Dev fund address (testnet-10 variant)
-DEV_FUND_ADDRESS_TESTNET = "kaspatest:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+DEV_FUND_ADDRESS_TESTNET = os.environ.get(
+    "VIDA_DEV_FUND_TESTNET",
+    "kaspatest:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+)
 
 
 @dataclass

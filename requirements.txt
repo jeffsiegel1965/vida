@@ -1,5 +1,8 @@
 kaspa>=2.0
 cryptography>=42.0
+# PQ cryptography: actual import is 'ml_dsa_65' from pqcrypto or a custom build.
+# The 'pqcrypto' PyPI package may not provide ml_dsa_65 on all platforms.
+# If PQ tests are skipped, install the correct package for your platform.
 pqcrypto>=0.4
 aiohttp>=3.9
 substrate-interface>=1.7.0,<2

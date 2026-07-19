@@ -123,7 +123,7 @@ class Vida:
         
         self.address = data['address']
         self.public_key = data['public_key']
-        self._private_key_hex = data['private_key_hex']
+        self._private_key_hex = data['private_key_hex']  # Plaintext — legacy only. Use secure_wallet.py for real funds.
         
         # Optional post-quantum keys
         self.pq_pubkey = data.get('pq_pubkey')

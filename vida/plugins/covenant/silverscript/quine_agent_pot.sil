@@ -3,6 +3,9 @@ pragma silverscript ^0.1.0;
 contract QuineAgentPot(pubkey owner, int maxTxSompi) {
     // Self-replicating covenant withdraw
     entrypoint function withdraw(pubkey recipient) {
+        // Guard: must have at least 2 outputs (payment + self-replication)
+        require(tx.outputs.length >= 2, "need payment + change outputs");
+        
         // External payment must be ≤ maxTxSompi
         require(tx.outputs[1].value <= maxTxSompi);
         

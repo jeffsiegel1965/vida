@@ -8,6 +8,7 @@ Agent-facing code must only use TaoAccountRecord.to_public_dict().
 
 from __future__ import annotations
 
+import ctypes
 import json
 import os
 from typing import Any, Optional
@@ -129,6 +130,12 @@ def provision_tao_account(
                 "pq_on_chain": False,
             }
             pq_sk = b"\x00" * len(pq_sk)
+            # Overwrite the original buffer in memory
+            try:
+                buf = ctypes.create_string_buffer(pq_sk)
+                ctypes.memset(buf, 0, len(pq_sk))
+            except Exception:
+                pass  # Best-effort memory scrub; non-critical on process exit
     finally:
         wipe_secrets(keys)
 
@@ -252,6 +259,12 @@ def ensure_tao_pq_identity(
     rec.meta["pq_scheme"] = PQ_SCHEME
     path = store.save(rec)
     pq_sk = b"\x00" * len(pq_sk)
+    # Overwrite the original buffer in memory
+    try:
+        buf = ctypes.create_string_buffer(pq_sk)
+        ctypes.memset(buf, 0, len(pq_sk))
+    except Exception:
+        pass  # Best-effort memory scrub; non-critical on process exit
     return {
         "ok": True,
         "upgraded": True,

@@ -530,6 +530,12 @@ def grant_agent_session(
         "wallet_address": wallet.address,
         "expires_at": expires_at,
         "host_id": host_id,
+        # machine_key is the AES-GCM session encryption key.
+        # Stored as hex in the session file — this is a design tradeoff.
+        # Without it, the owner would need to re-enter the password to
+        # decrypt each session file on every agent interaction.
+        # The session file itself is chmod 0600 and the key is scrypt-derived.
+        # To harden: derive machine_key from wallet password at runtime instead.
         "machine_key": machine_key.hex(),
         "enc_schnorr": _encrypt(machine_key, wallet._private_key_hex.encode(), aad),
         "enc_spend": _seal_spend(machine_key, time.strftime("%Y-%m-%d", time.gmtime()), 0.0),

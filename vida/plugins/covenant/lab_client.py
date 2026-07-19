@@ -115,7 +115,7 @@ def run_lab_demo(*, transitions: int = 1, timeout: int = 120) -> dict[str, Any]:
         return {"ok": False, "error": "transitions must be 0..5"}
 
     key = Path(g["key_path"])
-    if key.resolve() != DEFAULT_KEY.resolve():
+    if key and DEFAULT_KEY and key.resolve() != DEFAULT_KEY.resolve():
         DEFAULT_KEY.write_bytes(key.read_bytes())
         DEFAULT_KEY.chmod(0o600)
 
@@ -234,7 +234,7 @@ def spend_agent_pot(
         }
 
     # Validate covenant_id to prevent shell injection
-    if covenant_id and not re.match(r"^[a-f0-9]{64}$", covenant_id):
+    if covenant_id and not re.match(r"^[a-fA-F0-9]{64}$", covenant_id):
         return {"ok": False, "error": f"invalid covenant_id format: {covenant_id}"}
 
     payload = {

@@ -152,91 +152,7 @@ async def handle_list_tools() -> list[types.Tool]:
                 "required": ["max_kas_per_tx", "max_kas_per_day"],
             },
         ),
-        types.Tool(
-            name="vida_negotiate_offer",
-            description="Create a covenant offer to another agent",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "agent_id": {"type": "string", "description": "Your agent ID"},
-                    "agent_a": {"type": "string", "description": "Your SS58 address"},
-                    "agent_b": {"type": "string", "description": "Other agent's SS58 address"},
-                    "max_kas_per_tx": {"type": "number", "description": "Max per tx offer"},
-                    "max_kas_per_day": {"type": "number", "description": "Max per day offer"},
-                    "allowed_destinations": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Allowed destination addresses",
-                    },
-                    "duration_hours": {"type": "number", "description": "Duration in hours"},
-                },
-                "required": ["agent_id", "agent_a", "agent_b", "max_kas_per_tx", "max_kas_per_day"],
-            },
-        ),
-        types.Tool(
-            name="vida_negotiate_counter",
-            description="Counter an existing covenant offer",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "negotiation_id": {"type": "string", "description": "Negotiation ID from offer"},
-                    "proposer": {"type": "string", "description": "Your agent ID or address"},
-                    "max_kas_per_tx": {"type": "number", "description": "Counter offer max per tx"},
-                    "max_kas_per_day": {"type": "number", "description": "Counter offer max per day"},
-                },
-                "required": ["negotiation_id", "proposer"],
-            },
-        ),
-        types.Tool(
-            name="vida_negotiate_accept",
-            description="Accept a covenant offer and get the on-chain deal commitment",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "negotiation_id": {"type": "string", "description": "Negotiation ID"},
-                    "agent": {"type": "string", "description": "Your agent ID or address"},
-                },
-                "required": ["negotiation_id", "agent"],
-            },
-        ),
-        types.Tool(
-            name="vida_negotiate_reject",
-            description="Reject a covenant offer",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "negotiation_id": {"type": "string", "description": "Negotiation ID"},
-                    "agent": {"type": "string", "description": "Your agent ID or address"},
-                    "reason": {"type": "string", "description": "Reason for rejection"},
-                },
-                "required": ["negotiation_id", "agent"],
-            },
-        ),
-        types.Tool(
-            name="vida_negotiate_status",
-            description="Check status of a negotiation",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "negotiation_id": {"type": "string", "description": "Negotiation ID"},
-                },
-                "required": ["negotiation_id"],
-            },
-        ),
-        types.Tool(
-            name="vida_negotiate_deal",
-            description="Get the encoded deal commitment from a completed negotiation",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "negotiation_id": {"type": "string", "description": "Negotiation ID"},
-                },
-                "required": ["negotiation_id"],
-            },
-        ),
-    ]
-
-
+]
 @server.call_tool()
 async def handle_call_tool(
     name: str, arguments: dict | None
@@ -341,7 +257,10 @@ async def handle_call_tool(
             try:
                 from substrateinterface import SubstrateInterface
 
-                sub = SubstrateInterface(url="wss://entrypoint-finney.opentensor.ai:443")
+                sub = SubstrateInterface(url=os.environ.get(
+                    "VIDA_FINNEY_RPC",
+                    "wss://entrypoint-finney.opentensor.ai:443"
+                ))
                 addr = session["ss58_address"]
                 result = sub.query("System", "Account", [addr])
                 free = int(result.value["data"]["free"]) / 1e9
@@ -467,127 +386,6 @@ async def handle_call_tool(
                     text=json.dumps({"ok": False, "error": str(e)}, indent=2),
                 )
             ]
-
-    elif name.startswith("vida_negotiate_"):
-        from vida.plugins.covenant.negotiation import get_negotiator
-        n = get_negotiator()
-        args = arguments or {}
-
-        if name == "vida_negotiate_offer":
-            session = n.create_offer(
-                agent_id=args.get("agent_id", ""),
-                agent_a=args.get("agent_a", ""),
-                agent_b=args.get("agent_b", ""),
-                max_kas_per_tx=float(args.get("max_kas_per_tx", 0)),
-                max_kas_per_day=float(args.get("max_kas_per_day", 0)),
-                allowed_destinations=args.get("allowed_destinations"),
-                duration_hours=float(args.get("duration_hours", 24)),
-            )
-            return [
-                types.TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "ok": True,
-                            "negotiation_id": session.negotiation_id,
-                            "status": session.status,
-                            "terms": {
-                                "max_kas_per_tx": session.latest_terms().max_kas_per_tx,
-                                "max_kas_per_day": session.latest_terms().max_kas_per_day,
-                            },
-                            "deadline": session.deadline,
-                        },
-                        indent=2,
-                    ),
-                )
-            ]
-
-        elif name == "vida_negotiate_counter":
-            session = n.counter_offer(
-                args.get("negotiation_id", ""),
-                args.get("proposer", ""),
-                **{k: v for k, v in args.items() if k in ("max_kas_per_tx", "max_kas_per_day", "allowed_destinations", "duration_hours") and v is not None},
-            )
-            if not session:
-                return [types.TextContent(type="text", text=json.dumps({"ok": False, "error": "session not found"}, indent=2))]
-            return [
-                types.TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "ok": True,
-                            "negotiation_id": args.get("negotiation_id"),
-                            "status": session.status,
-                            "round": len(session.rounds),
-                            "terms": {
-                                "max_kas_per_tx": session.latest_terms().max_kas_per_tx,
-                                "max_kas_per_day": session.latest_terms().max_kas_per_day,
-                            },
-                        },
-                        indent=2,
-                    ),
-                )
-            ]
-
-        elif name == "vida_negotiate_accept":
-            session = n.accept(args.get("negotiation_id", ""), args.get("agent", ""))
-            if not session:
-                return [types.TextContent(type="text", text=json.dumps({"ok": False, "error": "session not found"}, indent=2))]
-            encoded = n.encode_deal(args.get("negotiation_id", ""))
-            return [
-                types.TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "ok": session.status == "committed",
-                            "negotiation_id": args.get("negotiation_id"),
-                            "deal_hash": session.deal_hash,
-                            "policy_hash": encoded.get("policy_hash", ""),
-                            "commitment": encoded.get("commitment", {}),
-                            "rounds": len(session.rounds),
-                            "status": session.status,
-                        },
-                        indent=2,
-                    ),
-                )
-            ]
-
-        elif name == "vida_negotiate_reject":
-            session = n.reject(args.get("negotiation_id", ""), args.get("agent", ""), args.get("reason", ""))
-            return [
-                types.TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {"ok": True, "status": "rejected", "negotiation_id": args.get("negotiation_id")},
-                        indent=2,
-                    ),
-                )
-            ]
-
-        elif name == "vida_negotiate_status":
-            session = n.get_session(args.get("negotiation_id", ""))
-            if not session:
-                return [types.TextContent(type="text", text=json.dumps({"ok": False, "error": "session not found"}, indent=2))]
-            return [
-                types.TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "ok": True,
-                            "negotiation_id": args.get("negotiation_id"),
-                            "status": session.status,
-                            "rounds": len(session.rounds),
-                            "deal_hash": session.deal_hash[:20] if session.deal_hash else "",
-                            "expired": session.is_expired(),
-                        },
-                        indent=2,
-                    ),
-                )
-            ]
-
-        elif name == "vida_negotiate_deal":
-            encoded = n.encode_deal(args.get("negotiation_id", ""))
-            return [types.TextContent(type="text", text=json.dumps(encoded, indent=2))]
 
     return [
         types.TextContent(

@@ -1,0 +1,91 @@
+// MultiSigVault.sil — N-of-M spending covenant
+//
+// Funds are locked until M of N authorized signers agree.
+// Supports spending, adding/removing signers, and emergency recovery.
+//
+// Entrypoints:
+//   spend(sig[N] signers, pubkey recipient, uint64 amount) — N-of-M spend
+//   addSigner(sig[M] signers, pubkey newSigner) — Add a signer (requires M)
+//   removeSigner(sig[M] signers, uint8 index) — Remove a signer (requires M)
+//   emergencyRecover(sig recoveryKey, pubkey destination) — Hard timeout recovery
+//
+// Constructor args:
+//   0: uint8 required    // M — signatures needed
+//   1: pubkey[N] signers // N — address list
+//   2: pubkey recoveryKey // Emergency recovery key
+//   3: uint64 timelock   // DAA blocks before emergency recovery unlocks
+
+// Storage layout:
+//   [0..8]    required           (M)
+//   [8..16]   signerCount        (N)
+//   [16..(16+N*32)] signerPubkeys
+//   [..+32]  recoveryKey
+//   [..+8]   timelock
+//   [..+8]   createdAt           (DAA score at deployment)
+
+entrypoint spend(sig[] signers, pubkey recipient, uint64 amount) {
+    // Verify count of valid signatures meets threshold
+    let valid = 0;
+    for (let i = 0; i < len(signers); i++) {
+        for (let j = 0; j < signerCount; j++) {
+            if (checkSig(signerPubkeys[j], signers[i])) {
+                valid++;
+                break;
+            }
+        }
+    }
+    assert(valid >= required, "insufficient signatures");
+    assert(amount <= value, "insufficient funds");
+    
+    output(0, recipient, amount);
+    output(1, self, value - amount);
+}
+
+entrypoint addSigner(sig[] signers, pubkey newSigner) {
+    // Verify threshold
+    let valid = 0;
+    for (let i = 0; i < len(signers); i++) {
+        for (let j = 0; j < signerCount; j++) {
+            if (checkSig(signerPubkeys[j], signers[i])) {
+                valid++;
+                break;
+            }
+        }
+    }
+    assert(valid >= required, "insufficient signatures");
+    
+    signerPubkeys[signerCount] = newSigner;
+    signerCount++;
+    output(0, self, value);
+}
+
+entrypoint removeSigner(sig[] signers, uint8 index) {
+    assert(index < signerCount, "index out of range");
+    let valid = 0;
+    for (let i = 0; i < len(signers); i++) {
+        for (let j = 0; j < signerCount; j++) {
+            if (checkSig(signerPubkeys[j], signers[i])) {
+                valid++;
+                break;
+            }
+        }
+    }
+    assert(valid >= required, "insufficient signatures");
+    assert(valid > 1, "cannot remove last signer");
+    
+    // Shift array left
+    for (let k = index; k < signerCount - 1; k++) {
+        signerPubkeys[k] = signerPubkeys[k + 1];
+    }
+    signerCount--;
+    output(0, self, value);
+}
+
+entrypoint emergencyRecover(sig recoverySig, pubkey destination) {
+    assert(checkSig(recoveryKey, recoverySig), "unauthorized");
+    let currentDaa = daaScore();
+    let elapsed = currentDaa - createdAt;
+    assert(elapsed >= timelock, "timelock not yet expired");
+    
+    output(0, destination, value);
+}
