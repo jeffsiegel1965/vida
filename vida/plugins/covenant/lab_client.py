@@ -142,7 +142,7 @@ def run_lab_demo(*, transitions: int = 1, timeout: int = 120) -> dict[str, Any]:
         "stderr": proc.stderr or "",
         **parsed,
         "tooling": "kascov-lab",
-        "network": "testnet-12",
+        "network": "testnet-10",
     }
 
 
@@ -179,7 +179,7 @@ def fund_agent_pot(
         "allowed_destinations": dests,
         "key_path": g["key_path"],
         "wasm_dir": g["wasm_dir"],
-        "network": "testnet-12",
+        "network": "testnet-10",
         "compute_budget": 65535,
         "single_output": True,
     }
@@ -245,7 +245,7 @@ def spend_agent_pot(
         "covenant_id": covenant_id or "",
         "key_path": g["key_path"],
         "wasm_dir": g["wasm_dir"],
-        "network": "testnet-12",
+        "network": "testnet-10",
         "compute_budget": 65535,
     }
     cmd = [g["node"], g["spend_helper"], json.dumps(payload)]
