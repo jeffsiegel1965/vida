@@ -132,15 +132,32 @@ class AgentOrchestrator:
         return get_balance(addr)
     
     def _kaspa_send(self, amount: float, destination: str) -> dict[str, Any]:
-        """Send KAS via Kaspa REST API. Requires session with caps."""
+        """Send KAS via VidaTransactor. Requires wallet path and session."""
         # Check session caps
         max_tx = float(self.session.get("max_kas_per_tx", 0))
         if max_tx > 0 and amount > max_tx:
             return {"ok": False, "error": f"amount {amount} exceeds session cap {max_tx}"}
         if not destination:
             return {"ok": False, "error": "destination address required"}
-        # Note: actual broadcast needs wallet signing — this validates the policy
-        return {"ok": True, "note": "send validated by policy; broadcast requires wallet signing", "amount": amount, "destination": destination}
+        wallet_path = self.session.get("wallet_path", "")
+        if not wallet_path:
+            return {"ok": False, "error": "no wallet_path in session — use VIDA_WALLET env var"}
+        try:
+            from vida.wallet import Vida
+            from vida.transactions import VidaTransactor
+            import asyncio
+            wallet = Vida(wallet_path)
+            tx = VidaTransactor(wallet)
+            result = asyncio.run(tx.send(to_address=destination, amount_kas=amount))
+            return {
+                "ok": True,
+                "txid": result.txid if result.txid else "",
+                "amount": amount,
+                "destination": destination,
+                "explorer_url": f"https://explorer-tn10.kaspa.org/txs/{result.txid if result.txid else ''}",
+            }
+        except Exception as e:
+            return {"ok": False, "error": f"send failed: {e}"}
 
     def __init__(self, session: Optional[dict] = None):
         self.session = session or {}

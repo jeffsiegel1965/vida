@@ -36,7 +36,7 @@ try:
 except ImportError:
     aiohttp = None
 
-from wallet import Vida, DelegationMode  # TODO: Migrate to secure_wallet.SecureVida after API compatibility pass
+from vida.wallet import Vida, DelegationMode  # TODO: Migrate to secure_wallet.SecureVida after API compatibility pass
 
 # Kaspa dust threshold: outputs below ~0.02 KAS incur massive storage-mass
 # penalties and get rejected (verified on testnet-10, July 2026).

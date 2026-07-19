@@ -133,6 +133,94 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "covenant_kascov_search",
+            "description": "Search covenants by name, id, or transaction",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "covenant_kascov_address",
+            "description": "Check which covenants an address controls",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "address": {"type": "string", "description": "Kaspa address"},
+                },
+                "required": ["address"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "covenant_kascov_live",
+            "description": "Check the kascov explorer live feed for recent covenant activity",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "covenant_validate_pot",
+            "description": "Verify policy template hash integrity for a pot plan",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template": {"type": "object", "description": "Policy template dict"},
+                },
+                "required": ["template"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "covenant_estimate_fee",
+            "description": "Estimate network fees for covenant fund or spend transactions",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "type": {"type": "string", "enum": ["fund", "spend"], "description": "Transaction type"},
+                    "amount": {"type": "number", "description": "Amount in KAS"},
+                },
+                "required": ["type", "amount"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "covenant_fee_schedule",
+            "description": "Get the full fee structure for covenant operations",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "covenant_plan_with_fees",
+            "description": "Plan an agent pot with detailed fee breakdown",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "max_kas_per_tx": {"type": "number", "description": "Max KAS per transaction"},
+                    "max_kas_per_day": {"type": "number", "description": "Max KAS per day"},
+                },
+                "required": ["max_kas_per_tx", "max_kas_per_day"],
+            },
+        },
+    },
 ]
 
 # ── Tool dispatch map ──
@@ -145,6 +233,13 @@ TOOL_MAP: dict[str, str] = {
     "covenant_plan_pot": "covenant_plan_pot",
     "covenant_spend_policy_check": "covenant_spend_policy_check",
     "covenant_kascov_verify": "covenant_kascov_verify",
+    "covenant_kascov_search": "covenant_kascov_search",
+    "covenant_kascov_address": "covenant_kascov_address",
+    "covenant_kascov_live": "covenant_kascov_live",
+    "covenant_validate_pot": "covenant_validate_pot",
+    "covenant_estimate_fee": "covenant_estimate_fee",
+    "covenant_fee_schedule": "covenant_fee_schedule",
+    "covenant_plan_with_fees": "covenant_plan_with_fees",
     "covenant_quine_info": "covenant_quine_info",
     "kaspa_balance": "kaspa_balance",
     "kaspa_send": "kaspa_send",
