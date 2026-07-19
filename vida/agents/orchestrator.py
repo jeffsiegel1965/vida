@@ -40,17 +40,20 @@ ToolResult = dict[str, Any]
 AgentState = dict[str, Any]
 
 
-@dataclass
 class Step:
     """A single step in the agent's execution plan."""
-    id: str
-    action: str
-    params: dict[str, Any]
-    status: str = "pending"  # pending | running | completed | failed
-    result: Optional[ToolResult] = None
-    error: Optional[str] = None
-    started_at: Optional[float] = None
-    completed_at: Optional[float] = None
+    def __init__(self, id: str, action: str, params: dict[str, Any] = None,
+                 status: str = "pending", description: str = "",
+                 result: Optional[ToolResult] = None, error: Optional[str] = None):
+        self.id = id
+        self.action = action
+        self.params = params or {}
+        self.status = status
+        self.description = description
+        self.result = result
+        self.error = error
+        self.started_at: Optional[float] = None
+        self.completed_at: Optional[float] = None
 
 
 @dataclass
@@ -98,12 +101,54 @@ class AgentOrchestrator:
     def decompose_goal(self, goal: str, context: Optional[AgentState] = None) -> ExecutionPlan:
         """Decompose a natural language goal into executable steps.
         
-        This is a rule-based decomposer. For LLM-powered decomposition,
-        pass the goal + tool schema to any LLM and parse the response.
-        
-        Built-in templates for common agent tasks:
+        Uses K2.5 (via staking_optimizer.llm_call) to plan the execution.
+        Falls back to rule-based decomposition if LLM is unavailable.
         """
         plan = ExecutionPlan(goal=goal, context=context or {})
+        
+        # Try LLM-powered decomposition
+        try:
+            from vida.agents.staking_optimizer import llm_call
+            context_str = json.dumps(context or {}, indent=2)
+            
+            tools_list = [
+                "vida_status(no params)",
+                "vida_describe(no params)",
+                "vida_live_gates(no params)",
+                "vida_plan_pot(max_per_tx, max_per_day, destinations)",
+                "vida_quine_info(no params)",
+            ]
+            
+            system = "You are an agent planner. Produce ONLY valid JSON."
+            prompt = f"""GOAL: {goal}
+
+Available tools:
+{chr(10).join('- ' + t for t in tools_list)}
+
+Produce a JSON array of steps:
+[{{"step":1, "action":"tool_name", "params":{{}}, "reason":"why"}}]
+
+Return ONLY valid JSON. No other text."""
+
+            response = llm_call(system, prompt, max_tokens=2000)
+            
+            # Parse JSON
+            start = response.find("[")
+            end = response.rfind("]") + 1
+            if start >= 0 and end > start:
+                steps = json.loads(response[start:end])
+                plan.steps = [
+                    Step(id=str(s["step"]), action=s["action"],
+                         params=s.get("params", {}),
+                         description=s.get("reason", ""))
+                    for s in steps if s.get("action")
+                ]
+                if plan.steps:
+                    return plan
+        except Exception as e:
+            pass  # Fall through to rule-based
+        
+        # ── Fallback: rule-based decomposition ──
         
         goal_lower = goal.lower()
         
