@@ -63,11 +63,21 @@ def covenant_plan_pot(
     max_kas_per_day: float,
     allowed_destinations: Optional[list[str]] = None,
 ) -> dict[str, Any]:
-    """Plan an agent pot: how much to fund, what hard rules to set."""
+    """Plan an agent pot: calculate funding amount and hard rules.
+    
+    Accepts float or string params (for LLM agent compatibility).
+    """
+    # Coerce string params to float (LLMs often pass string numbers)
+    try:
+        max_kas_per_tx = float(max_kas_per_tx)
+        max_kas_per_day = float(max_kas_per_day)
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "max_kas_per_tx and max_kas_per_day must be numeric"}
+    
     return plan_agent_pot(
         max_kas_per_tx=max_kas_per_tx,
         max_kas_per_day=max_kas_per_day,
-        allowed_destinations=allowed_destinations or [],
+        allowed_destinations=allowed_destinations,
     )
 
 
