@@ -2,33 +2,62 @@
 
 **The agent wallet. Kaspa + Bittensor.**
 
-Vida is a wallet built for autonomous AI agents, not humans. Agents use it to discover subnet services on Bittensor, negotiate covenant terms on Kaspa, and pay for compute, inference, storage, and data — all within session-gated caps you control. The agent never touches your keys. You revoke access by deleting a file.
+Vida is a wallet for autonomous AI agents. It is not a wallet for humans.
+Agents use Vida to discover subnet services on Bittensor.
+Agents use Vida to negotiate covenant terms on Kaspa.
+Agents use Vida to pay for compute, inference, storage, and data.
+You control the session caps. The agent does not have access to your keys.
+To revoke access, delete a file.
 
-**What makes it unique:** Vida is the only wallet where agents can connect directly to Bittensor subnets, the only wallet with L1 covenant negotiation between agents, and the only wallet with persistent cross-session agent memory.
+**Unique features:**
+- Vida is the only wallet where agents connect directly to Bittensor subnets.
+- Vida is the only wallet with L1 covenant negotiation between agents.
+- Vida is the only wallet with persistent cross-session agent memory.
 
 ---
 
-## What makes Vida unique
+## Unique features
 
-**1. Agents connect directly to Bittensor subnets** — An agent can discover subnet services (LLM inference, GPU compute, storage, image generation), pay TAO for access, and query the subnet's API. No other wallet can do this.
+**1. Direct agent access to Bittensor subnets**
+An agent can discover subnet services (LLM inference, GPU compute, storage, image generation).
+An agent can pay TAO for access.
+An agent can query the subnet API.
+No other wallet makes this possible.
 
-**2. L1 covenant negotiation** — Agents negotiate pot terms (max per tx, per day, destinations) using templates, strategies, and volume discounts. The negotiation history is persistent across sessions via AgentMemory.
+**2. L1 covenant negotiation**
+Agents negotiate pot terms (max per tx, per day, destinations).
+The negotiation uses templates, strategies, and volume discounts.
+The negotiation history persists across sessions.
+AgentMemory stores the history.
 
-**3. Cross-session agent memory** — Vida remembers every deal, every counterparty, every subnet used. Deals, success rates, volume discounts, and context survive interruptions.
+**3. Cross-session agent memory**
+Vida stores every deal, every counterparty, and every subnet.
+Deals, success rates, volume discounts, and context survive interruptions.
 
-**4. Verification ladder (L1-L5)** — Every financial operation is verified at L1 (deterministic) or L2 (rule). L4 (model judge) is blocked for money. The `@require_l1_spend` decorator enforces that every spend returns a txid.
+**4. Verification ladder (L1-L5)**
+The verification ladder checks every financial operation.
+L1 and L2 are deterministic. L4 (model judge) is blocked for money.
+The `@require_l1_spend` decorator requires that every spend returns a txid.
 
-**5. Session-gated permissions** — The agent never touches your seed phrase. You grant per-transaction caps, per-day limits, destination allowlists, and expiry. Revoke by deleting a file.
+**5. Session-gated permissions**
+The agent does not have access to your seed phrase.
+You set per-transaction caps, per-day limits, destination allowlists, and expiry.
+To revoke access, delete a file.
 
-**6. Multisig (Bittensor v11)** — M-of-N wallet for subnet treasury management. Agents can propose, approve, execute, and cancel multisig operations. Native support aligned with the v431/v11 tooling release.
+**6. Multisig (Bittensor v11)**
+Multisig is an M-of-N wallet for subnet treasury management.
+Agents can propose, approve, execute, and cancel multisig operations.
+The design aligns with the v431/v11 tooling release.
 
-**7. Bittensor v11 conviction voting** — Track locked α-token/TAO positions for subnet ownership voting. Record, release, and list conviction positions in AgentMemory.
+**7. Bittensor v11 conviction voting**
+Vida tracks locked α-token and TAO positions for subnet ownership voting.
+Vida can record, release, and list conviction positions in AgentMemory.
 
 ---
 
 ## Kaspa (KAS)
 
-### Mainnet: send/receive
+### Mainnet: send and receive
 
 ```python
 from vida.transactions import VidaTransactor
@@ -40,9 +69,9 @@ result = await tx.send(to_address="kaspa:qzyswp...", amount_kas=1.0)
 ```
 
 Policy enforced before broadcast:
-- Amount ≤ session's `max_kas_per_tx`
-- Destination in `allowed_destinations` (if set)
-- Daily total ≤ `max_kas_per_day`
+- Amount is less than or equal to the session `max_kas_per_tx`
+- Destination is in `allowed_destinations` (if set)
+- Daily total is less than or equal to `max_kas_per_day`
 - UTXO smallest-first selection with dust threshold
 
 ### RPC: wRPC via Kaspa SDK
@@ -55,14 +84,17 @@ balance = get_balance("kaspa:qplmcgy...")
 # → {"ok": True, "balance_sompi": 85813020870, "balance_kas": "858.13"}
 ```
 
-- Uses official Kaspa Python SDK (v2.0.1+) with wRPC WebSocket
-- Resolver for peer-to-peer node discovery
-- Structured error types: `ConnectionError_`, `TimeoutError_`, `BalanceError`, `TransactionError`
+- Uses official Kaspa Python SDK (v2.0.1 or later) with wRPC WebSocket
+- Uses Resolver for peer-to-peer node discovery
+- Uses structured error types: `ConnectionError_`, `TimeoutError_`, `BalanceError`, `TransactionError`
 - Falls back to REST API (`api.kaspa.org/transactions`) if SDK submit fails
 
-### Covenants (mainnet + testnet)
+### Covenants (mainnet and testnet)
 
-Covenant pots are SilverScript contracts that enforce spending rules at the network level — no software can bypass them. The Toccata hard fork (DAA ~389M, June 2026) enabled covenants on Kaspa mainnet. Current mainnet DAA is 490M — 101M blocks past the fork.
+Covenant pots are SilverScript contracts. They enforce spending rules at the network level.
+No software can bypass them.
+The Toccata hard fork (DAA ~389M, June 2026) enabled covenants on Kaspa mainnet.
+The current mainnet DAA is 490M — 101M blocks past the fork.
 
 ```python
 from vida.plugins.covenant import plan_agent_pot, check_spend_kas
@@ -72,7 +104,8 @@ check_spend_kas(policy=plan, amount_kas=2.0, destination="...")
 # → {"ok": False, "error": "amount exceeds max_tx_sompi"}
 ```
 
-The covenant module works on both mainnet and testnet-10. Set `set_network("mainnet")` for mainnet operations.
+The covenant module works on mainnet and testnet-10.
+Set `set_network("mainnet")` for mainnet operations.
 
 ### Escrow covenants
 
@@ -99,11 +132,13 @@ escrow = vida_escrow_create(
 # → vida_escrow_resolve(escrow_id, arbiter_sig, recipient)
 ```
 
-Fee: 0.1% of escrow amount (min 0.01 KAS, max 1 KAS) to the fee address.
+Fee: 0.1% of the escrow amount (min 0.01 KAS, max 1 KAS) to the fee address.
 
 ### Payment channels
 
-Off-chain micropayments with on-chain settlement. Two agents open a channel, exchange thousands of updates, settle on Kaspa once.
+Off-chain micropayments with on-chain settlement.
+Two agents open a channel. They exchange thousands of updates.
+They settle on Kaspa once.
 
 ```python
 from vida.plugins.covenant.channels import vida_channel_open, vida_channel_update, vida_channel_close
@@ -118,31 +153,34 @@ vida_channel_update(ch["channel_id"], "sig_a", "sig_b", 6.0, 4.0)
 vida_channel_close(ch["channel_id"])
 ```
 
-Fee: 0.1% of channel capacity. This is how Vida scales to billions of transactions.
+Fee: 0.1% of channel capacity.
 
 ---
 
 ## Bittensor (TAO)
 
-Vida's TAO integration is the most comprehensive available. Agents can discover, pay for, and consume subnet services — all programmatically, without human intervention.
+Vida has the most comprehensive TAO integration available.
+Agents can discover, pay for, and consume subnet services.
+This all happens in code, without human intervention.
 
 ### Chain status
 
 - **Finney mainnet** — live, verified July 2026. Pre-dTAO model (`add_stake`/`remove_stake`).
-- **dTAO** — not deployed yet. Code structured for update when it arrives.
+- **dTAO** — not deployed yet. Code is structured for update when dTAO arrives.
 
 ### Core capabilities
 
 | Capability | How it works |
 |-----------|--------------|
-| **Stake/unstake** | `vida_tao_delegate(session_path, amount_tao, netuid, hotkey)` |
+| **Stake or unstake** | `vida_tao_delegate(session_path, amount_tao, netuid, hotkey)` |
 | **Transfer** | `vida_tao_transfer(session_path, dest, amount_tao)` |
 | **Balance check** | `vida_tao_balance(session_path)` |
 | **Session management** | `vida_tao_session_info(session_path)` |
 
 ### Subnet marketplace — discover, pay, query
 
-This is the unique feature. Agents browse subnets, pay for access, and consume services — all in code.
+Agents browse subnets, pay for access, and consume services.
+All in code.
 
 ```python
 from vida.plugins.tao import tao_list_subnets, tao_subnet_info, tao_subnet_query
@@ -178,7 +216,8 @@ The registry covers **9 subnets** across 8 service types:
 
 ### x402 — auto-pay subnet APIs
 
-When a subnet responds with HTTP 402 "Payment Required," Vida auto-pays and retries the request. Standard for machine payments.
+When a subnet responds with HTTP 402 "Payment Required," Vida auto-pays and retries the request.
+This is the standard for machine payments.
 
 ```python
 from vida.plugins.tao.x402 import x402_query
@@ -188,7 +227,7 @@ result = x402_query("https://subnet.api/query", substrate_client, coldkey_hex)
 # → X402Response(paid=True, txid="0x...", original_result={...})
 ```
 
-Vida's fee: 0.05% of the payment amount. First 100 queries per day are free.
+Vida fee: 0.05% of the payment amount. The first 100 queries per day are free.
 
 ### Subnet gateway fees
 
@@ -200,7 +239,7 @@ result = tao_subnet_query(netuid=19, wallet_id="agent_1", amount_tao=0.001)
 ```
 
 - 0.05% per query (billed to the agent)
-- First 100 queries/day free per wallet
+- First 100 queries per day are free per wallet
 - Separate TAO fee address (`VIDA_TAO_FEE_ADDRESS`)
 
 ---
@@ -221,7 +260,7 @@ mem.get_context("current_goal")       # → survives interruptions
 
 - **Deal history** — every transaction, every stake, every subnet purchase
 - **Counterparty profiles** — success rates, volume, preferred strategies
-- **Subnet usage** — which subnets deliver, which don't, favorites
+- **Subnet usage** — which subnets deliver, which do not, favorites
 - **KV store** — arbitrary key-value persisted across sessions
 - **Context** — what the agent was doing, survives interruptions
 
@@ -229,7 +268,8 @@ mem.get_context("current_goal")       # → survives interruptions
 
 ## Agent negotiation
 
-Agents negotiate covenant pot terms with each other. Built for agent-to-agent commerce.
+Agents negotiate covenant pot terms with each other.
+This is built for agent-to-agent commerce.
 
 ```python
 from vida.agents.negotiation import SessionManager, apply_template
@@ -250,9 +290,9 @@ if accepted:
 - **2 strategies** — BOULWARE (default), CONCEDE (trusted counterparties)
 - **Volume discounts** — up to 30% for 10,000+ KAS total
 - **Subscriptions** — recurring pots with 15% fee discount
-- **Human escalation** — deals > 100 KAS flagged for approval
+- **Human escalation** — deals over 100 KAS flagged for approval
 - **Escrow integration** — accepted terms can deploy an on-chain escrow covenant
-- **Persistent memory** — learns per-counterparty, adapts strategy
+- **Persistent memory** — learns per counterparty, adapts strategy
 
 ---
 
@@ -283,7 +323,8 @@ Owner ─── grants session caps ───→ Vida Kernel
 
 ### Verification ladder
 
-Every tool result includes a verification level. Financial operations never use L4.
+Every tool result includes a verification level.
+Financial operations never use L4.
 
 | Level | Name | What it means |
 |-------|------|---------------|
@@ -300,7 +341,7 @@ Every tool result includes a verification level. Financial operations never use 
 | Layer | Mechanism |
 |-------|-----------|
 | Key storage | AES-256-GCM encrypted JSON (scrypt KDF, 2^17 N, 128 MiB) |
-| Session binding | AAD binds session to host + expiry |
+| Session binding | AAD binds session to host and expiry |
 | Spend counters | Authenticated, tamper-evident, per-day tracking |
 | File permissions | 0600 on keys and sessions |
 | Memory | Secure scrub on revoke |
@@ -337,7 +378,7 @@ Every tool result includes a verification level. Financial operations never use 
 
 ```bash
 python -m pytest tests/ -q
-# 191 passed in 17s
+# 212 passed in 17s
 ```
 
 | Suite | Type | Count |
@@ -429,7 +470,7 @@ vida/
 - Agent send, 10 KAS: [`d32b4504...`](https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7)
 
 ### Testnet-10 covenants
-- Lifecycle 1: `b58280037a692f4cd1ae087d9e258505add8e4fd4976a1146c6951b6ee471797`
+- Lifecycle 1: `b58280037a692f4cd1ae087d9e258505add8e4fd4976a1156c6951b6ee471797`
 - Lifecycle 2: `6d58b529ca25819a8cc58ae110d1b113cd688cf4b1cbbe15ef3dd7e799434028`
 - Lifecycle 3: `2d0ade44cb97f07350a93848a1d6edb4dcb49fcbce60298e17b3acc351300046`
 
@@ -446,7 +487,8 @@ Vida uses a dual license:
 - **Kaspa core, TAO plugin, Agent layer, CLI tools:** MIT
 - **Covenant module (SilverScript contracts, escrow, negotiation, channels):** Commercial license
 
-The MIT parts are free to use, fork, and modify. The covenant module is commercial — contact for details.
+The MIT parts are free to use, fork, and modify.
+The covenant module is commercial — contact for details.
 
 Fees and donations are separate and configurable via env vars:
 - `VIDA_FEE_ADDRESS` — protocol fee address (KAS)
