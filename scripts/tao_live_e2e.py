@@ -57,6 +57,7 @@ def main() -> int:
     args = ap.parse_args()
 
     from mnemonic import Mnemonic
+
     from vida.plugins import VidaPluginContext
     from vida.plugins.tao import (
         TaoAccountStore,

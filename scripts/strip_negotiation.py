@@ -11,7 +11,6 @@ Operation:
   6. Verify 139 - 19 = ~120 tests still pass
 """
 
-import subprocess, sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent

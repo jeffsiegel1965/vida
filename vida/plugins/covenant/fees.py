@@ -18,10 +18,9 @@ Any forker can modify or remove them. The real moat is the ecosystem.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 import os
-from typing import Optional
+from dataclasses import dataclass
 
 # ── Fee address ──
 # Protocol fee collected on every covenant transaction.

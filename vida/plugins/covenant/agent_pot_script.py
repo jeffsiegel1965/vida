@@ -16,7 +16,6 @@ from typing import Any, Optional, Sequence
 
 from .agent_pot import SOMPI_PER_KAS
 
-
 TEMPLATE_VERSION = 2
 STRATEGY_MVP = "covenant_bound_p2pk_pot"
 STRATEGY_QUINE = "self_replicating_quine_pot"

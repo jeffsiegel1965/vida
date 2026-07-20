@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -18,8 +17,8 @@ from vida.plugins.covenant import (  # noqa: E402
     load_covenant_config,
     plan_agent_pot,
     register_covenant_plugin,
-    validate_agent_pot_plan,
     tn10_microproof,
+    validate_agent_pot_plan,
 )
 from vida.plugins.registry import PluginRegistry  # noqa: E402
 

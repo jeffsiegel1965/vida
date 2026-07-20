@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
@@ -29,12 +29,12 @@ class Subscription:
     next_renewal_at: float = 0.0
     total_cycles: int = 0
     active: bool = True
-    
+
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["terms"] = self.terms.to_dict()
         return d
-    
+
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Subscription:
         return cls(
@@ -57,14 +57,14 @@ SUBSCRIPTION_DISCOUNT = 0.15  # 15% off fees for subscriptions
 
 class SubscriptionManager:
     """Manages recurring covenant pot subscriptions."""
-    
+
     def __init__(self, storage_path: str = ""):
         if not storage_path:
             storage_path = str(Path.home() / ".vida" / "subscriptions.json")
         self._path = Path(storage_path)
         self._subscriptions: dict[str, Subscription] = {}
         self._load()
-    
+
     def _load(self) -> None:
         if self._path.exists():
             try:
@@ -74,14 +74,14 @@ class SubscriptionManager:
                     self._subscriptions[sub.id] = sub
             except (json.JSONDecodeError, KeyError):
                 pass
-    
+
     def _save(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "subscriptions": [s.to_dict() for s in self._subscriptions.values()],
         }
         self._path.write_text(json.dumps(data, indent=2))
-    
+
     def create(self, sub: Subscription) -> Subscription:
         """Create a new subscription."""
         # Set up renewal schedule
@@ -93,20 +93,20 @@ class SubscriptionManager:
         self._subscriptions[sub.id] = sub
         self._save()
         return sub
-    
+
     def renew(self, sub_id: str) -> Optional[Subscription]:
         """Renew a subscription for another cycle."""
         sub = self._subscriptions.get(sub_id)
         if not sub or not sub.active:
             return None
-        
+
         now = time.time()
         sub.last_renewed_at = now
         sub.next_renewal_at = now + (sub.interval_hours * 3600)
         sub.total_cycles += 1
         self._save()
         return sub
-    
+
     def cancel(self, sub_id: str) -> bool:
         """Cancel a subscription."""
         sub = self._subscriptions.get(sub_id)
@@ -116,13 +116,13 @@ class SubscriptionManager:
         sub.auto_renew = False
         self._save()
         return True
-    
+
     def get(self, sub_id: str) -> Optional[Subscription]:
         return self._subscriptions.get(sub_id)
-    
+
     def list_active(self) -> list[Subscription]:
         return [s for s in self._subscriptions.values() if s.active]
-    
+
     def due_for_renewal(self) -> list[Subscription]:
         """Get active subscriptions that are due for renewal."""
         now = time.time()
@@ -130,13 +130,13 @@ class SubscriptionManager:
             s for s in self._subscriptions.values()
             if s.active and s.next_renewal_at <= now
         ]
-    
+
     def discount_for(self, sub_id: str) -> float:
         """Get the subscription discount rate for a subscription."""
         if sub_id in self._subscriptions:
             return SUBSCRIPTION_DISCOUNT
         return 0.0
-    
+
     def stats(self) -> dict[str, Any]:
         active = self.list_active()
         return {

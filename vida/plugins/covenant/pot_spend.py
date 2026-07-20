@@ -147,7 +147,6 @@ def save_pot_record(
         "note": "software pot record — not a private key store",
     }
     # Atomic write: write to temp then os.replace to prevent partial reads
-    import tempfile
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=2) + "\n")
     os.replace(str(tmp), str(path))
@@ -205,69 +204,75 @@ def spend_to_agent(
     network: str = "testnet-10",
 ) -> dict[str, Any]:
     """Build, sign, and submit a KAS transfer to an agent.
-    
+
     Uses the Kaspa SDK for the full transaction lifecycle:
     1. Build transaction (create_transaction)
-    2. Sign (sign_transaction)  
+    2. Sign (sign_transaction)
     3. Submit (via RpcClient.submit_transaction)
-    
+
     Requires the agent's private key (from secure_wallet, not wallet.py).
     """
-    import json
-    
+
     try:
         # Use the SDK-based RPC for balance check first
-        from vida.plugins.covenant.kaspa_rpc import get_balance, _sync
-        
+        from vida.plugins.covenant.kaspa_rpc import get_balance
+
         sender = str(__import__("kaspa").PrivateKey(private_key_hex).to_address(
-            __import__("kaspa").NetworkType.Testnet if "testnet" in network 
+            __import__("kaspa").NetworkType.Testnet if "testnet" in network
             else __import__("kaspa").NetworkType.Mainnet))
-        
+
         bal = get_balance(sender)
         if not bal.get("ok"):
             return {"ok": False, "error": f"balance check failed: {bal.get('error')}"}
         if float(bal.get("balance_kas", 0)) < amount_kas:
-            return {"ok": False, "error": f"insufficient balance"}
-        
+            return {"ok": False, "error": "insufficient balance"}
+
         # Build and submit transaction
         import asyncio
+
         from kaspa import (
-            PrivateKey, Address, NetworkType, PaymentOutput, 
-            create_transaction, sign_transaction, RpcClient, Resolver
+            Address,
+            NetworkType,
+            PaymentOutput,
+            PrivateKey,
+            Resolver,
+            RpcClient,
+            create_transaction,
+            sign_transaction,
         )
-        
+
         async def _submit():
             client = RpcClient(resolver=Resolver())
             client.set_network_id(network)
             await client.connect()
-            
+
             try:
                 priv = PrivateKey(private_key_hex)
                 net = NetworkType.Testnet if "testnet" in network else NetworkType.Mainnet
                 owner = str(priv.to_address(net))
-                
+
                 utxos = await client.get_utxos_by_addresses(request={"addresses": [owner]})
                 entries = utxos.get("entries", [])
                 if not entries:
                     return {"ok": False, "error": "no UTXOs available"}
-                
+
                 fund = entries[0]
                 amt = int(fund["utxoEntry"]["amount"])
                 send_sompi = int(amount_kas * 100_000_000)
-                
+
                 send_out = PaymentOutput(Address(destination), send_sompi)
                 chg_out = PaymentOutput(Address(owner), amt - send_sompi - 10_000)
-                
+
                 tx = create_transaction(
                     utxo_entry_source=[fund],
                     outputs=[send_out, chg_out],
                     priority_fee=10_000,
                 )
                 signed = sign_transaction(tx, [priv], True)
-                
+
                 result = await client.submit_transaction(request=signed)
                 txid = result.get("txid", "") if isinstance(result, dict) else str(result)
-                
+
                 # Save pot record
                 save_pot_record(wallet_id, {
                     "txid": txid,
@@ -275,7 +280,7 @@ def spend_to_agent(
                     "address": destination,
                     "network": network,
                 })
-                
+
                 return {
                     "ok": True,
                     "txid": txid,
@@ -285,7 +290,7 @@ def spend_to_agent(
                 }
             finally:
                 await client.disconnect()
-        
+
         return asyncio.run(_submit())
     except Exception as e:
         return {"ok": False, "error": f"spend_to_agent failed: {e}", "error_type": type(e).__name__}

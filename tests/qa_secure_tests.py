@@ -8,7 +8,6 @@ PQ signing, and VidaTransactor compatibility.
 
 import json
 import os
-import stat
 import sys
 import tempfile
 import time
@@ -17,15 +16,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'vida'))
 
 from secure_wallet import (
+    PQ_AVAILABLE,
+    SCRYPT_N,
     SecureVida,
+    _decrypt,
+    _derive_key,
     create_secure_wallet,
     grant_agent_session,
     revoke_agent_session,
-    _decrypt,
-    _derive_key,
-    _session_aad,
-    SCRYPT_N,
-    PQ_AVAILABLE,
 )
 
 passed, failed, errors = 0, 0, []
@@ -38,10 +36,10 @@ def run_test(name, fn):
     print(f"\n━━━ {name} ━━━")
     try:
         if fn():
-            print(f"  ✔ PASS")
+            print("  ✔ PASS")
             passed += 1
         else:
-            print(f"  ✘ FAIL")
+            print("  ✘ FAIL")
             failed += 1
             errors.append(name)
     except Exception as e:
@@ -58,11 +56,11 @@ def s1_creation():
     res = create_secure_wallet(p, PW, network="mainnet")
     words = res["mnemonic"].split()
     assert len(words) == 24, f"expected 24 words, got {len(words)}"
-    print(f"  24-word mnemonic ✓")
+    print("  24-word mnemonic ✓")
     assert res["address"].startswith("kaspa:")
     mode = os.stat(p).st_mode & 0o777
     assert mode == 0o600, f"perms {oct(mode)}"
-    print(f"  file perms 0600 ✓")
+    print("  file perms 0600 ✓")
 
     raw = open(p).read()
     data = json.loads(raw)
@@ -80,7 +78,7 @@ def s1_creation():
     w_unlocked.lock()
     assert set(data["enc_schnorr"].keys()) == {"nonce", "ct"}
     assert data["kdf"]["algo"] == "scrypt" and data["kdf"]["n"] == SCRYPT_N
-    print(f"  actual secret values verified ABSENT from disk ✓")
+    print("  actual secret values verified ABSENT from disk ✓")
     return True
 
 
@@ -91,17 +89,17 @@ def s2_password():
     w = SecureVida(p, password=PW)
     sig = w.sign("hello")
     assert w.verify("hello", sig)
-    print(f"  correct password: unlock + sign + verify ✓")
+    print("  correct password: unlock + sign + verify ✓")
     w.lock()
     assert w._private_key_hex is None
-    print(f"  lock() scrubs key ✓")
+    print("  lock() scrubs key ✓")
 
     try:
         SecureVida(p, password="wrong-password-123")
         return False
     except ValueError as e:
         assert "Wrong password" in str(e)
-        print(f"  wrong password rejected ✓")
+        print("  wrong password rejected ✓")
     return True
 
 
@@ -119,7 +117,7 @@ def s3_restore():
     w2 = SecureVida(p2, password="different-password-9")
     sig = w2.sign("cross-check")
     assert w1.verify("cross-check", sig)
-    print(f"  restored wallet signature verifies against original pubkey ✓")
+    print("  restored wallet signature verifies against original pubkey ✓")
     return True
 
 
@@ -131,12 +129,12 @@ def s4_guards():
         create_secure_wallet(p, PW)
         return False
     except FileExistsError:
-        print(f"  overwrite refused ✓")
+        print("  overwrite refused ✓")
     try:
         create_secure_wallet(os.path.join(tmpdir, "w4b.json"), "short")
         return False
     except ValueError:
-        print(f"  short password refused ✓")
+        print("  short password refused ✓")
     return True
 
 
@@ -153,7 +151,7 @@ def s5_pq():
     assert len(sig) == 3309
     assert w.verify_pq(b"pq message", sig) is True
     assert w.verify_pq(b"tampered", sig) is False
-    print(f"  PQ sign/verify round-trip, wrong msg rejected ✓")
+    print("  PQ sign/verify round-trip, wrong msg rejected ✓")
     return True
 
 
@@ -164,27 +162,27 @@ def s6_session_grant():
     sp = os.path.join(tmpdir, "sess6.json")
     info = grant_agent_session(p, PW, sp, hours=1, max_kas_per_tx=5, max_kas_per_day=20)
     assert os.stat(sp).st_mode & 0o777 == 0o600
-    print(f"  session file 0600 ✓")
+    print("  session file 0600 ✓")
 
     agent = SecureVida(p, _session_file=sp)
     sig = agent.sign("agent spend")
     assert agent.verify("agent spend", sig)
-    print(f"  agent unlocks WITHOUT password and can sign ✓")
+    print("  agent unlocks WITHOUT password and can sign ✓")
     assert agent._pq_sk is None
     try:
         agent.sign_pq(b"x")
         return False
     except ValueError:
-        print(f"  PQ secret NOT exposed to agent sessions ✓")
+        print("  PQ secret NOT exposed to agent sessions ✓")
     assert agent.session_limits == {"max_kas_per_tx": 5, "max_kas_per_day": 20}
-    print(f"  limits carried in session ✓")
+    print("  limits carried in session ✓")
 
     # Wrong password can't grant
     try:
         grant_agent_session(p, "bad-password-000", os.path.join(tmpdir, "x.json"), hours=1, max_kas_per_tx=1, max_kas_per_day=1)
         return False
     except ValueError:
-        print(f"  grant with wrong password refused ✓")
+        print("  grant with wrong password refused ✓")
     return True
 
 
@@ -200,9 +198,9 @@ def s7_session_expiry():
         return False
     except ValueError as e:
         assert "expired" in str(e)
-        print(f"  expired session refused ✓")
+        print("  expired session refused ✓")
     assert not os.path.exists(sp)
-    print(f"  expired session file burned ✓")
+    print("  expired session file burned ✓")
     return True
 
 
@@ -214,12 +212,12 @@ def s8_revoke():
     grant_agent_session(p, PW, sp, hours=24, max_kas_per_tx=5, max_kas_per_day=20)
     assert revoke_agent_session(sp) is True
     assert not os.path.exists(sp)
-    print(f"  revoke deletes session ✓")
+    print("  revoke deletes session ✓")
     try:
         SecureVida(p, _session_file=sp)
         return False
     except FileNotFoundError:
-        print(f"  agent locked out after revoke ✓")
+        print("  agent locked out after revoke ✓")
     assert revoke_agent_session(sp) is False  # idempotent
     return True
 
@@ -239,7 +237,7 @@ def s9_tamper():
         SecureVida(p, _session_file=sp)
         return False
     except Exception:
-        print(f"  corrupted machine key rejected (AES-GCM auth) ✓")
+        print("  corrupted machine key rejected (AES-GCM auth) ✓")
 
     # Session for a different wallet
     p2 = os.path.join(tmpdir, "w9b.json")
@@ -251,7 +249,7 @@ def s9_tamper():
         return False
     except ValueError as e:
         assert "different wallet" in str(e)
-        print(f"  session for different wallet rejected ✓")
+        print("  session for different wallet rejected ✓")
     return True
 
 
@@ -269,14 +267,15 @@ def s10_transactor_compat():
     assert not r.success and "positive" in r.error
     r = asyncio.run(tx.send("kaspa:wrongnet", 1.0))
     assert not r.success and "prefix" in r.error
-    print(f"  SecureVida works with VidaTransactor; validation gates fire ✓")
+    print("  SecureVida works with VidaTransactor; validation gates fire ✓")
     return True
 
 
 # S12: Secure session spend caps enforced on send (no network needed)
 def s12_session_spend_caps():
-    from transactions import VidaTransactor
     import asyncio
+
+    from transactions import VidaTransactor
 
     p = os.path.join(tmpdir, "w12.json")
     create_secure_wallet(p, PW, network="testnet")
@@ -323,8 +322,9 @@ def s12_session_spend_caps():
 
 # S13: v2 host-bind, dest allowlist, authenticated spend counter
 def s13_session_v2_hardening():
-    from transactions import VidaTransactor
     import asyncio
+
+    from transactions import VidaTransactor
 
     p = os.path.join(tmpdir, "w13.json")
     create_secure_wallet(p, PW, network="testnet")

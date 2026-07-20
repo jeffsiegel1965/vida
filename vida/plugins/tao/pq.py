@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # vida/ml_dsa_65.py lives next to secure_wallet
 _VIDA_DIR = Path(__file__).resolve().parents[2]
@@ -24,11 +24,17 @@ if str(_VIDA_DIR) not in sys.path:
 try:
     from ml_dsa_65 import (  # type: ignore
         PQ_AVAILABLE,
-        keygen as pq_keygen,
-        sign as pq_sign,
-        verify as pq_verify,
         PUBLIC_KEY_LEN,
         SECRET_KEY_LEN,
+    )
+    from ml_dsa_65 import (
+        keygen as pq_keygen,
+    )
+    from ml_dsa_65 import (
+        sign as pq_sign,
+    )
+    from ml_dsa_65 import (
+        verify as pq_verify,
     )
 except ImportError:
     PQ_AVAILABLE = False

@@ -20,14 +20,14 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from kaspa import (
+    Address,
+    PrivateKey,
     Resolver,
     RpcClient,
-    PrivateKey,
-    Address,
-    create_transaction,
-    sign_transaction,
     calculate_transaction_mass,
+    create_transaction,
     kaspa_to_sompi,
+    sign_transaction,
     sompi_to_kaspa,
 )
 

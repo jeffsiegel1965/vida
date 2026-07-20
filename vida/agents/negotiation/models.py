@@ -11,18 +11,17 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
-
 
 # ── Strategies ──
 
 
 class ConcessionStrategy(Enum):
     """Negotiation concession strategy.
-    
+
     BOULWARE: Start high, concede slowly. Default for unknown counterparties.
     CONCEDE:  Start fair, concede quickly. Use for trusted/repeat counterparties.
     """
@@ -36,17 +35,17 @@ class ConcessionStrategy(Enum):
 @dataclass
 class CovenantTerms:
     """The terms of a covenant pot that an agent can negotiate.
-    
+
     Simplified from 9 parameters to 4 essential ones.
     """
     max_kas_per_tx: float = 1.0       # KAS
     max_kas_per_day: float = 5.0      # KAS
     allowed_destinations: list[str] = field(default_factory=list)
     duration_hours: int = 720          # 30 days default
-    
+
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-    
+
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> CovenantTerms:
         return cls(
@@ -118,13 +117,13 @@ class NegotiationOutcome:
     fee_paid_kas: float = 0.0
     template_used: str = ""
     timestamp: float = field(default_factory=time.time)
-    
+
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["strategy_used"] = self.strategy_used.value
         d["final_terms"] = self.final_terms.to_dict()
         return d
-    
+
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> NegotiationOutcome:
         return cls(
@@ -152,7 +151,7 @@ class CounterpartyProfile:
     avg_rounds_to_deal: float = 0.0
     preferred_strategy: ConcessionStrategy = ConcessionStrategy.BOULWARE
     last_interaction: float = 0.0
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "agent_id": self.agent_id,
@@ -169,18 +168,18 @@ class CounterpartyProfile:
 
 class NegotiationMemory:
     """Persistent learning engine for negotiation strategies.
-    
+
     Stores outcomes and counterparty profiles in JSON files.
     Supports volume discounts based on total deal history.
     """
-    
+
     DISCOUNT_TIERS = [
         (0, 0.0),           # 0% discount for < 100 KAS
         (100, 0.10),        # 10% for 100-1000 KAS
         (1000, 0.20),       # 20% for 1000-10000 KAS
         (10000, 0.30),      # 30% for 10000+ KAS
     ]
-    
+
     def __init__(self, storage_path: str = ""):
         if not storage_path:
             storage_path = str(Path.home() / ".vida" / "negotiation_memory.json")
@@ -188,7 +187,7 @@ class NegotiationMemory:
         self._outcomes: list[NegotiationOutcome] = []
         self._profiles: dict[str, CounterpartyProfile] = {}
         self._load()
-    
+
     def _load(self) -> None:
         if self._path.exists():
             try:
@@ -205,7 +204,7 @@ class NegotiationMemory:
                     )
             except (json.JSONDecodeError, KeyError):
                 pass
-    
+
     def _save(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         data = {
@@ -213,52 +212,52 @@ class NegotiationMemory:
             "profiles": {k: v.to_dict() for k, v in self._profiles.items()},
         }
         self._path.write_text(json.dumps(data, indent=2))
-    
+
     def record(self, outcome: NegotiationOutcome) -> None:
         """Record a completed negotiation outcome."""
         self._outcomes.append(outcome)
-        
+
         # Update counterparty profile
-        profile = self._profiles.get(outcome.counterparty_id, 
+        profile = self._profiles.get(outcome.counterparty_id,
                                        CounterpartyProfile(agent_id=outcome.counterparty_id))
         profile.deal_count += 1
         profile.total_pot_kas += outcome.pot_sompi / 100_000_000  # sompi → KAS
         profile.last_interaction = outcome.timestamp
-        
+
         # Update rolling average
         old_total = profile.avg_rounds_to_deal * (profile.deal_count - 1)
         profile.avg_rounds_to_deal = (old_total + outcome.rounds_to_deal) / profile.deal_count
-        
+
         # Update preferred strategy if we have enough data
         if profile.deal_count >= 3:
             profile.preferred_strategy = outcome.strategy_used
-        
+
         self._profiles[outcome.counterparty_id] = profile
         self._save()
-    
+
     def best_strategy_for(self, counterparty: str) -> ConcessionStrategy:
         """Get the best strategy for a counterparty based on history."""
         profile = self._profiles.get(counterparty)
         if profile and profile.deal_count >= 3:
             return profile.preferred_strategy
         return ConcessionStrategy.BOULWARE
-    
+
     def get_profile(self, counterparty: str) -> Optional[CounterpartyProfile]:
         """Get profile for a specific counterparty."""
         return self._profiles.get(counterparty)
-    
+
     def volume_discount(self, counterparty: str) -> float:
         """Get volume discount rate for a counterparty (0.0 to 0.3)."""
         profile = self._profiles.get(counterparty)
         if not profile:
             return 0.0
-        
+
         total_kas = profile.total_pot_kas
         for threshold, discount in reversed(self.DISCOUNT_TIERS):
             if total_kas >= threshold:
                 return discount
         return 0.0
-    
+
     def stats(self) -> dict[str, Any]:
         """Get negotiation memory statistics."""
         return {

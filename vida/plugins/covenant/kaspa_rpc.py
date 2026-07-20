@@ -15,22 +15,19 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
-import os
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
 from kaspa import (
-    Address,
     NetworkType,
     PrivateKey,
     Resolver,
     RpcClient,
     sompi_to_kaspa,
 )
-
 
 # ── Structured error types ──
 
@@ -101,7 +98,7 @@ async def _get_client() -> RpcClient:
         except Exception as e:
             logger.warning("RPC health check failed: %s", e)
             await _disconnect()
-    
+
     # Create new connection
     try:
         _resolver = Resolver()
@@ -127,7 +124,7 @@ async def _disconnect() -> None:
 
 def set_network(network: str = "testnet-10") -> None:
     """Set the network ID. Call before any RPC calls.
-    
+
     Args:
         network: 'testnet-10' or 'mainnet'.
     """
@@ -147,7 +144,7 @@ def set_network(network: str = "testnet-10") -> None:
 @_sync
 async def get_balance(address: str) -> dict[str, Any]:
     """Get balance for a Kaspa address.
-    
+
     Returns:
         {"ok": True, "balance_sompi": int, "balance_kas": str} or
         {"ok": False, "error": str}
@@ -177,7 +174,7 @@ async def get_balance(address: str) -> dict[str, Any]:
 @_sync
 async def get_utxos(address: str) -> dict[str, Any]:
     """Get UTXOs for a Kaspa address.
-    
+
     Returns:
         {"ok": True, "utxos": [...]} or {"ok": False, "error": str}
     """
@@ -197,16 +194,16 @@ async def get_utxos(address: str) -> dict[str, Any]:
 @_sync
 async def submit_transaction(tx_hex: str) -> dict[str, Any]:
     """Submit a raw transaction to the network.
-    
+
     Args:
         tx_hex: Hex-encoded transaction (or dict with to_dict() method).
-    
+
     Returns:
         {"ok": True, "txid": str, "source": str} or {"ok": False, "error": str}
     """
     try:
         client = await _get_client()
-        
+
         # Handle both hex strings and dict/object inputs
         tx_dict: dict[str, Any] = {}
         if isinstance(tx_hex, str):
@@ -219,7 +216,7 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
             tx_dict = tx_hex.to_dict()
         elif isinstance(tx_hex, dict):
             tx_dict = tx_hex
-        
+
         # Method 1: SDK submit with RpcTransaction format
         # The SDK expects: {"transaction": RpcTransaction, "allowOrphan": bool}
         # RpcTransaction matches to_dict() output format
@@ -234,12 +231,12 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
                     return {"ok": True, "txid": txid, "source": "sdk"}
             except (TypeError, RuntimeError, KeyError) as sdk_err:
                 logger.warning("SDK submit failed: %s", sdk_err)
-        
+
         # Method 2: REST API fallback
         try:
             import json
-            from urllib.request import Request, urlopen, URLError
-            
+            from urllib.request import Request, URLError, urlopen
+
             class KaspaJSONEncoder(json.JSONEncoder):
                 def default(self, obj):
                     if hasattr(obj, 'to_dict'):
@@ -247,10 +244,10 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
                     elif hasattr(obj, 'hex'):
                         return obj.hex()
                     return super().default(obj)
-            
+
             base = "https://api-tn10.kaspa.org" if "testnet" in _network_id else "https://api.kaspa.org"
             data = tx_hex if isinstance(tx_hex, str) else json.dumps(tx_dict, cls=KaspaJSONEncoder)
-            
+
             req = Request(
                 f"{base}/transactions",
                 data=data.encode(),
@@ -264,15 +261,15 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
         except URLError as e:
             return _error_response(TransactionError(f"REST API submit failed: {e.reason}"))
         except (ValueError, TypeError, RuntimeError, json.JSONDecodeError) as e:
-            return _error_response(TransactionError(f"REST API encoding failed", original=e))
+            return _error_response(TransactionError("REST API encoding failed", original=e))
     except Exception as e:
-        return _error_response(TransactionError(f"transaction submission failed", original=e))
+        return _error_response(TransactionError("transaction submission failed", original=e))
 
 
 @_sync
 async def get_transaction(txid: str) -> dict[str, Any]:
     """Get transaction details.
-    
+
     Returns:
         {"ok": True, "transaction": {...}} or {"ok": False, "error": str}
     """
@@ -287,7 +284,7 @@ async def get_transaction(txid: str) -> dict[str, Any]:
 @_sync
 async def get_network_info() -> dict[str, Any]:
     """Get network info (DAG info, sync status).
-    
+
     Returns:
         {"ok": True, "info": {...}} or {"ok": False, "error": str}
     """
@@ -302,7 +299,7 @@ async def get_network_info() -> dict[str, Any]:
 @_sync
 async def get_virtual_chain_blue_score() -> dict[str, Any]:
     """Get the current virtual chain blue score.
-    
+
     Returns:
         {"ok": True, "blue_score": int} or {"ok": False, "error": str}
     """
@@ -318,22 +315,22 @@ async def get_virtual_chain_blue_score() -> dict[str, Any]:
 @_sync
 async def generate_keypair() -> dict[str, Any]:
     """Generate a Kaspa-compatible secp256k1 keypair using the SDK.
-    
+
     Returns:
         {"ok": True, "private_key_hex": str, "address": str, "public_key_hex": str}
     """
     try:
         import secrets
-        
+
         # Generate random private key (valid secp256k1 scalar with overwhelming probability)
         priv_key = PrivateKey(secrets.token_hex(32))
         _ = priv_key.to_public_key()  # ensure valid
         pub_key = priv_key.to_public_key()
-        
+
         # Derive address
         net = NetworkType.Testnet if "testnet" in _network_id else NetworkType.Mainnet
         addr = priv_key.to_address(net)
-        
+
         return {
             "ok": True,
             "private_key_hex": priv_key.to_string(),
@@ -364,7 +361,7 @@ def save_key(key_path: str, key_bytes: bytes) -> None:
 
 def p2sh_address(program_hex: str) -> str:
     """Derive the P2SH address from a SilverScript program hex.
-    
+
     Uses blake2b-256 hash of the program as the covenant identifier.
     """
     program = bytes.fromhex(program_hex)

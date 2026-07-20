@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import os
 import tempfile
 import unittest
 
 from vida.agents.negotiation import (
+    TEMPLATES,
     ConcessionStrategy,
     CovenantTerms,
     NegotiationMemory,
@@ -16,7 +16,6 @@ from vida.agents.negotiation import (
     SessionManager,
     Subscription,
     SubscriptionManager,
-    TEMPLATES,
     apply_template,
 )
 
@@ -128,7 +127,7 @@ class TestNegotiationMemory(unittest.TestCase):
             pot_sompi=50_000_000,
         )
         self.mem.record(outcome)
-        
+
         mem2 = NegotiationMemory(self.path)
         self.assertEqual(mem2.stats()["total_deals"], 1)
         profile = mem2.get_profile("persist_test")
@@ -187,7 +186,8 @@ class TestNegotiationSession(unittest.TestCase):
 
     def test_accept_terms_records_outcome(self):
         terms = apply_template("micro")
-        import tempfile, os
+        import os
+        import tempfile
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
         tmp.close()
         fresh_mem = NegotiationMemory(tmp.name)

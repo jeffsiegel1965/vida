@@ -103,8 +103,8 @@ class TestProvision(unittest.TestCase):
 
 class TestPluginOwnerProvision(unittest.TestCase):
     def test_agent_path_blocked_owner_path_works(self):
-        from vida.plugins.tao import TaoPlugin, TaoConfig, TaoNetwork, TaoAccountStore
         from vida.plugins import VidaPluginContext
+        from vida.plugins.tao import TaoAccountStore, TaoConfig, TaoNetwork, TaoPlugin
 
         with tempfile.TemporaryDirectory() as td:
             store = TaoAccountStore(td)

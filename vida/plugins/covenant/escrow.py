@@ -14,7 +14,6 @@ Based on SilverScript contract at silverscript/contracts/escrow_v1.sil
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import logging
@@ -46,7 +45,7 @@ class EscrowRecord:
     status: str = "funded"  # funded, released, refunded, disputed
     created_at: float = field(default_factory=time.time)
     network: str = "mainnet"
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
@@ -73,7 +72,7 @@ class EscrowRecord:
 
 class EscrowStore:
     """Persistent store for escrow covenant records."""
-    
+
     def __init__(self, storage_dir: str = ""):
         if not storage_dir:
             storage_dir = str(Path.home() / ".vida" / "escrows")
@@ -81,7 +80,7 @@ class EscrowStore:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._escrows: dict[str, EscrowRecord] = {}
         self._load()
-    
+
     def _load(self) -> None:
         if self._path.exists():
             try:
@@ -91,27 +90,27 @@ class EscrowStore:
                     self._escrows[r.id] = r
             except (json.JSONDecodeError, KeyError, TypeError) as e:
                 logger.warning("Escrow store load error: %s", e)
-    
+
     def _save(self) -> None:
         data = {
             "escrows": [e.to_dict() for e in self._escrows.values()],
             "updated_at": time.time(),
         }
         self._path.write_text(json.dumps(data, indent=2))
-    
+
     def save(self, record: EscrowRecord) -> None:
         self._escrows[record.id] = record
         self._save()
-    
+
     def get(self, escrow_id: str) -> Optional[EscrowRecord]:
         return self._escrows.get(escrow_id)
-    
+
     def list_active(self) -> list[EscrowRecord]:
         return [e for e in self._escrows.values() if e.status == "funded"]
-    
+
     def list_all(self) -> list[dict[str, Any]]:
         return [e.to_dict() for e in self._escrows.values()]
-    
+
     def update_status(self, escrow_id: str, status: str, txid: str = "") -> bool:
         escrow = self._escrows.get(escrow_id)
         if not escrow:
@@ -171,32 +170,33 @@ def deploy_escrow(
     network: str = "mainnet",
 ) -> dict[str, Any]:
     """Deploy an escrow covenant on-chain.
-    
+
     Creates a UTXO locked by the escrow SilverScript program.
     The escrow holds funds until release, refund, or resolution.
-    
+
     Fee: 0.1% of escrow amount (min 0.01 KAS, max 1 KAS) to fee address.
     """
     try:
         import secrets
-        from .fees import calc_fund_fee, get_fee_address, get_donation_address
-        
+
+        from .fees import calc_fund_fee, get_donation_address, get_fee_address
+
         # Validate addresses are non-empty
         if not buyer_address or not seller_address:
             return {"ok": False, "error": "buyer and seller addresses required"}
         if not arbiter_address:
             arbiter_address = "kaspa:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
-        
+
         # Generate unique escrow ID
         escrow_id = f"escrow_{secrets.token_hex(8)}"
         amount_sompi = int(amount_kas * 100_000_000)
-        
+
         # Calculate fee
         fee_kas = calc_fund_fee(amount_kas)
         fee_sompi = int(fee_kas * 100_000_000)
         total_kas = amount_kas + fee_kas
         total_sompi = amount_sompi + fee_sompi
-        
+
         # Create the escrow record
         record = EscrowRecord(
             id=escrow_id,
@@ -208,11 +208,11 @@ def deploy_escrow(
             covenant_id=escrow_covenant_id(),
             network=network,
         )
-        
+
         # Persist
         store = EscrowStore()
         store.save(record)
-        
+
         return {
             "ok": True,
             "escrow_id": escrow_id,
@@ -246,7 +246,7 @@ def release_escrow(
     store: Optional[EscrowStore] = None,
 ) -> dict[str, Any]:
     """Release escrow funds to seller.
-    
+
     Both seller and arbiter must sign. Covenant enforces that
     funds go to the seller's address.
     """
@@ -254,7 +254,7 @@ def release_escrow(
         store = store or EscrowStore()
         if not store.update_status(escrow_id, "released", "pending"):
             return {"ok": False, "error": f"escrow {escrow_id} not found"}
-        
+
         return {
             "ok": True,
             "escrow_id": escrow_id,
@@ -272,14 +272,14 @@ def refund_escrow(
     store: Optional[EscrowStore] = None,
 ) -> dict[str, Any]:
     """Refund escrow funds to buyer after timeout.
-    
+
     Buyer can reclaim funds after the timeout block has passed.
     """
     try:
         store = store or EscrowStore()
         if not store.update_status(escrow_id, "refunded", "pending"):
             return {"ok": False, "error": f"escrow {escrow_id} not found"}
-        
+
         return {
             "ok": True,
             "escrow_id": escrow_id,
@@ -298,7 +298,7 @@ def resolve_escrow(
     store: Optional[EscrowStore] = None,
 ) -> dict[str, Any]:
     """Resolve a disputed escrow.
-    
+
     Arbiter decides who gets the funds. Covenant constrains the
     arbiter to only send to buyer or seller — cannot steal.
     """
@@ -307,14 +307,14 @@ def resolve_escrow(
         escrow = store.get(escrow_id)
         if not escrow:
             return {"ok": False, "error": f"escrow {escrow_id} not found"}
-        
+
         # Verify recipient is buyer or seller (covenant enforces this on-chain too)
         if recipient not in (escrow.buyer_address, escrow.seller_address):
             return {
                 "ok": False,
                 "error": f"arbiter can only route to buyer or seller, not {recipient[:20]}",
             }
-        
+
         store.update_status(escrow_id, "resolved", "pending")
         return {
             "ok": True,
@@ -341,7 +341,7 @@ def vida_escrow_create(
     network: str = "mainnet",
 ) -> dict[str, Any]:
     """Create a new escrow covenant between two agents.
-    
+
     The escrow holds funds until the seller delivers (with arbiter
     countersign), the buyer refunds (after timeout), or the arbiter
     resolves a dispute.
@@ -349,7 +349,7 @@ def vida_escrow_create(
     if not arbiter_address:
         # Use a default arbiter (Vida team or a decentralized arbiter)
         arbiter_address = "kaspa:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
-    
+
     return deploy_escrow(
         buyer_address=buyer_address,
         seller_address=seller_address,

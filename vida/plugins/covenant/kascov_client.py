@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import urllib.parse
 import urllib.request
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict
 
 DEFAULT_BASE = "https://kascov.io"
 

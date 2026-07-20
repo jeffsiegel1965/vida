@@ -11,8 +11,7 @@ Rules:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional
-
+from typing import Any
 
 SR25519_CRYPTO_TYPE = 1
 DEFAULT_SS58_PREFIX = 42
@@ -45,6 +44,7 @@ class TaoDerivedKeys:
 
 
 from substrateinterface import Keypair as _Keypair  # type: ignore
+
 
 def _import_keypair():
     return _Keypair

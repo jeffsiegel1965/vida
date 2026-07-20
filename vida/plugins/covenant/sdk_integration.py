@@ -14,15 +14,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import json
-import os
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from kaspa import (
     Address,
-    AddressVersion,
     CovenantBinding,
     NetworkType,
     PaymentOutput,
@@ -30,9 +26,7 @@ from kaspa import (
     PrivateKey,
     Resolver,
     RpcClient,
-    Transaction,
     create_transaction,
-    Generator,
 )
 
 # Default: use Resolver for auto-discovery (no hardcoded URLs)
@@ -68,7 +62,7 @@ class CovenantSpendResult:
 
 def program_to_covenant_id(program_hex: str) -> str:
     """Derive the covenant ID from a SilverScript program hex.
-    
+
     Covenant ID = blake2b-256(program_bytes)
     This is what kascov uses as the covenant identifier.
     """
@@ -85,12 +79,12 @@ async def deploy_covenant(
     key_address: str = "",
 ) -> CovenantDeployResult:
     """Deploy a SilverScript covenant to the Kaspa network.
-    
+
     1. Connect to Kaspa via Resolver (PNN auto-discovery)
     2. Get UTXOs for the deployer address
     3. Create covenant output with PaymentOutput.with_covenant
     4. Build, sign, submit transaction
-    
+
     Args:
         program_hex: Compiled SilverScript program as hex string.
         private_key_hex: Deployer's private key (hex).
@@ -100,12 +94,12 @@ async def deploy_covenant(
         key_address: Optional — derived from private key if not provided.
     """
     priv_key = PrivateKey(private_key_hex)
-    
+
     # Derive address if not provided
     if not key_address:
         addr = priv_key.to_address(NetworkType.Testnet)
         key_address = str(addr)
-    
+
     if wrpc_url:
         # Direct URL connection (no resolver)
         rpc = RpcClient()
@@ -114,16 +108,16 @@ async def deploy_covenant(
         # Resolver-based auto-discovery
         rpc = RpcClient(resolver=Resolver())
         rpc.set_network_id(network)
-    
+
     try:
         await rpc.connect()
-        
+
         # Get UTXOs
         utxos = await rpc.get_utxos_by_addresses(request={"addresses": [key_address]})
         entries = utxos.get("entries", utxos.get("utxos", [])) if isinstance(utxos, dict) else utxos
         if not entries:
             return CovenantDeployResult(ok=False, error="no UTXOs available")
-        
+
         # Build covenant output
         covenant = CovenantBinding(authorizing_input=0)
         output = PaymentOutput.with_covenant(
@@ -131,7 +125,7 @@ async def deploy_covenant(
             value_sompi,
             covenant,
         )
-        
+
         # Build transaction
         payload = bytes.fromhex(program_hex)
         tx = create_transaction(
@@ -141,14 +135,14 @@ async def deploy_covenant(
             payload=payload,
             sig_op_count=1,
         )
-        
+
         # Sign and submit
         pending = PendingTransaction(rpc, tx, [priv_key] if priv_key else [])
         await pending.sign()
         txid = await pending.submit()
-        
+
         covenant_id = program_to_covenant_id(program_hex)
-        
+
         return CovenantDeployResult(
             ok=True,
             covenant_id=covenant_id,
@@ -156,7 +150,7 @@ async def deploy_covenant(
             address=key_address,
             value_sompi=value_sompi,
         )
-        
+
     except Exception as e:
         return CovenantDeployResult(ok=False, error=str(e))
     finally:
@@ -174,10 +168,10 @@ async def spend_from_covenant(
     wrpc_url: str = "",
 ) -> CovenantSpendResult:
     """Spend from a deployed covenant.
-    
+
     Spends from the covenant UTXO, satisfying the covenant's constraints
     by binding the spend to the covenant script via CovenantBinding.
-    
+
     Args:
         program_hex: The covenant's compiled program hex.
         covenant_id: The covenant ID to spend from.
@@ -189,38 +183,38 @@ async def spend_from_covenant(
     """
     if not to_address:
         return CovenantSpendResult(ok=False, error="to_address required for spend")
-    
+
     priv_key = PrivateKey(private_key_hex)
     addr = priv_key.to_address(NetworkType.Testnet)
     owner_address = str(addr)
-    
+
     if wrpc_url:
         rpc = RpcClient()
         rpc.set_network_id(network)
     else:
         rpc = RpcClient(resolver=Resolver())
         rpc.set_network_id(network)
-    
+
     try:
         await rpc.connect()
-        
+
         # Get covenant UTXO — we need the UTXO locked by the covenant
         utxos = await rpc.get_utxos_by_addresses([owner_address])
         entries = utxos.get(owner_address, [])
-        
+
         # Filter for UTXOs with covenant binding
         covenant_utxos = [
             e for e in entries
             if hasattr(e, "script_public_key") and "covenant" in str(e).lower()
         ]
-        
+
         if not covenant_utxos:
             # Fallback: use all UTXOs and try covenant spend
             covenant_utxos = entries
-        
+
         if not covenant_utxos:
             return CovenantSpendResult(ok=False, error="no covenant UTXO found")
-        
+
         # Build covenant spend outputs:
         # Output 0: change/covenant continuation (self-replication for quine)
         # Output 1: payment to recipient
@@ -234,7 +228,7 @@ async def spend_from_covenant(
             Address(to_address),
             amount_sompi,
         )
-        
+
         # Build transaction
         payload = bytes.fromhex(program_hex)
         tx = create_transaction(
@@ -244,12 +238,12 @@ async def spend_from_covenant(
             payload=payload,
             sig_op_count=1,
         )
-        
+
         # Sign and submit
         pending = PendingTransaction(rpc, tx, [priv_key])
         await pending.sign()
         txid = await pending.submit()
-        
+
         return CovenantSpendResult(
             ok=True,
             txid=str(txid),
@@ -257,7 +251,7 @@ async def spend_from_covenant(
             payment_amount=amount_sompi,
             fee_sompi=10000,
         )
-        
+
     except Exception as e:
         return CovenantSpendResult(ok=False, error=str(e))
     finally:
@@ -270,19 +264,19 @@ async def covenant_balance(
     wrpc_url: str = "",
 ) -> dict[str, Any]:
     """Check the balance of a covenant via kascov explorer.
-    
+
     Falls back to kaspa_rpc.py for REST API queries.
     """
     # Use kascov explorer for covenant-specific queries
     try:
-        import urllib.request
         import json
-        
+        import urllib.request
+
         base = f"https://kascov.io/data/{network}/c/{covenant_id}.json"
         req = urllib.request.Request(base, headers={"accept": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as res:
             data = json.load(res)
-        
+
         balance = data.get("balance", data.get("amount", 0))
         return {"ok": True, "covenant_id": covenant_id, "balance_sompi": int(balance)}
     except Exception as e:

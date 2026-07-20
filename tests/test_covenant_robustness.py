@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 import tempfile
 import unittest
@@ -15,21 +14,21 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from vida.plugins.covenant import (
+    CovenantPlugin,
+    build_agent_pot_script_template,
     check_spend_allowed,
     check_spend_kas,
     plan_agent_pot,
-    build_agent_pot_script_template,
     verify_policy_hash,
-    CovenantPlugin,
 )
 from vida.plugins.covenant.lab_client import (
-    live_gates_ok,
-    can_run_lab_demo,
     can_fund_agent_pot,
+    can_run_lab_demo,
+    live_gates_ok,
 )
 from vida.plugins.covenant.pot_spend import (
-    save_pot_record,
     load_pot_record,
+    save_pot_record,
 )
 
 

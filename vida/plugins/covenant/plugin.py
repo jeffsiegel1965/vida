@@ -21,13 +21,16 @@ from .lab_client import (
     can_fund_agent_pot,
     can_run_lab_demo,
     can_spend_agent_pot,
-    fund_agent_pot as lab_fund_agent_pot,
     live_gates_ok,
     run_lab_demo,
+)
+from .lab_client import (
+    fund_agent_pot as lab_fund_agent_pot,
+)
+from .lab_client import (
     spend_agent_pot as lab_spend_agent_pot,
 )
 from .pot_spend import (
-    check_spend_allowed,
     check_spend_kas,
     load_pot_record,
     save_pot_record,

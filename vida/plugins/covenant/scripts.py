@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-
 # Timelock-style sketch (documentation / tests only — not a full assembler)
 OP_CHECKLOCKTIMEVERIFY_NOTE = (
     "CLTV + Schnorr check is the common TN10 covenant shape (see kascov)."

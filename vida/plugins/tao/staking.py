@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from ..policy import PolicyDecision, PolicyRequest, evaluate_policy
+from ..policy import PolicyDecision, evaluate_policy
 
 
 @dataclass

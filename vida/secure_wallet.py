@@ -46,11 +46,12 @@ from typing import Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
-
 from kaspa import Mnemonic, XPrv
 
 try:
-    from ml_dsa_65 import keygen as pq_keygen, sign as pq_sign, verify as pq_verify
+    from ml_dsa_65 import keygen as pq_keygen
+    from ml_dsa_65 import sign as pq_sign
+    from ml_dsa_65 import verify as pq_verify
     PQ_AVAILABLE = True
 except ImportError:
     PQ_AVAILABLE = False
@@ -355,13 +356,13 @@ class SecureVida:
     # -- signing (same surface as wallet.Vida) --
 
     def sign(self, message: str) -> str:
-        from kaspa import PrivateKey
         import kaspa as kas
+        from kaspa import PrivateKey
         return kas.sign_message(message, PrivateKey(self._private_key_hex))
 
     def verify(self, message: str, sig_hex: str) -> bool:
-        from kaspa import PublicKey
         import kaspa as kas
+        from kaspa import PublicKey
         return kas.verify_message(message, sig_hex, PublicKey(self.public_key))
 
     def sign_pq(self, message: bytes) -> bytes:
@@ -414,7 +415,7 @@ class SecureVida:
                 return "Session policy rejected: destination required by allowlist"
             if dest_address not in allow:
                 return (
-                    f"Session policy rejected: destination not in allowed_destinations"
+                    "Session policy rejected: destination not in allowed_destinations"
                 )
         self._roll_session_day()
         if max_day > 0 and (self.session_daily_spent + amount_kas) > max_day + 1e-12:

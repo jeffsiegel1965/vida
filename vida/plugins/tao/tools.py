@@ -10,7 +10,6 @@ Security product rules:
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any, Optional
 
@@ -19,7 +18,6 @@ from .accounts import TaoAccountStore
 from .config import load_tao_config
 from .paths import resolve_session_path, resolve_store_dir
 from .plugin import TaoPlugin
-from .subnet_marketplace import SubnetRegistry
 from .subnet_client import tao_list_subnets, tao_subnet_info, tao_subnet_query
 
 

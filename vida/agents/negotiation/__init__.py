@@ -1,7 +1,7 @@
 """Vida Agent Negotiation Module.
 
 Agent-to-agent negotiation for covenant pot terms.
-Designed for agent commerce — agents negotiate terms, create pots, 
+Designed for agent commerce — agents negotiate terms, create pots,
 and track deal history for volume discounts.
 
 Usage:
@@ -10,17 +10,17 @@ Usage:
         CovenantTerms, ConcessionStrategy, apply_template, TEMPLATES,
         HUMAN_ESCALATION_KAS,
     )
-    
+
     # Create a session
     mgr = SessionManager()
     session = mgr.create_session("agent_123", template="standard")
-    
+
     # Make initial offer
     offer = session.make_initial_offer()
-    
+
     # Respond to counterparty
     response, accepted = session.respond_to_offer(counterparty_terms)
-    
+
     # Accept or walk
     if accepted:
         result = session.accept_terms(counterparty_terms)
@@ -38,8 +38,8 @@ from .engine import (
 from .models import (
     TEMPLATES,
     ConcessionStrategy,
-    CovenantTerms,
     CounterpartyProfile,
+    CovenantTerms,
     NegotiationMemory,
     NegotiationOutcome,
     NegotiationRound,

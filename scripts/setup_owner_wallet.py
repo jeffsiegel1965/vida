@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'vida'))
-from secure_wallet import create_secure_wallet, SecureVida
+from secure_wallet import SecureVida, create_secure_wallet
 
 WALLET = Path(__file__).resolve().parent.parent / "vida_secure.json"
 

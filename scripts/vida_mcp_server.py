@@ -214,7 +214,6 @@ async def handle_call_tool(
         return [types.TextContent(type="text", text=json.dumps(session, indent=2))]
 
     elif name == "vida_balance":
-        from vida.secure_wallet import SecureVida
         session = _load_session()
         if not session.get("ok"):
             return [types.TextContent(type="text", text=json.dumps(session, indent=2))]
@@ -269,8 +268,9 @@ async def handle_call_tool(
     # ── Agent tools ──
     elif name == "vida_agent_goal":
         goal = args.get("goal", "Check Vida status")
-        from vida.agents.orchestrator import AgentOrchestrator
         import asyncio
+
+        from vida.agents.orchestrator import AgentOrchestrator
         orch = AgentOrchestrator()
         result = asyncio.run(orch.run(goal))
         return [types.TextContent(type="text", text=json.dumps(result, indent=2))]

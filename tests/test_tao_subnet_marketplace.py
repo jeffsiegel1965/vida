@@ -7,7 +7,6 @@ import unittest
 from vida.plugins.tao.subnet_marketplace import (
     ServiceType,
     SubnetRegistry,
-    SUBNET_REGISTRY,
 )
 
 

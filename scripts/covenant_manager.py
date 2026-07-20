@@ -21,12 +21,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from vida.plugins.covenant.tools import (
-    covenant_status,
     covenant_describe,
     covenant_live_gates,
     covenant_plan_pot,
-    covenant_spend_policy_check,
     covenant_pot_record,
+    covenant_spend_policy_check,
+    covenant_status,
 )
 
 

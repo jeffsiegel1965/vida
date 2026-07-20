@@ -597,7 +597,6 @@ class TaoPlugin:
         from decimal import Decimal
 
         from .yield_optimizer import (
-            ValidatorScore,
             build_yield_plan,
             plan_to_dict,
             score_subnet_validators,

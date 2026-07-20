@@ -32,7 +32,6 @@ def main() -> int:
     from vida.plugins import VidaPluginContext
     from vida.plugins.tao import (
         TaoAccountStore,
-        TaoConfig,
         TaoNetwork,
         TaoPlugin,
         load_tao_config,

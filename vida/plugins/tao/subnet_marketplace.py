@@ -1,6 +1,6 @@
 """Bittensor subnet registry — discoverable services and endpoints.
 
-Each subnet on Bittensor offers a specific service type (compute, LLM, 
+Each subnet on Bittensor offers a specific service type (compute, LLM,
 storage, etc.). Agents can query the registry to find services, check
 pricing, and purchase access.
 
@@ -52,7 +52,7 @@ class SubnetInfo:
     supported_models: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     health_endpoint: str = ""        # For checking subnet availability
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "netuid": self.netuid,
@@ -188,21 +188,21 @@ SUBNET_REGISTRY: dict[int, SubnetInfo] = {
 
 class SubnetRegistry:
     """Registry of known Bittensor subnets and their services.
-    
+
     Agents use this to discover which subnets offer what services,
     check pricing, and find API endpoints.
     """
-    
+
     @classmethod
     def list_all(cls) -> list[dict[str, Any]]:
         """List all known subnets."""
         return [info.to_dict() for info in SUBNET_REGISTRY.values()]
-    
+
     @classmethod
     def get_by_netuid(cls, netuid: int) -> Optional[SubnetInfo]:
         """Get subnet info by netuid."""
         return SUBNET_REGISTRY.get(netuid)
-    
+
     @classmethod
     def search(cls, service_type: Optional[ServiceType] = None,
                tags: Optional[list[str]] = None,
@@ -221,11 +221,11 @@ class SubnetRegistry:
                     continue
             results.append(info.to_dict())
         return results
-    
+
     @classmethod
     def find_by_capability(cls, capability: str) -> list[dict[str, Any]]:
         """Find subnets that offer a specific capability.
-        
+
         Examples: "llm", "compute", "gpu", "image", "audio", "video"
         """
         capability = capability.lower()
@@ -247,7 +247,7 @@ class SubnetRegistry:
         if st:
             return cls.search(service_type=st)
         return cls.search(query=capability)
-    
+
     @classmethod
     def stats(cls) -> dict[str, Any]:
         """Get registry statistics."""

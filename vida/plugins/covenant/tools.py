@@ -7,18 +7,17 @@ Agents: negotiate covenant terms, generate pot templates, check spend policy.
 
 from __future__ import annotations
 
-from typing import Any, Optional
-
-from .plugin import CovenantPlugin
-from .pot_spend import check_spend_allowed, check_spend_kas, load_pot_record
-from .agent_pot import plan_agent_pot, SOMPI_PER_KAS
-from .agent_pot_script import build_agent_pot_script_template, verify_policy_hash
-from .fees import calc_fund_fee, calc_spend_fee, get_fee_address, get_donation_address, describe_fees
-from .lab_client import live_gates_ok
-
-
 # ── Plugin instance (shared across tools) ──
 import threading
+from typing import Any, Optional
+
+from .agent_pot import SOMPI_PER_KAS, plan_agent_pot
+from .agent_pot_script import verify_policy_hash
+from .fees import calc_fund_fee, calc_spend_fee, describe_fees, get_donation_address, get_fee_address
+from .lab_client import live_gates_ok
+from .plugin import CovenantPlugin
+from .pot_spend import check_spend_kas, load_pot_record
+
 _COVENANT_PLUGIN: CovenantPlugin | None = None
 _PLUGIN_LOCK = threading.Lock()
 
@@ -64,7 +63,7 @@ def covenant_plan_pot(
     allowed_destinations: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """Plan an agent pot: calculate funding amount and hard rules.
-    
+
     Accepts float or string params (for LLM agent compatibility).
     """
     # Coerce string params to float (LLMs often pass string numbers)
@@ -73,7 +72,7 @@ def covenant_plan_pot(
         max_kas_per_day = float(max_kas_per_day)
     except (TypeError, ValueError):
         return {"ok": False, "error": "max_kas_per_tx and max_kas_per_day must be numeric"}
-    
+
     return plan_agent_pot(
         max_kas_per_tx=max_kas_per_tx,
         max_kas_per_day=max_kas_per_day,

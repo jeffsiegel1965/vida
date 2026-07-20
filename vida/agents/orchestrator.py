@@ -6,7 +6,7 @@ and execute multi-step plans.
 
 Usage:
     from vida.agents.orchestrator import AgentOrchestrator
-    
+
     async def main():
         orch = AgentOrchestrator()
         result = await orch.run(
@@ -23,12 +23,6 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from vida.agents.verification import (
-    VerificationLevel,
-    VerifiedResult,
-    verify_plan_output,
-    verify_spend_policy,
-)
 from vida.plugins.covenant import (
     covenant_describe,
     covenant_live_gates,
@@ -36,11 +30,9 @@ from vida.plugins.covenant import (
     covenant_quine_info,
     covenant_spend_policy_check,
     covenant_status,
-    covenant_plan_with_fees,
-    covenant_estimate_fee,
     vida_escrow_create,
-    vida_escrow_status,
     vida_escrow_list,
+    vida_escrow_status,
 )
 
 logger = logging.getLogger("vida.agents")
@@ -49,7 +41,7 @@ logger = logging.getLogger("vida.agents")
 
 def _safe_tool(name: str, **kw: Any) -> dict[str, Any]:
     """Safely call a tool by name from the covenant tools module.
-    
+
     Returns {"ok": False, "error": ...} if the tool doesn't exist or errors.
     """
     from vida.plugins.covenant.tools import HERMES_TOOLS
@@ -96,18 +88,18 @@ class ExecutionPlan:
 
 class AgentOrchestrator:
     """Orchestrates agent goal execution using Vida tools.
-    
+
     The orchestrator:
     1. Takes a natural language goal
     2. Decomposes it into a plan using available tools
     3. Executes each step, feeding results back
     4. Reports status and final result
     """
-    
+
     # ── Tool dispatch ──
     # Maps tool names to their implementation functions.
     # WARNING: Each tool must return {"ok": bool, ...}. Do NOT alias tools.
-    
+
     _TOOL_IMPL = {
         "covenant_status": lambda ctx: covenant_status(),
         "covenant_describe": lambda ctx: covenant_describe(),
@@ -129,7 +121,7 @@ class AgentOrchestrator:
         "kaspa_balance": lambda ctx: _kaspa_balance(),
         "kaspa_send": lambda ctx, **kw: _kaspa_send(**kw),
     }
-    
+
     def _kaspa_balance(self) -> dict[str, Any]:
         """Check wallet balance via Kaspa REST API."""
         from vida.plugins.covenant.kaspa_rpc import get_balance
@@ -138,7 +130,7 @@ class AgentOrchestrator:
         if not addr:
             return {"ok": False, "error": "no wallet address configured"}
         return get_balance(addr)
-    
+
     def _kaspa_send(self, amount: float, destination: str) -> dict[str, Any]:
         """Send KAS via SDK-based RPC. Requires wallet path and session."""
         # Check session caps
@@ -149,31 +141,32 @@ class AgentOrchestrator:
             return {"ok": False, "error": "destination address required"}
         try:
             # Use the SDK-based RPC for balance check
-            from vida.plugins.covenant.kaspa_rpc import get_balance, submit_transaction
-            from kaspa import PrivateKey, Address, NetworkType, PaymentOutput, create_transactions, RpcClient, Resolver, sompi_to_kaspa
-            
+            from kaspa import NetworkType, PrivateKey
+
+            from vida.plugins.covenant.kaspa_rpc import get_balance
+
             # Check balance first
             bal = get_balance(destination)
             if not bal.get("ok"):
                 return {"ok": False, "error": f"balance check failed: {bal.get('error')}"}
-            
+
             # Check sender balance
             wallet_path = self.session.get("wallet_path", "")
             if not wallet_path:
                 return {"ok": False, "error": "no wallet_path in session"}
-            
+
             from vida.plugins.covenant.kaspa_rpc import load_key
             key_bytes = load_key(wallet_path)
             if not key_bytes:
                 return {"ok": False, "error": f"could not load key from {wallet_path}"}
-            
+
             priv_key = PrivateKey(key_bytes.hex())
             sender = str(priv_key.to_address(NetworkType.Testnet))
             sender_bal = get_balance(sender)
             sender_bal_kas = float(sender_bal.get("balance_kas", 0))
             if sender_bal_kas < amount:
                 return {"ok": False, "error": f"insufficient balance: {sender_bal_kas} KAS < {amount} KAS"}
-            
+
             return {
                 "ok": True,
                 "note": "send validated via SDK — policy check passed",
@@ -189,25 +182,25 @@ class AgentOrchestrator:
     def __init__(self, session: Optional[dict] = None):
         self.session = session or {}
         self._plan: Optional[ExecutionPlan] = None
-    
+
     def get_available_tools(self) -> list[dict[str, Any]]:
         """Return the OpenAI-compatible tool schema for LLM consumption."""
         from vida.agents.tool_schema import TOOL_SCHEMA
         return TOOL_SCHEMA
-    
+
     def decompose_goal(self, goal: str, context: Optional[AgentState] = None) -> ExecutionPlan:
         """Decompose a natural language goal into executable steps.
-        
+
         Uses K2.5 (via staking_optimizer.llm_call) to plan the execution.
         Falls back to rule-based decomposition if LLM is unavailable.
         """
         plan = ExecutionPlan(goal=goal, context=context or {})
-        
+
         # Try LLM-powered decomposition
         try:
             from vida.agents.staking_optimizer import llm_call
-            context_str = json.dumps(context or {}, indent=2)
-            
+            json.dumps(context or {}, indent=2)
+
             tools_list = [
                 "vida_status(no params)",
                 "vida_describe(no params)",
@@ -215,7 +208,7 @@ class AgentOrchestrator:
                 "vida_plan_pot(max_per_tx, max_per_day, destinations)",
                 "vida_quine_info(no params)",
             ]
-            
+
             system = "You are an agent planner. Produce ONLY valid JSON."
             prompt = f"""GOAL: {goal}
 
@@ -228,7 +221,7 @@ Produce a JSON array of steps:
 Return ONLY valid JSON. No other text."""
 
             response = llm_call(system, prompt, max_tokens=2000)
-            
+
             # Parse JSON
             start = response.find("[")
             end = response.rfind("]") + 1
@@ -242,13 +235,13 @@ Return ONLY valid JSON. No other text."""
                 ]
                 if plan.steps:
                     return plan
-        except Exception as e:
+        except Exception:
             pass  # Fall through to rule-based
-        
+
         # ── Fallback: rule-based decomposition ──
-        
+
         goal_lower = goal.lower()
-        
+
         # ── Staking optimization ──
         if "stake" in goal_lower and "tao" in goal_lower:
             # Parse amount from goal
@@ -258,7 +251,7 @@ Return ONLY valid JSON. No other text."""
                     amount = float(word)
                 except ValueError:
                     continue
-            
+
             plan.steps = [
                 Step(id="1", action="covenant_status", params={},
                      description="Check wallet and covenant readiness"),
@@ -267,7 +260,7 @@ Return ONLY valid JSON. No other text."""
                     "max_kas_per_day": amount or 100,
                 }, description="Generate staking plan via pot"),
             ]
-        
+
         # ── Covenant inspection ──
         elif "inspect" in goal_lower or "check" in goal_lower or "status" in goal_lower:
             plan.steps = [
@@ -278,7 +271,7 @@ Return ONLY valid JSON. No other text."""
                 Step(id="3", action="covenant_live_gates", params={},
                      description="Check deployment gates"),
             ]
-        
+
         # ── Pot planning ──
         elif "pot" in goal_lower or "fund" in goal_lower or "plan" in goal_lower:
             per_tx = float(context.get("max_kas_per_tx", 0)) if context else 0
@@ -291,7 +284,7 @@ Return ONLY valid JSON. No other text."""
                     "max_kas_per_day": per_day or 5.0,
                 }, description="Plan agent pot funding"),
             ]
-        
+
         # ── Spend policy ──
         elif "spend" in goal_lower or "send" in goal_lower or "pay" in goal_lower:
             plan.steps = [
@@ -305,7 +298,7 @@ Return ONLY valid JSON. No other text."""
                     "wallet_id": context.get("wallet_id", "default"),
                 }, description="Validate spend policy"),
             ]
-        
+
         # ── Default: inspect everything ──
         else:
             plan.steps = [
@@ -316,18 +309,18 @@ Return ONLY valid JSON. No other text."""
                 Step(id="3", action="covenant_quine_info", params={},
                      description="Get quine contract details"),
             ]
-        
+
         return plan
-    
+
     async def execute_step(self, step: Step) -> ToolResult:
         """Execute a single step by dispatching to the right tool."""
         impl = self._TOOL_IMPL.get(step.action)
         if not impl:
             return {"ok": False, "error": f"unknown tool: {step.action}"}
-        
+
         step.started_at = time.time()
         step.status = "running"
-        
+
         try:
             result = impl(self.session, **step.params)
             step.result = result
@@ -338,10 +331,10 @@ Return ONLY valid JSON. No other text."""
             step.result = {"ok": False, "error": str(e)}
             step.status = "failed"
             step.error = str(e)
-        
+
         step.completed_at = time.time()
         return step.result or {"ok": False, "error": "no result"}
-    
+
     async def run(
         self,
         goal: str,
@@ -349,7 +342,7 @@ Return ONLY valid JSON. No other text."""
     ) -> dict[str, Any]:
         """Execute a goal: decompose → execute each step → return results."""
         self._plan = self.decompose_goal(goal, context)
-        
+
         results = []
         for step in self._plan.steps:
             logger.info(f"Executing step {step.id}: {step.action}")
@@ -363,19 +356,19 @@ Return ONLY valid JSON. No other text."""
                     (step.completed_at or 0) - (step.started_at or 0)
                 ) if step.completed_at and step.started_at else None,
             })
-            
+
             # Stop on failure unless step allows recovery
             if step.status == "failed" and not context.get("allow_recovery"):
                 break
-        
+
         all_ok = all(r["status"] == "completed" for r in results)
-        
+
         # Build a summary
         summary_lines = []
         for r in results:
             icon = "✅" if r["status"] == "completed" else "❌"
             summary_lines.append(f"{icon} {r['action']}: {r['status']}")
-        
+
         return {
             "ok": all_ok,
             "goal": goal,

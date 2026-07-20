@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 RAO_PER_TAO = Decimal("1000000000")
 
 
-from substrateinterface import SubstrateInterface  # type: ignore
 
 
 def _scale_rao(value: Any) -> Decimal:

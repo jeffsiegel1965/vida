@@ -14,7 +14,6 @@ import subprocess
 from pathlib import Path
 from typing import Any, Optional, Sequence
 
-
 # Repo-relative defaults
 _REPO = Path(__file__).resolve().parents[3]
 

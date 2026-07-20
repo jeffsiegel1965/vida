@@ -15,7 +15,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class VerifiedResult:
 
 def verify_plan_output(result: dict[str, Any]) -> VerifiedResult:
     """L1 DETERMINISTIC verification: check tool output has expected shape.
-    
+
     For financial operations, also checks for txid/extrinsic_hash evidence.
     """
     if not isinstance(result, dict):
@@ -61,7 +61,7 @@ def verify_plan_output(result: dict[str, Any]) -> VerifiedResult:
         evidence.append("tool returned ok")
     else:
         evidence.append(result.get("error", "no error field"))
-    
+
     # Financial operations must have txid (Kaspa) or extrinsic_hash (TAO)
     is_financial = result.get("_verification", {}).get("financial") or result.get("financial")
     txid = result.get("txid") or result.get("extrinsic_hash")
@@ -74,7 +74,7 @@ def verify_plan_output(result: dict[str, Any]) -> VerifiedResult:
         )
     if txid:
         evidence.append(f"txid={txid[:16]}...")
-    
+
     return VerifiedResult(
         ok=ok,
         level=VerificationLevel.DETERMINISTIC,
@@ -134,13 +134,13 @@ def enforce_no_l4_for_spend(verification: VerifiedResult) -> VerifiedResult:
 
 def require_l1_spend(fn: Callable) -> Callable:
     """Decorator: enforce L1 verification on any financial operation.
-    
+
     Usage:
         @require_l1_spend
         def send_kas(amount, destination):
             ...
             return {"ok": True, "txid": ...}
-    
+
     If the result doesn't pass L1 deterministic checks, the spend is rejected.
     """
     @functools.wraps(fn)
@@ -159,7 +159,7 @@ def require_l1_spend(fn: Callable) -> Callable:
             txid = result.get("txid") or result.get("extrinsic_hash")
             if is_financial and not txid:
                 return {"ok": False, "error": "financial operation returned ok without txid or extrinsic_hash"}
-            
+
             result["_verification"] = {
                 "level": "L1_DETERMINISTIC",
                 "evidence": v.evidence,

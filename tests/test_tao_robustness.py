@@ -22,9 +22,9 @@ from vida.plugins.tao import (  # noqa: E402
     TaoNetwork,
     TaoPlugin,
 )
+from vida.plugins.tao import tools as tao_tools  # noqa: E402
 from vida.plugins.tao.paths import actions_for_scope, resolve_store_dir  # noqa: E402
 from vida.plugins.tao.session import grant_tao_agent_session  # noqa: E402
-from vida.plugins.tao import tools as tao_tools  # noqa: E402
 
 TEST_MNEMONIC = (
     "abandon abandon abandon abandon abandon abandon "
