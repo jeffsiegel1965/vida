@@ -199,40 +199,78 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
     """Submit a raw transaction to the network.
     
     Args:
-        tx_hex: Hex-encoded transaction.
+        tx_hex: Hex-encoded transaction (or dict with to_dict() method).
     
     Returns:
-        {"ok": True, "txid": str} or {"ok": False, "error": str}
+        {"ok": True, "txid": str, "source": str} or {"ok": False, "error": str}
     """
     try:
         client = await _get_client()
-        tx_bytes = bytes.fromhex(tx_hex)
-        # Method 1: Try SDK submit
+        
+        # Handle both hex strings and dict/object inputs
+        if isinstance(tx_hex, str):
+            tx_data = bytes.fromhex(tx_hex)
+        elif hasattr(tx_hex, 'to_dict'):
+            tx_data = tx_hex.to_dict()
+        elif isinstance(tx_hex, dict):
+            tx_data = tx_hex
+        else:
+            raise ValueError("tx_hex must be hex string or dict/object with to_dict()")
+        
+        # Method 1: Try SDK submit with multiple formats
         try:
-            result = await client.submit_transaction(request=tx_bytes)
-            txid = result.get("txid", "") if isinstance(result, dict) else result
-            if txid:
-                return {"ok": True, "txid": txid, "source": "sdk"}
-        except (TypeError, RuntimeError, OSError, ValueError) as sdk_err:
-            logger.warning("SDK submit failed: %s — trying REST fallback", sdk_err)
+            # First format: raw bytes (works with some SDK versions)
+            try:
+                result = await client.submit_transaction(request=tx_data if isinstance(tx_data, bytes) else tx_data['hex'])
+                txid = result.get("txid", "") if isinstance(result, dict) else result
+                if txid:
+                    return {"ok": True, "txid": txid, "source": "sdk"}
+            except (TypeError, RuntimeError, OSError, ValueError) as sdk_err:
+                # Second format: dict with 'hex' field (works with other SDK versions)
+                if isinstance(tx_data, dict):
+                    try:
+                        result = await client.submit_transaction(request={"hex": tx_data['hex']})
+                        txid = result.get("txid", "") if isinstance(result, dict) else result
+                        if txid:
+                            return {"ok": True, "txid": txid, "source": "sdk_format2"}
+                    except (TypeError, RuntimeError) as sdk_err2:
+                        logger.warning("SDK submit failed with both formats: %s, %s", sdk_err, sdk_err2)
+                else:
+                    logger.warning("SDK submit failed: %s", sdk_err)
+        except Exception as sdk_err:
+            logger.warning("Unexpected SDK submit error: %s", sdk_err)
         
         # Method 2: Fall back to REST API
-        import json
-        from urllib.request import Request, urlopen, URLError
-        base = "https://api-tn10.kaspa.org" if "testnet" in _network_id else "https://api.kaspa.org"
-        req = Request(
-            f"{base}/transactions",
-            data=tx_hex.encode(),
-            headers={"Content-Type": "application/octet-stream"},
-            method="POST",
-        )
-        with urlopen(req, timeout=30) as resp:
-            body = json.loads(resp.read().decode())
-            txid = body.get("txid") or body.get("transactionId", "")
-            return {"ok": True, "txid": txid, "source": "rest_api"}
-    except URLError as e:
-        return _error_response(TransactionError(f"REST API submit failed: {e.reason}"))
-    except (ValueError, TypeError, RuntimeError, OSError) as e:
+        try:
+            import json
+            from urllib.request import Request, urlopen, URLError
+            
+            class KaspaJSONEncoder(json.JSONEncoder):
+                def default(self, obj):
+                    if hasattr(obj, 'to_dict'):
+                        return obj.to_dict()
+                    elif hasattr(obj, 'hex'):
+                        return obj.hex()
+                    return super().default(obj)
+            
+            base = "https://api-tn10.kaspa.org" if "testnet" in _network_id else "https://api.kaspa.org"
+            data = tx_hex if isinstance(tx_hex, str) else json.dumps(tx_data, cls=KaspaJSONEncoder)
+            
+            req = Request(
+                f"{base}/transactions",
+                data=data.encode(),
+                headers={"Content-Type": "application/json" if isinstance(data, str) else "application/octet-stream"},
+                method="POST",
+            )
+            with urlopen(req, timeout=30) as resp:
+                body = json.loads(resp.read().decode())
+                txid = body.get("txid") or body.get("transactionId", "")
+                return {"ok": True, "txid": txid, "source": "rest_api"}
+        except URLError as e:
+            return _error_response(TransactionError(f"REST API submit failed: {e.reason}"))
+        except (ValueError, TypeError, RuntimeError, json.JSONDecodeError) as e:
+            return _error_response(TransactionError(f"REST API encoding failed", original=e))
+    except Exception as e:
         return _error_response(TransactionError(f"transaction submission failed", original=e))
 
 

@@ -36,7 +36,7 @@ try:
 except ImportError:
     aiohttp = None
 
-from vida.secure_wallet import SecureVida, DelegationMode  # Secure wallet with encrypted keys
+from vida.secure_wallet import SecureVida  # Secure wallet with encrypted keys
 
 # Kaspa dust threshold: outputs below ~0.02 KAS incur massive storage-mass
 # penalties and get rejected (verified on testnet-10, July 2026).
@@ -85,7 +85,7 @@ class VidaTransactor:
         result = await tx.send(to_address='kaspa:...', amount_kas=10.0)
     """
 
-    def __init__(self, vida: Vida, *, covenant_policy: Optional[dict] = None):
+    def __init__(self, vida: SecureVida, *, covenant_policy: Optional[dict] = None):
         self.vida = vida
         self.network = "mainnet" if vida.network == "mainnet" else "testnet-10"
         self._client: Optional[RpcClient] = None
