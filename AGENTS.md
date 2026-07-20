@@ -40,6 +40,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 | `vida/secure_wallet.py` | Production wallet. AES-256-GCM, scrypt KDF, session files. |
 | `vida/wallet.py` | LEGACY — runtime guard (`VIDA_LEGACY_WALLET_ALLOWED=1`). Testing only. |
 | `vida/transactions.py` | Kaspa transaction building/signing/broadcasting. |
+| `docs/coamm-integration.md` | CoAMM (Zealous Swap) integration plan — design doc, not yet built. |
 
 ### Agent layer
 | File | Purpose |
