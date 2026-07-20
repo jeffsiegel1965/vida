@@ -66,7 +66,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 | SilverScript quine spend | ⚠️ Compiled, spend blocked (tooling gap) |
 | Agent negotiation | ✅ Rebuilt — templates + memory + subscriptions |
 | TAO subnet marketplace | ✅ Discovery + query tools (mainnet, pre-dTAO) |
-| Mainnet covenants | ❌ Waiting for Kaspa Toccata |
+| Kaspa mainnet covenants | ✅ Active (Toccata fork at DAA 389M, currently at 490M) |
 | dTAO readiness | ✅ Code structured for update when deployed |
 
 ## Common Mistakes

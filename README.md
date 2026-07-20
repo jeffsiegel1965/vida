@@ -54,9 +54,9 @@ balance = get_balance("kaspa:qplmcgy...")
 - Structured error types: `ConnectionError_`, `TimeoutError_`, `BalanceError`, `TransactionError`
 - Falls back to REST API (`api.kaspa.org/transactions`) if SDK submit fails
 
-### Testnet covenants (TN10 only)
+### Covenants (mainnet + testnet)
 
-Covenant pots are SilverScript contracts that enforce spending rules at the network level — no software can bypass them.
+Covenant pots are SilverScript contracts that enforce spending rules at the network level — no software can bypass them. The Toccata hard fork (DAA ~389M, June 2026) enabled covenants on Kaspa mainnet. Current mainnet DAA is 490M — 101M blocks past the fork.
 
 ```python
 from vida.plugins.covenant import plan_agent_pot, check_spend_kas
@@ -66,7 +66,7 @@ check_spend_kas(policy=plan, amount_kas=2.0, destination="...")
 # → {"ok": False, "error": "amount exceeds max_tx_sompi"}
 ```
 
-**Mainnet covenants** are waiting for Kaspa Toccata to deploy on mainnet.
+The covenant module works on both mainnet and testnet-10. Set `set_network("mainnet")` for mainnet operations.
 
 ---
 
@@ -185,10 +185,9 @@ Owner ─── grants session caps ───→ Vida Kernel
                                        │
                           ┌────────────┼────────────┐
                           │            │            │
-                     Kaspa core    TAO plugin   Covenant
-                   (send/recv)   (stake/pay)   (TN10 only)
-                   wRPC + SDK    Finney mainnet  SilverScript
-                   mainnet + TN10  pre-dTAO       testnet only
+                     Kaspa core    TAO plugin   Covenant (SilverScript)
+                   (send/recv)   (stake/pay)   (mainnet + TN10)
+                   wRPC + SDK    Finney mainnet  Toccata active
                           │            │            │
                           └────────────┼────────────┘
                                        │
@@ -243,9 +242,9 @@ Every tool result includes a verification level. Financial operations never use 
 | MCP server | ✅ Working | 12 tools, 2 resources |
 | Verification ladder | ✅ Working | L1-L5, `@require_l1_spend` enforced |
 | Covenant pot planning | ✅ Offline | Templates, policies, validation |
-| Covenant deploy | ⚠️ TN10 | Testnet only, gated |
+| Covenant deploy | ⚠️ Tested on TN10 | Mainnet should work (Toccata active) |
 | SilverScript quine | ⚠️ TN10 | Deployed, spend path being finalized |
-| Kaspa mainnet covenants | ❌ Waiting | Kaspa Toccata not yet on mainnet |
+| Kaspa mainnet covenants | ✅ Active | Toccata fork at DAA 389M, currently 490M |
 | dTAO deployment | ⏳ When live | Code structured for update |
 
 ---
