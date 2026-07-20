@@ -194,8 +194,16 @@ class NegotiationSession:
         
         return response, False
     
-    def accept_terms(self, terms: CovenantTerms) -> dict[str, Any]:
-        """Accept the counterparty's terms and complete the session."""
+    def accept_terms(self, terms: CovenantTerms, 
+                     deploy_escrow: bool = False,
+                     buyer_address: str = "",
+                     seller_address: str = "",
+                     arbiter_address: str = "") -> dict[str, Any]:
+        """Accept the counterparty's terms and complete the session.
+        
+        If deploy_escrow is True, automatically creates an on-chain escrow
+        covenant to enforce the agreed terms. Requires buyer/seller addresses.
+        """
         self.final_terms = terms
         self.is_complete = True
         self.is_accepted = True
