@@ -5,8 +5,9 @@ Read this at the start of every session. Update it when you discover something n
 
 ## Identity
 
-You are working on **Vida** — an agent-compatible wallet for Kaspa (KAS) and Bittensor (TAO).
-You are not building a product. You are building infrastructure that agents use.
+You are working on **Vida** — a wallet built for AI agents on Kaspa (KAS) and Bittensor (TAO).
+Vida gives agents constrained access to spend, stake, negotiate, and consume subnet services.
+You hold the keys. You set the limits. Revoke by deleting a file.
 
 ## Architecture
 
@@ -16,79 +17,120 @@ Owner ─── grants session caps ───→ Vida Kernel
                           ┌────────────┼────────────┐
                           │            │            │
                      Kaspa core    TAO plugin   Covenant
-                     (send/recv)  (stake/swap)  (TN10 RPC)
+                   (send/recv)   (stake/pay)   (SilverScript)
+                   wRPC + SDK    Finney        mainnet + TN10
+                   mainnet       pre-dTAO      Toccata active
                           │            │            │
                           └────────────┼────────────┘
                                        │
                                   Agent tools
-                          (orchestrator.py / MCP server)
+                          (orchestrator / MCP server)
                                        │
-                                  LLM agent
+                                  LLM agent (K2.5)
+                                       │
+                               Agent memory + negotiation
+                          (deals, profiles, subnets, sessions)
 ```
 
 ## Key Files
 
+### Core wallet
 | File | Purpose |
 |------|---------|
 | `vida/secure_wallet.py` | Production wallet. AES-256-GCM, scrypt KDF, session files. |
-| `vida/wallet.py` | LEGACY wallet. Plaintext keys. Only for testing. |
-| `vida/transactions.py` | Real Kaspa transaction building/signing/broadcasting. |
-| `vida/agents/orchestrator.py` | Agent loop: goal → plan → execute → report. |
-| `vida/agents/staking_optimizer.py` | LLM-powered agent (K2.5 via Zyloo). |
+| `vida/wallet.py` | LEGACY — runtime guard (`VIDA_LEGACY_WALLET_ALLOWED=1`). Testing only. |
+| `vida/transactions.py` | Kaspa transaction building/signing/broadcasting. |
+
+### Agent layer
+| File | Purpose |
+|------|---------|
+| `vida/agents/orchestrator.py` | Agent loop: goal → plan → execute → report. 16 tools. |
+| `vida/agents/staking_optimizer.py` | LLM-powered agent executor (K2.5 via Zyloo). |
 | `vida/agents/tool_schema.py` | OpenAI-compatible function calling schema. |
-| `vida/agents/verification.py` | 5-level verification ladder (L1-L5). |
-| `vida/plugins/covenant/tools.py` | 17 Hermes covenant tools. |
-| `vida/plugins/covenant/kaspa_rpc.py` | SDK-based RPC client (Resolver auto-discovery, wRPC). |
-| `vida/plugins/covenant/silverscript/` | SilverScript contract sources. |
-| `scripts/vida_mcp_server.py` | MCP server (12 tools, 2 resources). |
-| `vida/agents/memory.py` | Persistent cross-session agent memory. |
+| `vida/agents/verification.py` | 5-level verification ladder. `@require_l1_spend` enforces txid on financial ops. |
+| `vida/agents/memory.py` | Persistent cross-session agent memory (deals, counterparties, subnets, KV). |
+| `vida/agents/negotiation/` | Agent-to-agent negotiation: templates, strategies, subscriptions, volume discounts. |
+
+### Kaspa plugin
+| File | Purpose |
+|------|---------|
+| `vida/plugins/covenant/kaspa_rpc.py` | wRPC via Kaspa SDK + Resolver. Structured errors. REST API fallback. |
+| `vida/plugins/covenant/tools.py` | 17 covenant tools (status, plan, fees, kascov, validate). |
+| `vida/plugins/covenant/pot_spend.py` | Spend policy enforcement. Real `spend_to_agent()` (build→sign→submit). |
+| `vida/plugins/covenant/fees.py` | Fee and donation addresses. Separate, configurable via env vars. |
+| `vida/plugins/covenant/sdk_integration.py` | SDK-based covenant deploy/spend. |
+| `vida/plugins/covenant/silverscript/` | SilverScript contract sources (quine, agent pot). |
+
+### TAO plugin
+| File | Purpose |
+|------|---------|
+| `vida/plugins/tao/substrate_client.py` | Finney chain connection. `add_stake`, `remove_stake`, `transfer`. |
+| `vida/plugins/tao/subnet_marketplace.py` | Registry of 9 subnets with pricing, API endpoints, service types. |
+| `vida/plugins/tao/subnet_client.py` | Agent purchase workflow: resolve → pay (stake) → query API. |
+| `vida/plugins/tao/tools.py` | 9 Hermes tools (balance, delegate, subnets, info, query). |
+
+### Tests
+| File | Count |
+|------|-------|
+| `tests/test_negotiation.py` | 27 |
+| `tests/test_agent_memory.py` | 9 |
+| `tests/test_tao_subnet_marketplace.py` | 10 |
+| `tests/test_tao_*.py` | 62 (staking, sessions, robustness, PQ) |
+| `tests/test_kaspa_rpc_integration.py` | 6 (live testnet-10) |
+| `tests/test_covenant_scaffold.py` | 39 |
+| `tests/test_covenant_robustness.py` | 3 |
+| **Total** | **156** |
 
 ## Rules
 
 1. **Never store API keys in code.** Use env vars: `ZYLOO_API_KEY`, `VIDA_FEE_ADDRESS`, `VIDA_DONATION_ADDRESS`.
-2. **Never push without approval.** All changes go through hostile QA first.
+2. **Verify everything against live chains.** Don't repeat stale claims. Test on mainnet when possible.
 3. **Every tool must return `{"ok": bool, ...}`.** No exceptions.
 4. **No tool aliases.** If a tool name says "balance", it must return a balance.
-5. **Financial operations must use L1-L2 verification.** Never L4 (model judge) for money.
-6. **The legacy wallet (`wallet.py`) is for testing only.** Always use `secure_wallet.py` for real funds.
-7. **Self-custody means self-responsibility.** No marketing claims about "agent economy."
+5. **Financial operations must use L1-L2 verification.** `@require_l1_spend` enforces this. Never L4 for money.
+6. **The legacy wallet (`wallet.py`) is testing-only.** `VIDA_LEGACY_WALLET_ALLOWED=1` required. Use `secure_wallet.py` for real funds.
+7. **Self-custody means self-responsibility.** No marketing claims.
 
 ## What's Real vs Not
 
-| Capability | Status |
-|-----------|--------|
-| Kaspa send/receive via session | ✅ Mainnet |
-| TAO stake/unstake via session | ✅ Finney (mainnet, pre-dTAO) |
-| Agent loop (LLM → plan → execute) | ✅ Working (K2.5) |
-| MCP server | ✅ Working (12 tools + 2 resources) |
-| Covenant pot planning | ✅ Offline |
-| Covenant deploy (on-chain) | ⚠️ TN10 only, gated |
-| SilverScript quine spend | ⚠️ Compiled, spend blocked (tooling gap) |
-| Agent negotiation | ✅ Rebuilt — templates + memory + subscriptions |
-| TAO subnet marketplace | ✅ Discovery + query tools (mainnet, pre-dTAO) |
-| Kaspa mainnet covenants | ✅ Active (Toccata fork at DAA 389M, currently at 490M) |
-| dTAO readiness | ✅ Code structured for update when deployed |
+| Capability | Status | Detail |
+|-----------|--------|--------|
+| KAS send/receive | ✅ Mainnet | Session-gated, wRPC via Kaspa SDK |
+| TAO stake/unstake | ✅ Finney | Session-gated, pre-dTAO (verified Jul 19) |
+| TAO subnet marketplace | ✅ Finney | 9 subnets, discover + pay + query |
+| Agent loop (LLM → plan → execute) | ✅ Working | K2.5-powered, 16 tools |
+| Agent memory | ✅ Working | Deals, counterparties, subnets, KV, context |
+| Agent negotiation | ✅ Working | 3 templates, 2 strategies, subscriptions, volume discounts |
+| MCP server | ✅ Working | 12 tools + 2 resources |
+| Verification ladder | ✅ Working | L1-L5, `@require_l1_spend` enforced |
+| Kaspa covenants (SilverScript) | ✅ Mainnet | Toccata fork at DAA 389M, currently 490M |
+| Covenant pot planning | ✅ Offline | Templates, policies, validation |
+| Covenant deploy on mainnet | ⚠️ Need funded key | SDK tools work, mainnet accepts covenants |
+| SilverScript quine spend | ⚠️ Partially blocked | BUILD + SIGN work, SUBMIT has REST API fallback |
+| dTAO deployment | ⏳ Not on Finney yet | Pre-dTAO is correct. Code structured for update. |
 
 ## Common Mistakes
 
-- **Don't alias tools.** Previous auditors found `wallet_balance` → `covenant_status` — never do this.
+- **Don't claim chain state without checking.** Always verify against live chain data.
+- **Don't alias tools.** `wallet_balance` → `covenant_status` was caught by auditors.
 - **Don't hardcode API keys.** The `***` placeholder in the agent loop was a real bug.
-- **Don't forget the verification ladder.** Every financial operation needs L1 or L2 verification.
-- **Don't push marketing docs.** The `docs/brand/` directory was removed for this reason.
-- **Don't claim "agent economy"** without agent-to-agent commerce.
+- **Don't forget the verification ladder.** `@require_l1_spend` is mandatory for financial ops.
+- **Don't push marketing docs.** The `docs/brand/` directory was removed.
+- **Don't claim "agent economy"** without agent-to-agent commerce. (We now have negotiation.)
 
 ## Past Decisions
 
 - kascov-lab dependency removed (Jul 18, 2026). Replaced with REST API.
-- REST API replaced with official Kaspa Python SDK (Jul 19, 2026). `kaspa_rpc.py` now uses `RpcClient` + `Resolver` (wRPC, PNN auto-discovery).
-- Negotiation protocol stripped (Jul 18, 2026). Premature — needs redesign.
-- TN12 migration reverted (Jul 18, 2026). TN12 doesn't exist as a public network.
-- Quine deployed on TN10 (Jul 18, 2026). Covenant `6d58b529...`. Spend blocked by tooling — now unblocked by SDK integration.
+- REST API replaced with Kaspa Python SDK (Jul 19, 2026). wRPC + Resolver.
+- Negotiation protocol rebuilt (Jul 19, 2026). Templates, memory, subscriptions. 27 tests.
+- TN12 migration reverted (Jul 18, 2026). TN12 doesn't exist as public network.
+- Toccata status corrected (Jul 19, 2026). Was listed as "not on mainnet" — DAA 490M proves it's active.
+- Fee/donation addresses separated (Jul 19, 2026). `VIDA_FEE_ADDRESS` / `VIDA_DONATION_ADDRESS`.
 
 ## Memory
 
-This file is read at the start of every session. Update it when you discover:
-- A new bug pattern
+Update this file when you discover:
+- A new bug pattern or recurring mistake
 - A tool that doesn't return `ok`
 - An API change in Kaspa or Bittensor
-- A decision that future agents should know about
+- A decision future agents should know about
