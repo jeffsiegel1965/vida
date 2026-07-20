@@ -208,39 +208,34 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
         client = await _get_client()
         
         # Handle both hex strings and dict/object inputs
+        tx_dict: dict[str, Any] = {}
         if isinstance(tx_hex, str):
-            tx_data = bytes.fromhex(tx_hex)
-        elif hasattr(tx_hex, 'to_dict'):
-            tx_data = tx_hex.to_dict()
-        elif isinstance(tx_hex, dict):
-            tx_data = tx_hex
-        else:
-            raise ValueError("tx_hex must be hex string or dict/object with to_dict()")
-        
-        # Method 1: Try SDK submit with multiple formats
-        try:
-            # First format: raw bytes (works with some SDK versions)
+            # Try parsing as hex first
             try:
-                result = await client.submit_transaction(request=tx_data if isinstance(tx_data, bytes) else tx_data['hex'])
-                txid = result.get("txid", "") if isinstance(result, dict) else result
+                tx_dict = {"hex": tx_hex}
+            except ValueError:
+                tx_dict = {}
+        elif hasattr(tx_hex, 'to_dict'):
+            tx_dict = tx_hex.to_dict()
+        elif isinstance(tx_hex, dict):
+            tx_dict = tx_hex
+        
+        # Method 1: SDK submit with RpcTransaction format
+        # The SDK expects: {"transaction": RpcTransaction, "allowOrphan": bool}
+        # RpcTransaction matches to_dict() output format
+        if tx_dict:
+            try:
+                result = await client.submit_transaction(request={
+                    "transaction": tx_dict,
+                    "allowOrphan": False,
+                })
+                txid = result.get("txid", "") if isinstance(result, dict) else str(result)
                 if txid:
                     return {"ok": True, "txid": txid, "source": "sdk"}
-            except (TypeError, RuntimeError, OSError, ValueError) as sdk_err:
-                # Second format: dict with 'hex' field (works with other SDK versions)
-                if isinstance(tx_data, dict):
-                    try:
-                        result = await client.submit_transaction(request={"hex": tx_data['hex']})
-                        txid = result.get("txid", "") if isinstance(result, dict) else result
-                        if txid:
-                            return {"ok": True, "txid": txid, "source": "sdk_format2"}
-                    except (TypeError, RuntimeError) as sdk_err2:
-                        logger.warning("SDK submit failed with both formats: %s, %s", sdk_err, sdk_err2)
-                else:
-                    logger.warning("SDK submit failed: %s", sdk_err)
-        except Exception as sdk_err:
-            logger.warning("Unexpected SDK submit error: %s", sdk_err)
+            except (TypeError, RuntimeError, KeyError) as sdk_err:
+                logger.warning("SDK submit failed: %s", sdk_err)
         
-        # Method 2: Fall back to REST API
+        # Method 2: REST API fallback
         try:
             import json
             from urllib.request import Request, urlopen, URLError
@@ -254,12 +249,12 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
                     return super().default(obj)
             
             base = "https://api-tn10.kaspa.org" if "testnet" in _network_id else "https://api.kaspa.org"
-            data = tx_hex if isinstance(tx_hex, str) else json.dumps(tx_data, cls=KaspaJSONEncoder)
+            data = tx_hex if isinstance(tx_hex, str) else json.dumps(tx_dict, cls=KaspaJSONEncoder)
             
             req = Request(
                 f"{base}/transactions",
                 data=data.encode(),
-                headers={"Content-Type": "application/json" if isinstance(data, str) else "application/octet-stream"},
+                headers={"Content-Type": "application/json"},
                 method="POST",
             )
             with urlopen(req, timeout=30) as resp:
