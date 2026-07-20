@@ -254,14 +254,10 @@ Return ONLY valid JSON. No other text."""
             plan.steps = [
                 Step(id="1", action="covenant_status", params={},
                      description="Check wallet and covenant readiness"),
-                Step(id="2", action="tao_stake_optimize", params={
-                    "amount": amount or 100,
-                    "risk_tolerance": "medium",
-                }, description="Generate staking plan"),
-                Step(id="3", action="covenant_plan_pot", params={
+                Step(id="2", action="covenant_plan_pot", params={
                     "max_kas_per_tx": amount / 10 if amount else 10,
                     "max_kas_per_day": amount or 100,
-                }, description="Plan agent pot for staking"),
+                }, description="Generate staking plan via pot"),
             ]
         
         # ── Covenant inspection ──

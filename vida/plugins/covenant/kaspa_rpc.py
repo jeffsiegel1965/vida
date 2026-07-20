@@ -119,8 +119,8 @@ async def _disconnect() -> None:
     if _client is not None:
         try:
             await _client.disconnect()
-        except Exception:
-            pass  # Cleanup only — ignore errors
+        except (OSError, RuntimeError, asyncio.TimeoutError):
+            pass  # Cleanup only — ignore connection errors
         _client = None
     _resolver = None
 
@@ -213,7 +213,7 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
             txid = result.get("txid", "") if isinstance(result, dict) else result
             if txid:
                 return {"ok": True, "txid": txid, "source": "sdk"}
-        except Exception as sdk_err:
+        except (TypeError, RuntimeError, OSError, ValueError) as sdk_err:
             logger.warning("SDK submit failed: %s — trying REST fallback", sdk_err)
         
         # Method 2: Fall back to REST API

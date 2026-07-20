@@ -11,10 +11,13 @@ An agent that remembers nothing is useless. This module gives Vida agents:
 from __future__ import annotations
 
 import json
+import logging
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 # ── Data models ──
@@ -152,7 +155,7 @@ class AgentMemory:
             if "kv" in data:
                 self._kv_store = data["kv"]
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            print(f"Memory load error: {e}")
+            logger.warning("Memory load error: %s", e)
         self._loaded = True
     
     def _save(self) -> None:
