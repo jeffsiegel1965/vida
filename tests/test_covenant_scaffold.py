@@ -109,9 +109,7 @@ class TestCovenantScaffold(unittest.TestCase):
         self.assertTrue(plan["hard_rules"]["require_dest_allowlist"])
         bad = plan_agent_pot(max_kas_per_tx=0, max_kas_per_day=1)
         self.assertFalse(bad["ok"])
-        via_plugin = CovenantPlugin().plan_agent_pot(
-            max_kas_per_tx=2.0, max_kas_per_day=10.0
-        )
+        via_plugin = CovenantPlugin().plan_agent_pot(max_kas_per_tx=2.0, max_kas_per_day=10.0)
         via_plan = via_plugin.copy()
         via_plan["live_ready"] = True
         self.assertTrue(via_plugin["ok"])

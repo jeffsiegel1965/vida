@@ -113,7 +113,10 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "address": {"type": "string", "description": "Kaspa address (optional, defaults to configured wallet)"},
+                    "address": {
+                        "type": "string",
+                        "description": "Kaspa address (optional, defaults to configured wallet)",
+                    },
                 },
             },
         },

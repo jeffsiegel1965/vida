@@ -62,9 +62,7 @@ def load_tao_config(
     try:
         net = TaoNetwork(net_raw)
     except ValueError as e:
-        raise ValueError(
-            f"unknown TAO network '{net_raw}' (use finney|test|mock)"
-        ) from e
+        raise ValueError(f"unknown TAO network '{net_raw}' (use finney|test|mock)") from e
 
     ep = endpoint or os.environ.get("VIDA_TAO_ENDPOINT") or None
     return TaoConfig(

@@ -52,6 +52,7 @@ try:
     from ml_dsa_65 import keygen as pq_keygen
     from ml_dsa_65 import sign as pq_sign
     from ml_dsa_65 import verify as pq_verify
+
     PQ_AVAILABLE = True
 except ImportError:
     PQ_AVAILABLE = False
@@ -62,6 +63,7 @@ KEY_LEN = 32
 
 
 # ── Crypto helpers ───────────────────────────────────────────────────────────
+
 
 def _derive_key(password: str, salt: bytes) -> bytes:
     """Password -> 32-byte key via scrypt (memory-hard)."""
@@ -90,6 +92,7 @@ def _host_fingerprint() -> str:
             continue
     # Fallback: hostname (weaker) — still better than unbound
     import socket
+
     return f"host:{socket.gethostname()}"
 
 
@@ -156,6 +159,7 @@ def _write_0600(path: Path, data: dict):
 
 # ── Wallet creation (called by owner-run setup script ONLY) ──────────────────
 
+
 def create_secure_wallet(
     wallet_path: str | Path,
     password: str,
@@ -214,8 +218,7 @@ def create_secure_wallet(
         "address": address,
         "public_key": kp.public_key,
         "pq_public_key": pq_pub_hex,
-        "kdf": {"algo": "scrypt", "n": SCRYPT_N, "r": SCRYPT_R, "p": SCRYPT_P,
-                "salt": salt.hex()},
+        "kdf": {"algo": "scrypt", "n": SCRYPT_N, "r": SCRYPT_R, "p": SCRYPT_P, "salt": salt.hex()},
         "enc_seed": _encrypt(key, seed_bytes),
         "enc_schnorr": _encrypt(key, kp.private_key.encode()),
         "enc_pq_sk": _encrypt(key, pq_sk_bytes) if pq_sk_bytes else None,
@@ -227,6 +230,7 @@ def create_secure_wallet(
 
 # ── Unlocking ────────────────────────────────────────────────────────────────
 
+
 class SecureVida:
     """
     An unlocked secure wallet. Secrets live only in this object's memory.
@@ -236,8 +240,9 @@ class SecureVida:
     unchanged on top of the encrypted wallet.
     """
 
-    def __init__(self, wallet_path: str | Path, password: Optional[str] = None,
-                 _session_file: Optional[str | Path] = None):
+    def __init__(
+        self, wallet_path: str | Path, password: Optional[str] = None, _session_file: Optional[str | Path] = None
+    ):
         self.wallet_path = Path(wallet_path)
         with open(self.wallet_path) as f:
             self._data = json.load(f)
@@ -298,9 +303,7 @@ class SecureVida:
         # expiry + limits + host bound as AAD (v2). v1 sessions used older AAD.
         limits = sess.get("limits", {}) or {}
         try:
-            aad = _session_aad(
-                sess["wallet_address"], sess["expires_at"], limits, host_id=host_id
-            )
+            aad = _session_aad(sess["wallet_address"], sess["expires_at"], limits, host_id=host_id)
             self._private_key_hex = _decrypt(machine_key, sess["enc_schnorr"], aad).decode()
             self._session_format = 2
         except Exception:
@@ -318,9 +321,7 @@ class SecureVida:
                     sort_keys=True,
                     separators=(",", ":"),
                 ).encode("utf-8")
-                self._private_key_hex = _decrypt(
-                    machine_key, sess["enc_schnorr"], aad_v1
-                ).decode()
+                self._private_key_hex = _decrypt(machine_key, sess["enc_schnorr"], aad_v1).decode()
                 self._session_format = 1
             except Exception:
                 raise ValueError("Session file tampered or corrupt (auth check failed)")
@@ -335,9 +336,7 @@ class SecureVida:
         try:
             if self._session_format >= 2:
                 if not sess.get("enc_spend"):
-                    raise ValueError(
-                        "Session missing enc_spend (tamper/delete) — refuse unlock"
-                    )
+                    raise ValueError("Session missing enc_spend (tamper/delete) — refuse unlock")
                 day, spent = _open_spend(machine_key, sess.get("enc_spend"))
                 self._session_spend_day = day
                 self.session_daily_spent = spent
@@ -358,11 +357,13 @@ class SecureVida:
     def sign(self, message: str) -> str:
         import kaspa as kas
         from kaspa import PrivateKey
+
         return kas.sign_message(message, PrivateKey(self._private_key_hex))
 
     def verify(self, message: str, sig_hex: str) -> bool:
         import kaspa as kas
         from kaspa import PublicKey
+
         return kas.verify_message(message, sig_hex, PublicKey(self.public_key))
 
     def sign_pq(self, message: bytes) -> bytes:
@@ -382,9 +383,7 @@ class SecureVida:
             self._session_spend_day = today
             self.session_daily_spent = 0.0
 
-    def check_session_spend(
-        self, amount_kas: float, dest_address: Optional[str] = None
-    ) -> Optional[str]:
+    def check_session_spend(self, amount_kas: float, dest_address: Optional[str] = None) -> Optional[str]:
         """
         Enforce secure agent session caps. Returns error string or None if OK.
 
@@ -397,15 +396,13 @@ class SecureVida:
         if self.session_expires_at is not None and time.time() > float(self.session_expires_at):
             return "Agent session expired"
         import math
+
         if not isinstance(amount_kas, (int, float)) or not math.isfinite(amount_kas) or amount_kas <= 0:
             return "Amount must be a positive finite number"
         max_tx = float(self.session_limits.get("max_kas_per_tx") or 0.0)
         max_day = float(self.session_limits.get("max_kas_per_day") or 0.0)
         if max_tx > 0 and amount_kas > max_tx + 1e-12:
-            return (
-                f"Session policy rejected: amount {amount_kas} KAS exceeds "
-                f"max_kas_per_tx {max_tx}"
-            )
+            return f"Session policy rejected: amount {amount_kas} KAS exceeds max_kas_per_tx {max_tx}"
         dests = self.session_limits.get("allowed_destinations")
         if dests is not None:
             allow = set(dests)
@@ -414,9 +411,7 @@ class SecureVida:
             if dest_address is None:
                 return "Session policy rejected: destination required by allowlist"
             if dest_address not in allow:
-                return (
-                    "Session policy rejected: destination not in allowed_destinations"
-                )
+                return "Session policy rejected: destination not in allowed_destinations"
         self._roll_session_day()
         if max_day > 0 and (self.session_daily_spent + amount_kas) > max_day + 1e-12:
             return (
@@ -457,9 +452,7 @@ class SecureVida:
                 sess = json.load(f)
             mk = getattr(self, "_session_machine_key", None)
             if mk is not None:
-                sess["enc_spend"] = _seal_spend(
-                    mk, self._session_spend_day, self.session_daily_spent
-                )
+                sess["enc_spend"] = _seal_spend(mk, self._session_spend_day, self.session_daily_spent)
                 sess.pop("spend", None)
             else:
                 sess["spend"] = {
@@ -483,6 +476,7 @@ class SecureVida:
 
 
 # ── Agent session grants (owner-run) ─────────────────────────────────────────
+
 
 def grant_agent_session(
     wallet_path: str | Path,

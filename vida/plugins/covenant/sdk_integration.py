@@ -203,10 +203,7 @@ async def spend_from_covenant(
         entries = utxos.get(owner_address, [])
 
         # Filter for UTXOs with covenant binding
-        covenant_utxos = [
-            e for e in entries
-            if hasattr(e, "script_public_key") and "covenant" in str(e).lower()
-        ]
+        covenant_utxos = [e for e in entries if hasattr(e, "script_public_key") and "covenant" in str(e).lower()]
 
         if not covenant_utxos:
             # Fallback: use all UTXOs and try covenant spend
@@ -294,13 +291,15 @@ def deploy(
     wrpc_url: str = "",
 ) -> CovenantDeployResult:
     """Sync wrapper for deploy_covenant."""
-    return asyncio.run(deploy_covenant(
-        program_hex=program_hex,
-        private_key_hex=private_key_hex,
-        value_sompi=value_sompi,
-        network=network,
-        wrpc_url=wrpc_url,
-    ))
+    return asyncio.run(
+        deploy_covenant(
+            program_hex=program_hex,
+            private_key_hex=private_key_hex,
+            value_sompi=value_sompi,
+            network=network,
+            wrpc_url=wrpc_url,
+        )
+    )
 
 
 def spend(
@@ -314,13 +313,15 @@ def spend(
     wrpc_url: str = "",
 ) -> CovenantSpendResult:
     """Sync wrapper for spend_from_covenant."""
-    return asyncio.run(spend_from_covenant(
-        program_hex=program_hex,
-        covenant_id=covenant_id,
-        private_key_hex=private_key_hex,
-        entrypoint=entrypoint,
-        to_address=to_address,
-        amount_sompi=amount_sompi,
-        network=network,
-        wrpc_url=wrpc_url,
-    ))
+    return asyncio.run(
+        spend_from_covenant(
+            program_hex=program_hex,
+            covenant_id=covenant_id,
+            private_key_hex=private_key_hex,
+            entrypoint=entrypoint,
+            to_address=to_address,
+            amount_sompi=amount_sompi,
+            network=network,
+            wrpc_url=wrpc_url,
+        )
+    )

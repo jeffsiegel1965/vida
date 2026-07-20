@@ -21,10 +21,7 @@ from vida.plugins.tao.provision import (
     unlock_tao_secrets,
 )
 
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 
 @unittest.skipUnless(PQ_AVAILABLE, "ml_dsa_65 / pqcrypto not available")
@@ -105,9 +102,7 @@ class TestTaoPQ(unittest.TestCase):
             rec = store.load("pq3")
             assert rec is not None
             self.assertFalse(rec.pq_public_key)
-            up = ensure_tao_pq_identity(
-                wallet_id="pq3", password="upgrade-pw-12345", store=store
-            )
+            up = ensure_tao_pq_identity(wallet_id="pq3", password="upgrade-pw-12345", store=store)
             self.assertTrue(up["ok"], up)
             self.assertTrue(up.get("upgraded") or up.get("pq_ready"))
             rec2 = store.load("pq3")

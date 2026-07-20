@@ -33,7 +33,6 @@ from vida.plugins.covenant.pot_spend import (
 
 
 class TestCovenantRobustness(unittest.TestCase):
-
     def test_spend_zero_denied(self):
         r = check_spend_allowed(
             policy={"max_tx_sompi": 100_000_000, "allowed_destinations": []},
@@ -120,7 +119,8 @@ class TestCovenantRobustness(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             base = Path(td)
             t = build_agent_pot_script_template(
-                max_kas_per_tx=1.0, max_kas_per_day=5.0,
+                max_kas_per_tx=1.0,
+                max_kas_per_day=5.0,
                 allowed_destinations=["kaspatest:qtest"],
             )
             r = save_pot_record("test-wallet", {"template": t, "pot_sompi": 500_000_000}, base=base)
@@ -139,7 +139,8 @@ class TestCovenantRobustness(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             base = Path(td)
             t = build_agent_pot_script_template(
-                max_kas_per_tx=1.0, max_kas_per_day=5.0,
+                max_kas_per_tx=1.0,
+                max_kas_per_day=5.0,
                 allowed_destinations=[],
             )
             t["policy"]["max_tx_sompi"] = 999999999  # corrupt hash
@@ -164,9 +165,8 @@ class TestCovenantRobustness(unittest.TestCase):
     def test_plugin_status_no_secrets(self):
         p = CovenantPlugin()
         from vida.plugins.base import VidaPluginContext
-        ctx = VidaPluginContext(
-            wallet_id="test"
-        )
+
+        ctx = VidaPluginContext(wallet_id="test")
         s = p.status(ctx)
         raw = json.dumps(s)
         for secret in ("mnemonic", "private_key", "seed", "password"):

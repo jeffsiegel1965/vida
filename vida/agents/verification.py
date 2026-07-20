@@ -22,16 +22,18 @@ logger = logging.getLogger(__name__)
 
 class VerificationLevel(IntEnum):
     """Five-level verification ladder from Macedo 2026."""
-    DETERMINISTIC = 1    # L1: assertion, exit code, golden output
-    RULE = 2             # L2: schema, policy check
-    FIELD_TRUTH = 3      # L3: actual transaction confirmation
-    MODEL_JUDGE = 4      # L4: model by rubric (flag if used for spend!)
-    HUMAN_CHECKPOINT = 5 # L5: human approval gate
+
+    DETERMINISTIC = 1  # L1: assertion, exit code, golden output
+    RULE = 2  # L2: schema, policy check
+    FIELD_TRUTH = 3  # L3: actual transaction confirmation
+    MODEL_JUDGE = 4  # L4: model by rubric (flag if used for spend!)
+    HUMAN_CHECKPOINT = 5  # L5: human approval gate
 
 
 @dataclass
 class VerifiedResult:
     """Result of a verified operation."""
+
     ok: bool
     level: VerificationLevel
     evidence: str = ""
@@ -143,6 +145,7 @@ def require_l1_spend(fn: Callable) -> Callable:
 
     If the result doesn't pass L1 deterministic checks, the spend is rejected.
     """
+
     @functools.wraps(fn)
     def wrapper(*args, **kwargs) -> dict[str, Any]:
         result = fn(*args, **kwargs)
@@ -168,4 +171,5 @@ def require_l1_spend(fn: Callable) -> Callable:
 
         # L1 failed — reject
         return {"ok": False, "error": f"spend rejected by L1 verification: {v.evidence}"}
+
     return wrapper

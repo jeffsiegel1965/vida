@@ -50,9 +50,13 @@ class TestEscrowStore(unittest.TestCase):
 
     def test_save_and_get(self):
         r = EscrowRecord(
-            id="escrow_1", buyer_address="b", seller_address="s",
-            arbiter_address="a", amount_sompi=100_000_000,
-            timeout_block=10080, covenant_id="cid",
+            id="escrow_1",
+            buyer_address="b",
+            seller_address="s",
+            arbiter_address="a",
+            amount_sompi=100_000_000,
+            timeout_block=10080,
+            covenant_id="cid",
         )
         self.store.save(r)
         self.assertIsNotNone(self.store.get("escrow_1"))
@@ -60,9 +64,13 @@ class TestEscrowStore(unittest.TestCase):
 
     def test_update_status(self):
         r = EscrowRecord(
-            id="escrow_2", buyer_address="b", seller_address="s",
-            arbiter_address="a", amount_sompi=100_000_000,
-            timeout_block=10080, covenant_id="cid",
+            id="escrow_2",
+            buyer_address="b",
+            seller_address="s",
+            arbiter_address="a",
+            amount_sompi=100_000_000,
+            timeout_block=10080,
+            covenant_id="cid",
         )
         self.store.save(r)
         self.store.update_status("escrow_2", "released", "0xrelease")
@@ -73,9 +81,13 @@ class TestEscrowStore(unittest.TestCase):
 
     def test_persistence(self):
         r = EscrowRecord(
-            id="escrow_3", buyer_address="b", seller_address="s",
-            arbiter_address="a", amount_sompi=50_000_000,
-            timeout_block=10080, covenant_id="cid",
+            id="escrow_3",
+            buyer_address="b",
+            seller_address="s",
+            arbiter_address="a",
+            amount_sompi=50_000_000,
+            timeout_block=10080,
+            covenant_id="cid",
         )
         self.store.save(r)
         store2 = EscrowStore(storage_dir=self.tmp.name)
@@ -97,8 +109,10 @@ class TestEscrowDeploy(unittest.TestCase):
 
     def test_deploy_with_zero_amount(self):
         result = deploy_escrow(
-            buyer_address="kaspa:b", seller_address="kaspa:s",
-            arbiter_address="kaspa:a", amount_kas=0,
+            buyer_address="kaspa:b",
+            seller_address="kaspa:s",
+            arbiter_address="kaspa:a",
+            amount_kas=0,
         )
         self.assertTrue(result["ok"])
         self.assertEqual(result["amount_sompi"], 0)
@@ -115,9 +129,13 @@ class TestEscrowRelease(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.store = EscrowStore(storage_dir=self.tmp.name)
         r = EscrowRecord(
-            id="escrow_release", buyer_address="b", seller_address="s",
-            arbiter_address="a", amount_sompi=100_000_000,
-            timeout_block=10080, covenant_id="cid",
+            id="escrow_release",
+            buyer_address="b",
+            seller_address="s",
+            arbiter_address="a",
+            amount_sompi=100_000_000,
+            timeout_block=10080,
+            covenant_id="cid",
         )
         self.store.save(r)
 
@@ -139,9 +157,13 @@ class TestEscrowRefund(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.store = EscrowStore(storage_dir=self.tmp.name)
         r = EscrowRecord(
-            id="escrow_refund", buyer_address="b", seller_address="s",
-            arbiter_address="a", amount_sompi=100_000_000,
-            timeout_block=10080, covenant_id="cid",
+            id="escrow_refund",
+            buyer_address="b",
+            seller_address="s",
+            arbiter_address="a",
+            amount_sompi=100_000_000,
+            timeout_block=10080,
+            covenant_id="cid",
         )
         self.store.save(r)
 
@@ -159,10 +181,12 @@ class TestEscrowResolve(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.store = EscrowStore(storage_dir=self.tmp.name)
         self.escrow = EscrowRecord(
-            id="escrow_resolve", buyer_address="kaspa:buyer",
+            id="escrow_resolve",
+            buyer_address="kaspa:buyer",
             seller_address="kaspa:seller",
             arbiter_address="kaspa:arbiter",
-            amount_sompi=100_000_000, timeout_block=10080,
+            amount_sompi=100_000_000,
+            timeout_block=10080,
             covenant_id="cid",
         )
         self.store.save(self.escrow)

@@ -34,11 +34,13 @@ def _host_fingerprint() -> str:
         except Exception:
             continue
     import socket
+
     return f"host:{socket.gethostname()}"
 
 
 def _seal_spend(machine_key: bytes, day: str, daily_spent: float) -> dict:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
     pt = json.dumps({"day": day, "daily_spent": float(daily_spent)}, sort_keys=True, separators=(",", ":")).encode()
     nonce = os.urandom(12)
     ct = AESGCM(machine_key).encrypt(nonce, pt, b"vida-tao-session-spend-v1")
@@ -119,6 +121,7 @@ def grant_tao_agent_session(
 
     try:
         from .paths import actions_for_scope
+
         scope_actions = actions_for_scope(scope)
     except ValueError as e:
         return {"ok": False, "error": str(e)}
@@ -156,9 +159,7 @@ def grant_tao_agent_session(
         "max_tao_per_day": float(max_tao_per_day),
         "threshold": float(threshold),
         "allowed_subnets": list(allowed_subnets) if allowed_subnets is not None else None,
-        "allowed_actions": list(allowed_actions)
-        if allowed_actions is not None
-        else list(scope_actions),
+        "allowed_actions": list(allowed_actions) if allowed_actions is not None else list(scope_actions),
         "scope": (scope or "ALL").upper().replace("-", "_"),
         "allow_any_dest": bool(allow_any_dest),
     }
@@ -183,9 +184,7 @@ def grant_tao_agent_session(
         {
             "cold_private_hex": cold_hex,
             "hot_private_hex": hot_hex,
-            "hotkey_ss58": secrets.get("hotkey_ss58")
-            or (rec.meta or {}).get("hotkey_ss58")
-            or "",
+            "hotkey_ss58": secrets.get("hotkey_ss58") or (rec.meta or {}).get("hotkey_ss58") or "",
         },
         sort_keys=True,
     ).encode("utf-8")

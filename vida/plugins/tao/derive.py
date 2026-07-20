@@ -83,9 +83,7 @@ def derive_tao_keys(
     """
     words = validate_mnemonic(mnemonic)
     Keypair = _import_keypair()
-    cold = Keypair.create_from_uri(
-        words, crypto_type=SR25519_CRYPTO_TYPE, ss58_format=ss58_prefix
-    )
+    cold = Keypair.create_from_uri(words, crypto_type=SR25519_CRYPTO_TYPE, ss58_format=ss58_prefix)
     hot = Keypair.create_from_uri(
         f"{words}{HOTKEY_SUFFIX}",
         crypto_type=SR25519_CRYPTO_TYPE,

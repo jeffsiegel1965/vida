@@ -73,24 +73,12 @@ def can_run_lab_demo() -> bool:
 
 def can_fund_agent_pot() -> bool:
     g = live_gates_ok()
-    return bool(
-        g["live_env"]
-        and g["key_ok"]
-        and g["node"]
-        and g["node_helper_ok"]
-        and g["wasm_ok"]
-    )
+    return bool(g["live_env"] and g["key_ok"] and g["node"] and g["node_helper_ok"] and g["wasm_ok"])
 
 
 def can_spend_agent_pot() -> bool:
     g = live_gates_ok()
-    return bool(
-        g["live_env"]
-        and g["key_ok"]
-        and g["node"]
-        and g["spend_helper_ok"]
-        and g["wasm_ok"]
-    )
+    return bool(g["live_env"] and g["key_ok"] and g["node"] and g["spend_helper_ok"] and g["wasm_ok"])
 
 
 def run_lab_demo(*, transitions: int = 1, timeout: int = 120) -> dict[str, Any]:

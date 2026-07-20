@@ -42,8 +42,12 @@ def main() -> int:
     ap.add_argument("--store-dir", default="")
     ap.add_argument("--session", default="")
     ap.add_argument("--hours", type=float, default=8.0)
-    ap.add_argument("--mode", default="FULL", choices=["FULL", "HYBRID", "COMMAND"],
-                    help="COMMAND=you confirm each action; HYBRID=auto under --threshold; FULL=agentic within caps")
+    ap.add_argument(
+        "--mode",
+        default="FULL",
+        choices=["FULL", "HYBRID", "COMMAND"],
+        help="COMMAND=you confirm each action; HYBRID=auto under --threshold; FULL=agentic within caps",
+    )
     ap.add_argument("--max-per-tx", type=float, default=0.05)
     ap.add_argument("--max-per-day", type=float, default=0.1)
     ap.add_argument("--threshold", type=float, default=0.0)
@@ -54,12 +58,16 @@ def main() -> int:
         default=None,
         help="Allowed SS58 destinations for transfers (repeatable)",
     )
-    ap.add_argument("--scope", default="ALL", choices=["ALL", "STAKE_ONLY", "TRANSFER_ONLY"],
-                    help="ALL=stake+transfer+optimize; STAKE_ONLY; TRANSFER_ONLY")
-    ap.add_argument("--allow-any-dest", action="store_true",
-                    help="Dangerous: allow transfers to any SS58 (default requires --dest)")
-    ap.add_argument("--allow-long-session", action="store_true",
-                    help="Allow hours > 24")
+    ap.add_argument(
+        "--scope",
+        default="ALL",
+        choices=["ALL", "STAKE_ONLY", "TRANSFER_ONLY"],
+        help="ALL=stake+transfer+optimize; STAKE_ONLY; TRANSFER_ONLY",
+    )
+    ap.add_argument(
+        "--allow-any-dest", action="store_true", help="Dangerous: allow transfers to any SS58 (default requires --dest)"
+    )
+    ap.add_argument("--allow-long-session", action="store_true", help="Allow hours > 24")
     ap.add_argument("--allow-unlimited", action="store_true")
     args = ap.parse_args()
 

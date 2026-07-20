@@ -21,8 +21,8 @@ from .models import (
 
 # ── Configuration ──
 
-MAX_ROUNDS = 10              # Max offer/counter-offer rounds
-HUMAN_ESCALATION_KAS = 100.0 # Deals > 100 KAS need human approval
+MAX_ROUNDS = 10  # Max offer/counter-offer rounds
+HUMAN_ESCALATION_KAS = 100.0  # Deals > 100 KAS need human approval
 DEFAULT_STRATEGY = ConcessionStrategy.BOULWARE
 
 
@@ -159,11 +159,13 @@ class NegotiationSession:
 
         # Record their offer
         round_num = self.round_count + 1
-        self.rounds.append(NegotiationRound(
-            round_number=round_num,
-            proposer="them",
-            terms=their_terms,
-        ))
+        self.rounds.append(
+            NegotiationRound(
+                round_number=round_num,
+                proposer="them",
+                terms=their_terms,
+            )
+        )
 
         # Check if we can accept their offer outright
         if self._terms_acceptable(their_terms):
@@ -184,19 +186,24 @@ class NegotiationSession:
         self.our_terms = response
 
         # Record our response
-        self.rounds.append(NegotiationRound(
-            round_number=round_num,
-            proposer="us",
-            terms=response,
-        ))
+        self.rounds.append(
+            NegotiationRound(
+                round_number=round_num,
+                proposer="us",
+                terms=response,
+            )
+        )
 
         return response, False
 
-    def accept_terms(self, terms: CovenantTerms,
-                     deploy_escrow: bool = False,
-                     buyer_address: str = "",
-                     seller_address: str = "",
-                     arbiter_address: str = "") -> dict[str, Any]:
+    def accept_terms(
+        self,
+        terms: CovenantTerms,
+        deploy_escrow: bool = False,
+        buyer_address: str = "",
+        seller_address: str = "",
+        arbiter_address: str = "",
+    ) -> dict[str, Any]:
         """Accept the counterparty's terms and complete the session.
 
         If deploy_escrow is True, automatically creates an on-chain escrow
@@ -226,9 +233,10 @@ class NegotiationSession:
             "terms": terms.to_dict(),
             "rounds": self.round_count,
             "needs_human_approval": needs_human,
-            "message": "Deal accepted!" if not needs_human else
-                       f"Deal accepted! Amount {terms.max_kas_per_tx} KAS exceeds "
-                       f"auto-approval limit — human approval required.",
+            "message": "Deal accepted!"
+            if not needs_human
+            else f"Deal accepted! Amount {terms.max_kas_per_tx} KAS exceeds "
+            f"auto-approval limit — human approval required.",
         }
 
     def reject_and_walk(self, reason: str = "") -> dict[str, Any]:
@@ -320,11 +328,7 @@ class SessionManager:
 
     def active_sessions(self) -> list[dict[str, Any]]:
         """List all active (non-complete) sessions."""
-        return [
-            s.summary()
-            for s in self._sessions.values()
-            if not s.is_complete and not s.is_expired
-        ]
+        return [s.summary() for s in self._sessions.values() if not s.is_complete and not s.is_expired]
 
     def cleanup_expired(self) -> int:
         """Clean up expired sessions. Returns count removed."""

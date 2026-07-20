@@ -26,8 +26,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DealRecord:
     """Record of a completed deal (covenant pot, TAO stake, or subnet purchase)."""
+
     id: str
-    deal_type: str                           # "covenant_pot", "tao_stake", "subnet_purchase"
+    deal_type: str  # "covenant_pot", "tao_stake", "subnet_purchase"
     counterparty_id: str
     amount_kas: float = 0.0
     amount_tao: float = 0.0
@@ -49,6 +50,7 @@ class DealRecord:
 @dataclass
 class CounterpartyProfile:
     """Learned profile for a counterparty agent."""
+
     agent_id: str
     total_deals: int = 0
     total_kas_volume: float = 0.0
@@ -73,6 +75,7 @@ class CounterpartyProfile:
 @dataclass
 class SubnetUsageRecord:
     """Record of an agent using a Bittensor subnet."""
+
     netuid: int
     service_type: str
     requests_made: int = 0
@@ -87,6 +90,7 @@ class SubnetUsageRecord:
 @dataclass
 class AgentContext:
     """The agent's current working context — survives interruptions."""
+
     current_goal: str = ""
     current_session_id: str = ""
     work_in_progress: dict[str, Any] = field(default_factory=dict)
@@ -177,8 +181,7 @@ class AgentMemory:
         self._deals.append(deal)
 
         # Update counterparty profile
-        cp = self._counterparties.get(deal.counterparty_id,
-                                        CounterpartyProfile(agent_id=deal.counterparty_id))
+        cp = self._counterparties.get(deal.counterparty_id, CounterpartyProfile(agent_id=deal.counterparty_id))
         cp.total_deals += 1
         cp.total_kas_volume += deal.amount_kas
         cp.total_tao_volume += deal.amount_tao
@@ -199,8 +202,7 @@ class AgentMemory:
 
         # Update subnet usage if applicable
         if deal.netuid > 0:
-            sn = self._subnets.get(deal.netuid, SubnetUsageRecord(
-                netuid=deal.netuid, service_type=deal.deal_type))
+            sn = self._subnets.get(deal.netuid, SubnetUsageRecord(netuid=deal.netuid, service_type=deal.deal_type))
             sn.requests_made += 1
             sn.total_tao_spent += deal.amount_tao
             sn.last_used = deal.timestamp
@@ -315,9 +317,12 @@ class AgentMemory:
         if not cp:
             return 0.0
         total = cp.total_tao_volume + cp.total_kas_volume
-        if total >= 10000: return 0.30
-        if total >= 1000: return 0.20
-        if total >= 100: return 0.10
+        if total >= 10000:
+            return 0.30
+        if total >= 1000:
+            return 0.20
+        if total >= 100:
+            return 0.10
         return 0.0
 
     def wipe(self) -> None:

@@ -31,6 +31,7 @@ try:
         sign,
         verify,
     )
+
     PQ_AVAILABLE = True
 except ImportError:
     PQ_AVAILABLE = False
@@ -38,14 +39,16 @@ except ImportError:
 
 class DelegationMode(Enum):
     """Delegation mode for session keys."""
-    FULL = "FULL"        # Can sign any amount without approval
+
+    FULL = "FULL"  # Can sign any amount without approval
     COMMAND = "COMMAND"  # Always requires owner explicit approval
-    HYBRID = "HYBRID"    # Can sign up to threshold_kas, above requires approval
+    HYBRID = "HYBRID"  # Can sign up to threshold_kas, above requires approval
 
 
 @dataclass
 class SessionKey:
     """Ephemeral session key (in-memory only, never persisted)."""
+
     public_key_hex: str
     mode: DelegationMode
     created_at: datetime
@@ -55,7 +58,7 @@ class SessionKey:
     revoked: bool = False
     daily_spent: float = 0.0
     daily_limit_kas: float = 0.0  # 0 = no cumulative cap (FULL default); HYBRID sets one
-    _spend_day: str = ""          # YYYY-MM-DD the daily_spent counter belongs to
+    _spend_day: str = ""  # YYYY-MM-DD the daily_spent counter belongs to
 
     @property
     def is_active(self) -> bool:
@@ -110,7 +113,7 @@ class Vida:
     Session keys are ephemeral (in-memory only).
     """
 
-    def __init__(self, wallet_path: str | Path, network: str = 'mainnet'):
+    def __init__(self, wallet_path: str | Path, network: str = "mainnet"):
         """
         Load an existing wallet from JSON file.
 
@@ -124,19 +127,19 @@ class Vida:
         if not self.wallet_path.exists():
             raise FileNotFoundError(f"Wallet file not found: {wallet_path}")
 
-        with open(self.wallet_path, 'r') as f:
+        with open(self.wallet_path, "r") as f:
             data = json.load(f)
 
-        self.address = data['address']
-        self.public_key = data['public_key']
-        self._private_key_hex = data['private_key_hex']  # Plaintext — legacy only. Use secure_wallet.py for real funds.
+        self.address = data["address"]
+        self.public_key = data["public_key"]
+        self._private_key_hex = data["private_key_hex"]  # Plaintext — legacy only. Use secure_wallet.py for real funds.
 
         # Optional post-quantum keys
-        self.pq_pubkey = data.get('pq_pubkey')
-        self._pq_privkey = data.get('pq_privkey')
+        self.pq_pubkey = data.get("pq_pubkey")
+        self._pq_privkey = data.get("pq_privkey")
 
         # Network type
-        self._network_type = NetworkType.Mainnet if network == 'mainnet' else NetworkType.Testnet
+        self._network_type = NetworkType.Mainnet if network == "mainnet" else NetworkType.Testnet
 
         # Session key registry (in-memory only)
         self._session_keys: dict[str, SessionKey] = {}
@@ -304,24 +307,26 @@ class Vida:
         """
         result = []
         for pub_hex, session in self._session_keys.items():
-            result.append({
-                'public_key_hex': session.public_key_hex,
-                'mode': session.mode.value,
-                'created_at': session.created_at.isoformat(),
-                'expires_at': session.expires_at.isoformat(),
-                'threshold_kas': session.threshold_kas,
-                'daily_limit_kas': session.daily_limit_kas,
-                'lifetime_hours': session.lifetime_hours,
-                'revoked': session.revoked,
-                'is_active': session.is_active,
-                'daily_spent': session.daily_spent,
-            })
+            result.append(
+                {
+                    "public_key_hex": session.public_key_hex,
+                    "mode": session.mode.value,
+                    "created_at": session.created_at.isoformat(),
+                    "expires_at": session.expires_at.isoformat(),
+                    "threshold_kas": session.threshold_kas,
+                    "daily_limit_kas": session.daily_limit_kas,
+                    "lifetime_hours": session.lifetime_hours,
+                    "revoked": session.revoked,
+                    "is_active": session.is_active,
+                    "daily_spent": session.daily_spent,
+                }
+            )
         return result
 
 
 def create_wallet(
     wallet_path: str | Path,
-    network: str = 'mainnet',
+    network: str = "mainnet",
     mldsa: bool = False,
 ) -> Vida:
     """
@@ -336,12 +341,14 @@ def create_wallet(
         Vida wallet instance
     """
     import sys as _sys
+
     print("!" * 60, file=_sys.stderr)
     print("!!! WARNING: PLAINTEXT PRIVATE KEY STORAGE !!!", file=_sys.stderr)
     print("!!! This wallet saves keys in plaintext JSON. !!!", file=_sys.stderr)
     print("!!! Use secure_wallet.py for real funds.      !!!", file=_sys.stderr)
     print("!" * 60, file=_sys.stderr)
     import time as _time
+
     _time.sleep(3)
 
     wallet_path = Path(wallet_path)
@@ -351,27 +358,27 @@ def create_wallet(
 
     # Derive address
     network_lower = network.lower()
-    if network_lower not in ('mainnet', 'testnet'):
+    if network_lower not in ("mainnet", "testnet"):
         raise ValueError(f"Invalid network: {network}. Must be 'mainnet' or 'testnet'")
 
     address = str(kp.to_address(network_lower))
 
     # Build wallet data
     data = {
-        'address': address,
-        'public_key': kp.public_key,
-        'private_key_hex': kp.private_key,
-        'network': network_lower,
+        "address": address,
+        "public_key": kp.public_key,
+        "private_key_hex": kp.private_key,
+        "network": network_lower,
     }
 
     # Optional: generate post-quantum keys
     if mldsa and PQ_AVAILABLE:
         pq_pub, pq_priv = keygen()
-        data['pq_pubkey'] = pq_pub.hex()
-        data['pq_privkey'] = pq_priv.hex()
+        data["pq_pubkey"] = pq_pub.hex()
+        data["pq_privkey"] = pq_priv.hex()
 
     # Write to disk
-    with open(wallet_path, 'w') as f:
+    with open(wallet_path, "w") as f:
         json.dump(data, f, indent=2)
 
     # Set permissions to 0600 (owner read/write only)

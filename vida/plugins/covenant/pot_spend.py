@@ -217,9 +217,15 @@ def spend_to_agent(
         # Use the SDK-based RPC for balance check first
         from vida.plugins.covenant.kaspa_rpc import get_balance
 
-        sender = str(__import__("kaspa").PrivateKey(private_key_hex).to_address(
-            __import__("kaspa").NetworkType.Testnet if "testnet" in network
-            else __import__("kaspa").NetworkType.Mainnet))
+        sender = str(
+            __import__("kaspa")
+            .PrivateKey(private_key_hex)
+            .to_address(
+                __import__("kaspa").NetworkType.Testnet
+                if "testnet" in network
+                else __import__("kaspa").NetworkType.Mainnet
+            )
+        )
 
         bal = get_balance(sender)
         if not bal.get("ok"):
@@ -274,12 +280,15 @@ def spend_to_agent(
                 txid = result.get("txid", "") if isinstance(result, dict) else str(result)
 
                 # Save pot record
-                save_pot_record(wallet_id, {
-                    "txid": txid,
-                    "pot_sompi": send_sompi,
-                    "address": destination,
-                    "network": network,
-                })
+                save_pot_record(
+                    wallet_id,
+                    {
+                        "txid": txid,
+                        "pot_sompi": send_sompi,
+                        "address": destination,
+                        "network": network,
+                    },
+                )
 
                 return {
                     "ok": True,

@@ -56,6 +56,7 @@ DEFAULT_PRIORITY_FEE_SOMPI = 10_000  # floor; real fee computed from mass
 @dataclass
 class SendResult:
     """Result of a send attempt."""
+
     success: bool
     txid: Optional[str] = None
     amount_kas: float = 0.0
@@ -135,6 +136,7 @@ class VidaTransactor:
 
         Raises ValueError if funds are insufficient.
         """
+
         def amount_of(e: dict) -> int:
             return int(e["utxoEntry"]["amount"]) if "utxoEntry" in e else int(e["amount"])
 
@@ -146,8 +148,7 @@ class VidaTransactor:
             if total >= target_sompi:
                 return selected
         raise ValueError(
-            f"Insufficient funds: have {sompi_to_kaspa(total)} KAS, "
-            f"need {sompi_to_kaspa(target_sompi)} KAS"
+            f"Insufficient funds: have {sompi_to_kaspa(total)} KAS, need {sompi_to_kaspa(target_sompi)} KAS"
         )
 
     # ── Send ──────────────────────────────────────────────────────────────
@@ -176,6 +177,7 @@ class VidaTransactor:
         """
         # ── Validation gates ──
         import math
+
         if not isinstance(amount_kas, (int, float)) or not math.isfinite(amount_kas):
             return SendResult(success=False, error="Amount must be a finite number")
         if amount_kas <= 0:
@@ -234,6 +236,7 @@ class VidaTransactor:
         if self.covenant_policy is not None:
             try:
                 from vida.plugins.covenant.pot_spend import check_spend_kas
+
                 cerr = check_spend_kas(
                     policy=self.covenant_policy,
                     amount_kas=amount_kas,
@@ -288,8 +291,7 @@ class VidaTransactor:
                 return SendResult(
                     success=False,
                     error=(
-                        f"Fee ({sompi_to_kaspa(fee_sompi)} KAS) >= amount "
-                        f"({amount_kas} KAS). Send a larger amount."
+                        f"Fee ({sompi_to_kaspa(fee_sompi)} KAS) >= amount ({amount_kas} KAS). Send a larger amount."
                     ),
                 )
             if total_in < amount_sompi + fee_sompi:
@@ -347,11 +349,7 @@ class VidaTransactor:
         Uses aiohttp if available, else the stdlib (urllib) in an executor so
         the wallet works with zero extra dependencies.
         """
-        api_base = (
-            "https://api.kaspa.org"
-            if self.network == "mainnet"
-            else "https://api-tn10.kaspa.org"
-        )
+        api_base = "https://api.kaspa.org" if self.network == "mainnet" else "https://api-tn10.kaspa.org"
         url = f"{api_base}/transactions/{txid}"
 
         if aiohttp is not None:
@@ -386,6 +384,7 @@ class VidaTransactor:
 
 
 # ── CLI helpers for quick manual use ─────────────────────────────────────────
+
 
 async def _balance_cmd(wallet_path: str, network: str):
     vida = SecureVida(wallet_path)

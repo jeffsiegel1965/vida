@@ -16,6 +16,7 @@ import os
 
 try:
     import pqcrypto._sign.ml_dsa_65 as _mldsa
+
     LIB = _mldsa.lib
     FFI = _mldsa.ffi
     PQ_AVAILABLE = True
@@ -75,8 +76,10 @@ def sign(message: bytes, secret_key: bytes) -> bytes:
     sig_len = FFI.new("size_t *")
 
     ret = LIB.PQCLEAN_MLDSA65_CLEAN_crypto_sign_signature(
-        sig_buf, sig_len,
-        msg_buf, len(message),
+        sig_buf,
+        sig_len,
+        msg_buf,
+        len(message),
         secret_key,
     )
     if ret != 0:
@@ -104,8 +107,10 @@ def verify(message: bytes, signature: bytes, public_key: bytes) -> bool:
     pk_buf = FFI.from_buffer(public_key)
 
     ret = LIB.PQCLEAN_MLDSA65_CLEAN_crypto_sign_verify(
-        sig_buf, len(signature),
-        msg_buf, len(message),
+        sig_buf,
+        len(signature),
+        msg_buf,
+        len(message),
         pk_buf,
     )
     return ret == 0

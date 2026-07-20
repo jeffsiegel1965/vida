@@ -61,9 +61,14 @@ class CovenantSimulator:
     def __init__(self):
         self._pots: dict[str, SimulatedPot] = {}
 
-    def plan(self, wallet_id: str, max_kas_per_tx: float, max_kas_per_day: float,
-             allowed_destinations: Optional[list[str]] = None,
-             network: str = "mainnet") -> dict[str, Any]:
+    def plan(
+        self,
+        wallet_id: str,
+        max_kas_per_tx: float,
+        max_kas_per_day: float,
+        allowed_destinations: Optional[list[str]] = None,
+        network: str = "mainnet",
+    ) -> dict[str, Any]:
         """Plan a new covenant pot. Returns pot plan + fee breakdown."""
         if wallet_id in self._pots:
             return {"ok": False, "error": f"pot already exists for {wallet_id}"}
@@ -130,13 +135,15 @@ class CovenantSimulator:
         pot.total_funded_sompi = net_sompi
         pot.total_fees_sompi = fee_sompi
         pot.status = "funded"
-        pot.events.append({
-            "type": "fund",
-            "amount_sompi": amount_sompi,
-            "fee_sompi": fee_sompi,
-            "net_sompi": net_sompi,
-            "timestamp": time.time(),
-        })
+        pot.events.append(
+            {
+                "type": "fund",
+                "amount_sompi": amount_sompi,
+                "fee_sompi": fee_sompi,
+                "net_sompi": net_sompi,
+                "timestamp": time.time(),
+            }
+        )
 
         return {
             "ok": True,
@@ -148,8 +155,9 @@ class CovenantSimulator:
             "pot": pot.summary(),
         }
 
-    def spend(self, wallet_id: str, amount_kas: float, destination: str,
-              owner_address: Optional[str] = None) -> dict[str, Any]:
+    def spend(
+        self, wallet_id: str, amount_kas: float, destination: str, owner_address: Optional[str] = None
+    ) -> dict[str, Any]:
         """Simulate spending from a covenant pot."""
         pot = self._pots.get(wallet_id)
         if not pot:
@@ -184,15 +192,17 @@ class CovenantSimulator:
         pot.total_spent_sompi += amount_sompi
         pot.total_fees_sompi += fee_sompi
         pot.status = "active" if pot.balance_sompi > 0 else "depleted"
-        pot.events.append({
-            "type": "spend",
-            "amount_sompi": amount_sompi,
-            "fee_sompi": fee_sompi,
-            "destination": destination,
-            "rule": check.get("rule", "allowed"),
-            "remaining_sompi": pot.balance_sompi,
-            "timestamp": time.time(),
-        })
+        pot.events.append(
+            {
+                "type": "spend",
+                "amount_sompi": amount_sompi,
+                "fee_sompi": fee_sompi,
+                "destination": destination,
+                "rule": check.get("rule", "allowed"),
+                "remaining_sompi": pot.balance_sompi,
+                "timestamp": time.time(),
+            }
+        )
 
         covenant_continues = pot.balance_sompi > 0
 
@@ -219,12 +229,14 @@ class CovenantSimulator:
         remaining = pot.balance_sompi
         remaining_kas = remaining / SOMPI_PER_KAS
 
-        pot.events.append({
-            "type": "reclaim",
-            "amount_sompi": remaining,
-            "owner": owner_address,
-            "timestamp": time.time(),
-        })
+        pot.events.append(
+            {
+                "type": "reclaim",
+                "amount_sompi": remaining,
+                "owner": owner_address,
+                "timestamp": time.time(),
+            }
+        )
         pot.balance_sompi = 0
         pot.status = "depleted"
 

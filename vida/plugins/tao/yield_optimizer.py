@@ -67,15 +67,9 @@ def score_subnet_validators(substrate: Any, netuid: int, top_n: int = 5) -> list
     if n_val <= 0:
         return []
 
-    emission = _as_list(
-        getattr(substrate.query("SubtensorModule", "Emission", [netuid]), "value", None)
-    )
-    permit = _as_list(
-        getattr(substrate.query("SubtensorModule", "ValidatorPermit", [netuid]), "value", None)
-    )
-    incentive = _as_list(
-        getattr(substrate.query("SubtensorModule", "Incentive", [netuid]), "value", None)
-    )
+    emission = _as_list(getattr(substrate.query("SubtensorModule", "Emission", [netuid]), "value", None))
+    permit = _as_list(getattr(substrate.query("SubtensorModule", "ValidatorPermit", [netuid]), "value", None))
+    incentive = _as_list(getattr(substrate.query("SubtensorModule", "Incentive", [netuid]), "value", None))
 
     scores: list[ValidatorScore] = []
     # Cap scan for speed on large subnets
@@ -197,7 +191,5 @@ def plan_to_dict(plan: YieldPlan) -> dict[str, Any]:
         "action": plan.action,
         "reason": plan.reason,
         "candidates": plan.candidates,
-        "disclaimer": (
-            "Heuristic optimizer using emission/permit — not guaranteed yield or APY"
-        ),
+        "disclaimer": ("Heuristic optimizer using emission/permit — not guaranteed yield or APY"),
     }

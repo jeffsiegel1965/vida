@@ -41,6 +41,7 @@ class TaoPlugin:
             self.client = SubstrateTaoClient(config=self.config)
         self.account_store = account_store
         from .staking import SpendTracker
+
         self._spend = SpendTracker()
 
     def describe(self) -> dict[str, Any]:
@@ -168,13 +169,9 @@ class TaoPlugin:
             "provisioned": st.get("provisioned"),
         }
 
-    def check_action(
-        self, ctx: VidaPluginContext, action: str, amount: float = 0.0
-    ) -> dict[str, Any]:
+    def check_action(self, ctx: VidaPluginContext, action: str, amount: float = 0.0) -> dict[str, Any]:
         """Policy preflight — used by future transfer/stake; available now for tests."""
-        decision = ctx.decide(
-            PolicyRequest(chain=self.chain, action=action, amount=amount)
-        )
+        decision = ctx.decide(PolicyRequest(chain=self.chain, action=action, amount=amount))
         return {
             "ok": decision.allowed,
             "allowed": decision.allowed,
@@ -189,8 +186,7 @@ class TaoPlugin:
         return {
             "ok": False,
             "error": (
-                "agent path blocked — owner must run scripts/provision_tao_account.py "
-                "or TaoPlugin.owner_provision(...)"
+                "agent path blocked — owner must run scripts/provision_tao_account.py or TaoPlugin.owner_provision(...)"
             ),
         }
 
@@ -378,6 +374,7 @@ class TaoPlugin:
             result["unlock_via"] = unlock_via
             if unlock_via == "session" and session_path:
                 from .session import record_tao_session_spend
+
                 rec_s = record_tao_session_spend(session_path, float(amount_tao))
                 result["session_spend"] = rec_s
         return result
@@ -465,10 +462,14 @@ class TaoPlugin:
 
         if session_path:
             from .session import load_tao_session_secrets
+
             sess = load_tao_session_secrets(session_path)
             if not sess.get("ok"):
-                return {"ok": False, "error": sess.get("error", "session unlock failed"),
-                        "session_revoked": bool(sess.get("session_revoked"))}
+                return {
+                    "ok": False,
+                    "error": sess.get("error", "session unlock failed"),
+                    "session_revoked": bool(sess.get("session_revoked")),
+                }
             if sess.get("wallet_id") and sess["wallet_id"] != ctx.wallet_id:
                 return {"ok": False, "error": "session wallet_id mismatch"}
             limits = sess.get("limits") or {}
@@ -486,6 +487,7 @@ class TaoPlugin:
             _session_daily = float(sess.get("daily_spent") or 0)
         elif password:
             from .provision import unlock_tao_secrets
+
             unlocked = unlock_tao_secrets(rec, password)
             if not unlocked.get("ok"):
                 return {"ok": False, "error": unlocked.get("error", "unlock failed")}
@@ -500,8 +502,7 @@ class TaoPlugin:
                 return {
                     "ok": False,
                     "error": (
-                        "session transfer denied: no allowed_destinations "
-                        "(re-grant with --dest or allow_any_dest)"
+                        "session transfer denied: no allowed_destinations (re-grant with --dest or allow_any_dest)"
                     ),
                 }
         if allowed_destinations is not None:
@@ -572,6 +573,7 @@ class TaoPlugin:
             result["unlock_via"] = unlock_via
             if unlock_via == "session" and session_path:
                 from .session import record_tao_session_spend
+
                 rec_s = record_tao_session_spend(session_path, float(amount_tao))
                 result["session_spend"] = rec_s
         return result

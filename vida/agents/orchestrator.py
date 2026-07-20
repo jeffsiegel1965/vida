@@ -39,12 +39,14 @@ logger = logging.getLogger("vida.agents")
 
 # ── Tool helpers ──
 
+
 def _safe_tool(name: str, **kw: Any) -> dict[str, Any]:
     """Safely call a tool by name from the covenant tools module.
 
     Returns {"ok": False, "error": ...} if the tool doesn't exist or errors.
     """
     from vida.plugins.covenant.tools import HERMES_TOOLS
+
     tool = HERMES_TOOLS.get(name)
     if not tool:
         return {"ok": False, "error": f"unknown tool: {name}"}
@@ -63,9 +65,17 @@ AgentState = dict[str, Any]
 
 class Step:
     """A single step in the agent's execution plan."""
-    def __init__(self, id: str, action: str, params: dict[str, Any] = None,
-                 status: str = "pending", description: str = "",
-                 result: Optional[ToolResult] = None, error: Optional[str] = None):
+
+    def __init__(
+        self,
+        id: str,
+        action: str,
+        params: dict[str, Any] = None,
+        status: str = "pending",
+        description: str = "",
+        result: Optional[ToolResult] = None,
+        error: Optional[str] = None,
+    ):
         self.id = id
         self.action = action
         self.params = params or {}
@@ -80,6 +90,7 @@ class Step:
 @dataclass
 class ExecutionPlan:
     """A plan decomposed from a goal into executable steps."""
+
     goal: str
     steps: list[Step] = field(default_factory=list)
     context: AgentState = field(default_factory=dict)
@@ -125,6 +136,7 @@ class AgentOrchestrator:
     def _kaspa_balance(self) -> dict[str, Any]:
         """Check wallet balance via Kaspa REST API."""
         from vida.plugins.covenant.kaspa_rpc import get_balance
+
         # Try configured address, fall back to session
         addr = self.session.get("address", "")
         if not addr:
@@ -156,6 +168,7 @@ class AgentOrchestrator:
                 return {"ok": False, "error": "no wallet_path in session"}
 
             from vida.plugins.covenant.kaspa_rpc import load_key
+
             key_bytes = load_key(wallet_path)
             if not key_bytes:
                 return {"ok": False, "error": f"could not load key from {wallet_path}"}
@@ -186,6 +199,7 @@ class AgentOrchestrator:
     def get_available_tools(self) -> list[dict[str, Any]]:
         """Return the OpenAI-compatible tool schema for LLM consumption."""
         from vida.agents.tool_schema import TOOL_SCHEMA
+
         return TOOL_SCHEMA
 
     def decompose_goal(self, goal: str, context: Optional[AgentState] = None) -> ExecutionPlan:
@@ -199,6 +213,7 @@ class AgentOrchestrator:
         # Try LLM-powered decomposition
         try:
             from vida.agents.staking_optimizer import llm_call
+
             json.dumps(context or {}, indent=2)
 
             tools_list = [
@@ -213,7 +228,7 @@ class AgentOrchestrator:
             prompt = f"""GOAL: {goal}
 
 Available tools:
-{chr(10).join('- ' + t for t in tools_list)}
+{chr(10).join("- " + t for t in tools_list)}
 
 Produce a JSON array of steps:
 [{{"step":1, "action":"tool_name", "params":{{}}, "reason":"why"}}]
@@ -228,10 +243,14 @@ Return ONLY valid JSON. No other text."""
             if start >= 0 and end > start:
                 steps = json.loads(response[start:end])
                 plan.steps = [
-                    Step(id=str(s["step"]), action=s["action"],
-                         params=s.get("params", {}),
-                         description=s.get("reason", ""))
-                    for s in steps if s.get("action")
+                    Step(
+                        id=str(s["step"]),
+                        action=s["action"],
+                        params=s.get("params", {}),
+                        description=s.get("reason", ""),
+                    )
+                    for s in steps
+                    if s.get("action")
                 ]
                 if plan.steps:
                     return plan
@@ -253,23 +272,24 @@ Return ONLY valid JSON. No other text."""
                     continue
 
             plan.steps = [
-                Step(id="1", action="covenant_status", params={},
-                     description="Check wallet and covenant readiness"),
-                Step(id="2", action="covenant_plan_pot", params={
-                    "max_kas_per_tx": amount / 10 if amount else 10,
-                    "max_kas_per_day": amount or 100,
-                }, description="Generate staking plan via pot"),
+                Step(id="1", action="covenant_status", params={}, description="Check wallet and covenant readiness"),
+                Step(
+                    id="2",
+                    action="covenant_plan_pot",
+                    params={
+                        "max_kas_per_tx": amount / 10 if amount else 10,
+                        "max_kas_per_day": amount or 100,
+                    },
+                    description="Generate staking plan via pot",
+                ),
             ]
 
         # ── Covenant inspection ──
         elif "inspect" in goal_lower or "check" in goal_lower or "status" in goal_lower:
             plan.steps = [
-                Step(id="1", action="covenant_status", params={},
-                     description="Check covenant module status"),
-                Step(id="2", action="covenant_describe", params={},
-                     description="List available covenants"),
-                Step(id="3", action="covenant_live_gates", params={},
-                     description="Check deployment gates"),
+                Step(id="1", action="covenant_status", params={}, description="Check covenant module status"),
+                Step(id="2", action="covenant_describe", params={}, description="List available covenants"),
+                Step(id="3", action="covenant_live_gates", params={}, description="Check deployment gates"),
             ]
 
         # ── Pot planning ──
@@ -277,37 +297,41 @@ Return ONLY valid JSON. No other text."""
             per_tx = float(context.get("max_kas_per_tx", 0)) if context else 0
             per_day = float(context.get("max_kas_per_day", 0)) if context else 0
             plan.steps = [
-                Step(id="1", action="covenant_status", params={},
-                     description="Check readiness"),
-                Step(id="2", action="covenant_plan_pot", params={
-                    "max_kas_per_tx": per_tx or 1.0,
-                    "max_kas_per_day": per_day or 5.0,
-                }, description="Plan agent pot funding"),
+                Step(id="1", action="covenant_status", params={}, description="Check readiness"),
+                Step(
+                    id="2",
+                    action="covenant_plan_pot",
+                    params={
+                        "max_kas_per_tx": per_tx or 1.0,
+                        "max_kas_per_day": per_day or 5.0,
+                    },
+                    description="Plan agent pot funding",
+                ),
             ]
 
         # ── Spend policy ──
         elif "spend" in goal_lower or "send" in goal_lower or "pay" in goal_lower:
             plan.steps = [
-                Step(id="1", action="covenant_status", params={},
-                     description="Check readiness"),
-                Step(id="2", action="covenant_live_gates", params={},
-                     description="Check deployment gates"),
-                Step(id="3", action="covenant_spend_policy_check", params={
-                    "amount": float(context.get("amount", 0)) if context else 0,
-                    "destination": context.get("destination", ""),
-                    "wallet_id": context.get("wallet_id", "default"),
-                }, description="Validate spend policy"),
+                Step(id="1", action="covenant_status", params={}, description="Check readiness"),
+                Step(id="2", action="covenant_live_gates", params={}, description="Check deployment gates"),
+                Step(
+                    id="3",
+                    action="covenant_spend_policy_check",
+                    params={
+                        "amount": float(context.get("amount", 0)) if context else 0,
+                        "destination": context.get("destination", ""),
+                        "wallet_id": context.get("wallet_id", "default"),
+                    },
+                    description="Validate spend policy",
+                ),
             ]
 
         # ── Default: inspect everything ──
         else:
             plan.steps = [
-                Step(id="1", action="covenant_status", params={},
-                     description="Check covenant module"),
-                Step(id="2", action="covenant_describe", params={},
-                     description="List available capabilities"),
-                Step(id="3", action="covenant_quine_info", params={},
-                     description="Get quine contract details"),
+                Step(id="1", action="covenant_status", params={}, description="Check covenant module"),
+                Step(id="2", action="covenant_describe", params={}, description="List available capabilities"),
+                Step(id="3", action="covenant_quine_info", params={}, description="Get quine contract details"),
             ]
 
         return plan
@@ -347,15 +371,17 @@ Return ONLY valid JSON. No other text."""
         for step in self._plan.steps:
             logger.info(f"Executing step {step.id}: {step.action}")
             result = await self.execute_step(step)
-            results.append({
-                "step": step.id,
-                "action": step.action,
-                "status": step.status,
-                "result": result,
-                "duration": (
-                    (step.completed_at or 0) - (step.started_at or 0)
-                ) if step.completed_at and step.started_at else None,
-            })
+            results.append(
+                {
+                    "step": step.id,
+                    "action": step.action,
+                    "status": step.status,
+                    "result": result,
+                    "duration": ((step.completed_at or 0) - (step.started_at or 0))
+                    if step.completed_at and step.started_at
+                    else None,
+                }
+            )
 
             # Stop on failure unless step allows recovery
             if step.status == "failed" and not context.get("allow_recovery"):
@@ -382,7 +408,9 @@ Return ONLY valid JSON. No other text."""
 
 # ── Convenience functions ──
 
+
 def get_tool_schema() -> list[dict[str, Any]]:
     """Get the OpenAI-compatible function calling schema."""
     from vida.agents.tool_schema import TOOL_SCHEMA
+
     return TOOL_SCHEMA

@@ -36,9 +36,7 @@ def _encrypt(key: bytes, plaintext: bytes, aad: bytes | None = None) -> dict[str
 
 
 def _decrypt(key: bytes, blob: dict[str, str], aad: bytes | None = None) -> bytes:
-    return AESGCM(key).decrypt(
-        bytes.fromhex(blob["nonce"]), bytes.fromhex(blob["ct"]), aad
-    )
+    return AESGCM(key).decrypt(bytes.fromhex(blob["nonce"]), bytes.fromhex(blob["ct"]), aad)
 
 
 def provision_tao_account(
@@ -113,9 +111,7 @@ def provision_tao_account(
             "enc": enc,
         }
         if pq_pub_hex is not None and pq_sk is not None:
-            pq_aad = f"vida-tao-pq-v1|{wallet_id}|{network}|{keys.ss58_address}|{PQ_SCHEME}".encode(
-                "utf-8"
-            )
+            pq_aad = f"vida-tao-pq-v1|{wallet_id}|{network}|{keys.ss58_address}|{PQ_SCHEME}".encode("utf-8")
             enc_pq = {
                 "kdf_salt": salt.hex(),  # same password-derived key
                 "cipher": "aes-256-gcm",
@@ -244,9 +240,7 @@ def ensure_tao_pq_identity(
     key = _derive_key(password, salt)
     pq_sk = gen["pq_secret_key_bytes"]
     pq_pub = gen["pq_public_key_hex"]
-    pq_aad = f"vida-tao-pq-v1|{wallet_id}|{rec.network}|{rec.ss58_address}|{PQ_SCHEME}".encode(
-        "utf-8"
-    )
+    pq_aad = f"vida-tao-pq-v1|{wallet_id}|{rec.network}|{rec.ss58_address}|{PQ_SCHEME}".encode("utf-8")
     rec.pq_public_key = pq_pub
     rec.enc_pq_sk = {
         "kdf_salt": salt.hex(),

@@ -131,12 +131,8 @@ class CovenantPlugin:
             "config_live_enabled": self.config.live_enabled,
         }
 
-    def check_action(
-        self, ctx: VidaPluginContext, action: str, amount: float = 0.0
-    ) -> dict[str, Any]:
-        decision = ctx.decide(
-            PolicyRequest(chain=self.chain, action=action, amount=amount)
-        )
+    def check_action(self, ctx: VidaPluginContext, action: str, amount: float = 0.0) -> dict[str, Any]:
+        decision = ctx.decide(PolicyRequest(chain=self.chain, action=action, amount=amount))
         return {
             "ok": decision.allowed,
             "allowed": decision.allowed,
@@ -417,9 +413,7 @@ class CovenantPlugin:
         return funded
 
 
-def register_covenant_plugin(
-    registry: Any, config: Optional[CovenantConfig] = None
-) -> CovenantPlugin:
+def register_covenant_plugin(registry: Any, config: Optional[CovenantConfig] = None) -> CovenantPlugin:
     plugin = CovenantPlugin(config=config)
     registry.register(plugin)
     return plugin

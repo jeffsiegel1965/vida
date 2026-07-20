@@ -18,11 +18,12 @@ from .models import CovenantTerms
 @dataclass
 class Subscription:
     """A recurring covenant pot subscription."""
+
     id: str
     counterparty_id: str
     terms: CovenantTerms
     amount_kas_per_cycle: float
-    interval_hours: int          # 168 = weekly, 720 = monthly
+    interval_hours: int  # 168 = weekly, 720 = monthly
     auto_renew: bool = True
     created_at: float = field(default_factory=time.time)
     last_renewed_at: float = 0.0
@@ -126,10 +127,7 @@ class SubscriptionManager:
     def due_for_renewal(self) -> list[Subscription]:
         """Get active subscriptions that are due for renewal."""
         now = time.time()
-        return [
-            s for s in self._subscriptions.values()
-            if s.active and s.next_renewal_at <= now
-        ]
+        return [s for s in self._subscriptions.values() if s.active and s.next_renewal_at <= now]
 
     def discount_for(self, sub_id: str) -> float:
         """Get the subscription discount rate for a subscription."""

@@ -186,7 +186,7 @@ def main() -> int:
         allowed_actions=["delegate", "undelegate"],
     )
     st = plugin2.status(ctx)
-    bal = (st.get("balance") or {})
+    bal = st.get("balance") or {}
     free_s = bal.get("free_tao") or "0"
     try:
         free = Decimal(str(free_s))
@@ -248,35 +248,40 @@ def main() -> int:
             step(
                 "stake",
                 bool(stake_result.get("ok")),
-                **{k: stake_result.get(k) for k in (
-                    "extrinsic_hash", "error", "action", "netuid", "amount_tao", "hotkey", "call"
-                ) if k in stake_result or stake_result.get(k) is not None},
+                **{
+                    k: stake_result.get(k)
+                    for k in ("extrinsic_hash", "error", "action", "netuid", "amount_tao", "hotkey", "call")
+                    if k in stake_result or stake_result.get(k) is not None
+                },
             )
 
     report["address"] = addr
     report["hotkey_ss58"] = hot
     report["free_tao"] = str(free)
-    report["ok"] = all(
-        s.get("ok") for s in report["steps"] if not s.get("skipped")
-    )
+    report["ok"] = all(s.get("ok") for s in report["steps"] if not s.get("skipped"))
 
     out_path = work / "last_report.json"
     # Avoid writing secrets into report
     out_path.write_text(json.dumps(report, indent=2))
     os.chmod(out_path, stat.S_IRUSR | stat.S_IWUSR)
     print("---")
-    print(json.dumps({
-        "summary_ok": report["ok"],
-        "address": addr,
-        "free_tao": str(free),
-        "report": str(out_path),
-        "mnemonic_file": str(mnemonic_path) if mnemonic_path.is_file() else None,
-        "next": (
-            f"Fund {addr} with a little TAO on Finney, then:\n"
-            f"  VIDA_TAO_PASSWORD from {password_path}\n"
-            f"  python scripts/tao_live_e2e.py --reuse --stake --hotkey <VALIDATOR_SS58> --amount 0.01"
-        ),
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "summary_ok": report["ok"],
+                "address": addr,
+                "free_tao": str(free),
+                "report": str(out_path),
+                "mnemonic_file": str(mnemonic_path) if mnemonic_path.is_file() else None,
+                "next": (
+                    f"Fund {addr} with a little TAO on Finney, then:\n"
+                    f"  VIDA_TAO_PASSWORD from {password_path}\n"
+                    f"  python scripts/tao_live_e2e.py --reuse --stake --hotkey <VALIDATOR_SS58> --amount 0.01"
+                ),
+            },
+            indent=2,
+        )
+    )
 
     if args.write_proof:
         proof = ROOT / "docs" / "proofs" / "tao_live_e2e.md"
@@ -313,9 +318,7 @@ def main() -> int:
 
     # success if health+provision+balance worked; stake optional
     core_ok = all(
-        s["ok"]
-        for s in report["steps"]
-        if s["step"] in ("health", "provision", "balance", "agent_provision_blocked")
+        s["ok"] for s in report["steps"] if s["step"] in ("health", "provision", "balance", "agent_provision_blocked")
     )
     return 0 if core_ok else 1
 

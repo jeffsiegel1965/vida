@@ -45,6 +45,7 @@ def cmd_balance(args):
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
         from vida.plugins.covenant.kaspa_rpc import get_balance
+
         addr = args.address
         if not addr:
             print("No address provided. Use --address to specify a Kaspa address.")

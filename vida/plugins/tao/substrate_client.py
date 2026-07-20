@@ -26,8 +26,6 @@ logger = logging.getLogger(__name__)
 RAO_PER_TAO = Decimal("1000000000")
 
 
-
-
 def _scale_rao(value: Any) -> Decimal:
     """Convert chain balance units (rao) to TAO."""
     if value is None:
@@ -61,9 +59,7 @@ class SubstrateTaoClient:
             return
         endpoints = self.config.resolved_endpoints()
         if not endpoints:
-            raise RuntimeError(
-                f"no endpoints configured for network={self.config.network.value}"
-            )
+            raise RuntimeError(f"no endpoints configured for network={self.config.network.value}")
         errors: list[str] = []
         for url in endpoints:
             try:
@@ -80,9 +76,7 @@ class SubstrateTaoClient:
                 errors.append(f"{url}: {type(e).__name__}: {e}")
                 logger.warning("TAO endpoint failed %s: %s", url, e)
                 self._substrate = None
-        raise RuntimeError(
-            "failed to connect to any TAO endpoint: " + " | ".join(errors)
-        )
+        raise RuntimeError("failed to connect to any TAO endpoint: " + " | ".join(errors))
 
     def close(self) -> None:
         if self._substrate is not None:
@@ -214,9 +208,17 @@ class SubstrateTaoClient:
             last_err = None
             candidates = [
                 # Finney spec 424: hotkey + netuid + amount_staked
-                ("SubtensorModule", "add_stake", {"hotkey": hotkey_ss58, "netuid": int(netuid), "amount_staked": amount_rao}),
+                (
+                    "SubtensorModule",
+                    "add_stake",
+                    {"hotkey": hotkey_ss58, "netuid": int(netuid), "amount_staked": amount_rao},
+                ),
                 ("SubtensorModule", "add_stake", {"hotkey": hotkey_ss58, "amount_staked": amount_rao}),
-                ("SubtensorModule", "add_stake", {"netuid": int(netuid), "hotkey": hotkey_ss58, "amount_staked": amount_rao}),
+                (
+                    "SubtensorModule",
+                    "add_stake",
+                    {"netuid": int(netuid), "hotkey": hotkey_ss58, "amount_staked": amount_rao},
+                ),
             ]
             for module, call, params in candidates:
                 try:
@@ -268,9 +270,17 @@ class SubstrateTaoClient:
             kp = self._keypair_from_cold_hex(coldkey_private_hex)
             last_err = None
             candidates = [
-                ("SubtensorModule", "remove_stake", {"hotkey": hotkey_ss58, "netuid": int(netuid), "amount_unstaked": amount_rao}),
+                (
+                    "SubtensorModule",
+                    "remove_stake",
+                    {"hotkey": hotkey_ss58, "netuid": int(netuid), "amount_unstaked": amount_rao},
+                ),
                 ("SubtensorModule", "remove_stake", {"hotkey": hotkey_ss58, "amount_unstaked": amount_rao}),
-                ("SubtensorModule", "remove_stake", {"netuid": int(netuid), "hotkey": hotkey_ss58, "amount_unstaked": amount_rao}),
+                (
+                    "SubtensorModule",
+                    "remove_stake",
+                    {"netuid": int(netuid), "hotkey": hotkey_ss58, "amount_unstaked": amount_rao},
+                ),
             ]
             for module, call, params in candidates:
                 try:
@@ -305,7 +315,6 @@ class SubstrateTaoClient:
             return {"ok": False, "error": f"remove_stake failed: {type(last_err).__name__}: {last_err}"}
         except Exception as e:
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}
-
 
     def submit_transfer(
         self,

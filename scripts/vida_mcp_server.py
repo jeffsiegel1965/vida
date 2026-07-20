@@ -55,6 +55,7 @@ def _load_session() -> dict[str, Any]:
 
     try:
         from vida.secure_wallet import SecureVida
+
         wallet_path = os.environ.get("VIDA_WALLET")
         if not wallet_path:
             return {"ok": False, "error": "VIDA_SESSION set but VIDA_WALLET not set"}
@@ -96,9 +97,11 @@ async def handle_list_resources() -> list[types.Resource]:
 async def handle_read_resource(uri: str) -> str:
     if uri == "vida://tool-schema":
         from vida.agents.tool_schema import TOOL_SCHEMA
+
         return json.dumps(TOOL_SCHEMA, indent=2)
     elif uri == "vida://status":
         from vida.plugins.covenant.tools import covenant_status
+
         return json.dumps(covenant_status(), indent=2)
     return json.dumps({"ok": False, "error": f"unknown resource: {uri}"})
 
@@ -167,7 +170,8 @@ async def handle_list_tools() -> list[types.Tool]:
                     "max_kas_per_tx": {"type": "number", "description": "Max KAS per transaction"},
                     "max_kas_per_day": {"type": "number", "description": "Max KAS per day"},
                     "allowed_destinations": {
-                        "type": "array", "items": {"type": "string"},
+                        "type": "array",
+                        "items": {"type": "string"},
                         "description": "Allowed destination addresses",
                     },
                 },
@@ -203,9 +207,7 @@ async def handle_list_tools() -> list[types.Tool]:
 
 
 @server.call_tool()
-async def handle_call_tool(
-    name: str, arguments: dict | None
-) -> list[types.TextContent]:
+async def handle_call_tool(name: str, arguments: dict | None) -> list[types.TextContent]:
     args = arguments or {}
 
     # ── Wallet tools ──
@@ -240,29 +242,39 @@ async def handle_call_tool(
     # ── Covenant tools ──
     elif name == "vida_covenant_status":
         from vida.plugins.covenant.tools import covenant_status
+
         return [types.TextContent(type="text", text=json.dumps(covenant_status(), indent=2))]
 
     elif name == "vida_covenant_describe":
         from vida.plugins.covenant.tools import covenant_describe
+
         return [types.TextContent(type="text", text=json.dumps(covenant_describe(), indent=2))]
 
     elif name == "vida_covenant_live_gates":
         from vida.plugins.covenant.tools import covenant_live_gates
+
         return [types.TextContent(type="text", text=json.dumps(covenant_live_gates(), indent=2))]
 
     elif name == "vida_covenant_plan_pot":
         from vida.plugins.covenant.tools import covenant_plan_pot
-        return [types.TextContent(
-            type="text",
-            text=json.dumps(covenant_plan_pot(
-                max_kas_per_tx=float(args.get("max_kas_per_tx", 0)),
-                max_kas_per_day=float(args.get("max_kas_per_day", 0)),
-                allowed_destinations=args.get("allowed_destinations"),
-            ), indent=2),
-        )]
+
+        return [
+            types.TextContent(
+                type="text",
+                text=json.dumps(
+                    covenant_plan_pot(
+                        max_kas_per_tx=float(args.get("max_kas_per_tx", 0)),
+                        max_kas_per_day=float(args.get("max_kas_per_day", 0)),
+                        allowed_destinations=args.get("allowed_destinations"),
+                    ),
+                    indent=2,
+                ),
+            )
+        ]
 
     elif name == "vida_covenant_quine_info":
         from vida.plugins.covenant.tools import covenant_quine_info
+
         return [types.TextContent(type="text", text=json.dumps(covenant_quine_info(), indent=2))]
 
     # ── Agent tools ──
@@ -271,12 +283,14 @@ async def handle_call_tool(
         import asyncio
 
         from vida.agents.orchestrator import AgentOrchestrator
+
         orch = AgentOrchestrator()
         result = asyncio.run(orch.run(goal))
         return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
 
     elif name == "vida_agent_tool_schema":
         from vida.agents.tool_schema import TOOL_SCHEMA
+
         return [types.TextContent(type="text", text=json.dumps(TOOL_SCHEMA, indent=2))]
 
     return [
@@ -308,4 +322,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

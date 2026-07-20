@@ -99,8 +99,6 @@ def pq_public_info(record_meta_or_record: Any) -> dict[str, Any]:
         "pq_public_key": pub,
         "pq_on_chain": False,
         "pq_note": (
-            "Forward identity only — Bittensor still uses sr25519 on-chain"
-            if pub
-            else "No PQ identity on this account"
+            "Forward identity only — Bittensor still uses sr25519 on-chain" if pub else "No PQ identity on this account"
         ),
     }

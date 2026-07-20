@@ -26,10 +26,7 @@ from vida.plugins.tao import tools as tao_tools  # noqa: E402
 from vida.plugins.tao.paths import actions_for_scope, resolve_store_dir  # noqa: E402
 from vida.plugins.tao.session import grant_tao_agent_session  # noqa: E402
 
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 
 class TestScopeMaps(unittest.TestCase):
@@ -88,9 +85,7 @@ class TestGrantAndScopeEnforcement(unittest.TestCase):
             client=self.client,
             account_store=self.store,
         )
-        r = self.plugin.owner_provision(
-            wallet_id="w1", mnemonic=TEST_MNEMONIC, password="pw"
-        )
+        r = self.plugin.owner_provision(wallet_id="w1", mnemonic=TEST_MNEMONIC, password="pw")
         self.assertTrue(r["ok"], r)
         self.session = str(Path(self.td.name) / "sess.json")
 
@@ -180,9 +175,7 @@ class TestGrantAndScopeEnforcement(unittest.TestCase):
         self.assertTrue(good["ok"], good)
 
     def test_tools_refuse_without_session(self):
-        r = tao_tools.vida_tao_delegate(
-            "w1", 0.01, 1, confirm=True, store_dir=self.td.name
-        )
+        r = tao_tools.vida_tao_delegate("w1", 0.01, 1, confirm=True, store_dir=self.td.name)
         self.assertFalse(r["ok"])
         self.assertIn("session", r.get("error", "").lower())
 
@@ -211,6 +204,7 @@ class TestGrantAndScopeEnforcement(unittest.TestCase):
         self.assertTrue(r["ok"], r)
         self.assertTrue((r.get("session_spend") or {}).get("ok"), r)
         from vida.plugins.tao.session import load_tao_session_secrets
+
         loaded = load_tao_session_secrets(self.session)
         self.assertTrue(loaded["ok"], loaded)
         self.assertGreaterEqual(float(loaded.get("daily_spent") or 0), 0.03 - 1e-9)

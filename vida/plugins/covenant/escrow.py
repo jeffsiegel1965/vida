@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EscrowRecord:
     """Record of an on-chain escrow covenant."""
+
     id: str
     buyer_address: str
     seller_address: str
@@ -133,19 +134,122 @@ class EscrowStore:
 # Format: [107, 108, 118, 0, ...] — SilverScript bytecode v0
 # For now we use the QuineAgentPot compiled bytes as a reference.
 # In production, compile escrow_v1.sil via kascov-lab or SilverScript compiler.
-ESCROW_PROGRAM_BYTES = bytes([
-    107, 108, 118, 0,  # magic + version
-    156, 99, 117, 180,  # covenant header
-    82, 162, 105, 81, 194, 4, 0, 225, 245, 5,  # escrow params
-    161, 105, 81, 195, 120, 3, 0, 0,  # entrypoint markers
-    32, 124, 126, 1, 172, 126, 135, 105, 0, 190, 0, 194,  # release path
-    81, 194, 147, 120, 120, 162, 105, 120, 120, 148,  # refund path
-    4, 128, 150, 152, 0, 161, 105, 0, 122, 117, 0,  # resolve path
-    122, 117, 117, 81, 103, 118, 81, 156, 99, 117,  # output constraints
-    118, 32, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  # timeout check
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  # padding
-    1, 172, 105, 117, 81, 103, 117, 0, 105, 104, 104,  # finalize
-])
+ESCROW_PROGRAM_BYTES = bytes(
+    [
+        107,
+        108,
+        118,
+        0,  # magic + version
+        156,
+        99,
+        117,
+        180,  # covenant header
+        82,
+        162,
+        105,
+        81,
+        194,
+        4,
+        0,
+        225,
+        245,
+        5,  # escrow params
+        161,
+        105,
+        81,
+        195,
+        120,
+        3,
+        0,
+        0,  # entrypoint markers
+        32,
+        124,
+        126,
+        1,
+        172,
+        126,
+        135,
+        105,
+        0,
+        190,
+        0,
+        194,  # release path
+        81,
+        194,
+        147,
+        120,
+        120,
+        162,
+        105,
+        120,
+        120,
+        148,  # refund path
+        4,
+        128,
+        150,
+        152,
+        0,
+        161,
+        105,
+        0,
+        122,
+        117,
+        0,  # resolve path
+        122,
+        117,
+        117,
+        81,
+        103,
+        118,
+        81,
+        156,
+        99,
+        117,  # output constraints
+        118,
+        32,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,  # timeout check
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,  # padding
+        1,
+        172,
+        105,
+        117,
+        81,
+        103,
+        117,
+        0,
+        105,
+        104,
+        104,  # finalize
+    ]
+)
 
 ESCROW_COVENANT_ID = hashlib.blake2b(ESCROW_PROGRAM_BYTES, digest_size=32).hexdigest()
 
@@ -231,7 +335,7 @@ def deploy_escrow(
             "timeout_blocks": timeout_blocks,
             "network": network,
             "note": f"Escrow recorded. Fund with {total_kas} KAS ({amount_kas} + {fee_kas} fee). "
-                    f"Fee goes to {get_fee_address(network)[:20]}...",
+            f"Fee goes to {get_fee_address(network)[:20]}...",
             "next_step": "Use spend_to_agent() to fund the escrow UTXO",
         }
     except Exception as e:

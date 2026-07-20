@@ -9,8 +9,10 @@ import sys
 sys.path.insert(0, os.path.expanduser("~/.hermes/projects/vida-release"))
 os.environ["VIDA_LIVE_TEST"] = "1"
 
+
 async def test_live():
     results = []
+
     def check(name, condition, detail=""):
         status = "✅" if condition else "❌"
         results.append({"name": name, "ok": condition})
@@ -84,10 +86,12 @@ async def test_live():
         print("\n5. Submit via SDK")
         tx_dict = signed.to_dict()
         try:
-            result = await client.submit_transaction(request={
-                "transaction": tx_dict,
-                "allowOrphan": False,
-            })
+            result = await client.submit_transaction(
+                request={
+                    "transaction": tx_dict,
+                    "allowOrphan": False,
+                }
+            )
             txid = result.get("txid", "") if isinstance(result, dict) else str(result)
             if txid:
                 check("SDK submit succeeded", True, f"txid {txid[:16]}...")
@@ -101,6 +105,7 @@ async def test_live():
             print("\n6. Fall back to REST API")
             try:
                 import requests
+
                 class SafeEncoder(json.JSONEncoder):
                     def default(self, o):
                         return str(o)
@@ -111,26 +116,30 @@ async def test_live():
                 rest_inputs = []
                 for inp in tx_dict.get("inputs", []):
                     po = inp.get("previousOutpoint", {})
-                    rest_inputs.append({
-                        "previousOutpoint": {
-                            "transactionId": po.get("transactionId", ""),
-                            "index": po.get("index", 0),
-                        },
-                        "signatureScript": inp.get("signatureScript", ""),
-                        "sequence": inp.get("sequence", 0),
-                        "sigOpCount": inp.get("sigOpCount", inp.get("sigOpCount", 1)),
-                    })
+                    rest_inputs.append(
+                        {
+                            "previousOutpoint": {
+                                "transactionId": po.get("transactionId", ""),
+                                "index": po.get("index", 0),
+                            },
+                            "signatureScript": inp.get("signatureScript", ""),
+                            "sequence": inp.get("sequence", 0),
+                            "sigOpCount": inp.get("sigOpCount", inp.get("sigOpCount", 1)),
+                        }
+                    )
 
                 rest_outputs = []
                 for o in tx_dict.get("outputs", []):
                     spk = o.get("scriptPublicKey", {})
-                    rest_outputs.append({
-                        "amount": o.get("value", o.get("amount", 0)),
-                        "scriptPublicKey": {
-                            "version": spk.get("version", 0),
-                            "scriptPublicKey": spk.get("script", ""),
-                        },
-                    })
+                    rest_outputs.append(
+                        {
+                            "amount": o.get("value", o.get("amount", 0)),
+                            "scriptPublicKey": {
+                                "version": spk.get("version", 0),
+                                "scriptPublicKey": spk.get("script", ""),
+                            },
+                        }
+                    )
 
                 rest_dict = {
                     "version": tx_dict.get("version", 0),
@@ -171,7 +180,7 @@ async def test_live():
     await _disconnect()
 
     # Summary
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     passed = sum(1 for r in results if r["ok"])
     failed = sum(1 for r in results if not r["ok"])
     print(f"RESULTS: {passed}/{len(results)} passed")
@@ -179,8 +188,9 @@ async def test_live():
         for r in results:
             if not r["ok"]:
                 print(f"  ❌ {r['name']}")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     return failed == 0
+
 
 if __name__ == "__main__":
     success = asyncio.run(test_live())

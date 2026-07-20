@@ -43,9 +43,7 @@ def evaluate_stake(
         return PolicyDecision(False, "session revoked", False)
 
     if allowed_subnets is not None and netuid not in allowed_subnets:
-        return PolicyDecision(
-            False, f"netuid {netuid} not in allowed_subnets {allowed_subnets}", False
-        )
+        return PolicyDecision(False, f"netuid {netuid} not in allowed_subnets {allowed_subnets}", False)
 
     actions = allowed_actions
     if actions is None:

@@ -25,6 +25,7 @@ class ConcessionStrategy(Enum):
     BOULWARE: Start high, concede slowly. Default for unknown counterparties.
     CONCEDE:  Start fair, concede quickly. Use for trusted/repeat counterparties.
     """
+
     BOULWARE = "boulware"
     CONCEDE = "concede"
 
@@ -38,10 +39,11 @@ class CovenantTerms:
 
     Simplified from 9 parameters to 4 essential ones.
     """
-    max_kas_per_tx: float = 1.0       # KAS
-    max_kas_per_day: float = 5.0      # KAS
+
+    max_kas_per_tx: float = 1.0  # KAS
+    max_kas_per_day: float = 5.0  # KAS
     allowed_destinations: list[str] = field(default_factory=list)
-    duration_hours: int = 720          # 30 days default
+    duration_hours: int = 720  # 30 days default
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -94,8 +96,9 @@ def apply_template(name: str, destinations: Optional[list[str]] = None) -> Coven
 @dataclass
 class NegotiationRound:
     """A single round of offers in a negotiation session."""
+
     round_number: int
-    proposer: str          # "us" or "them"
+    proposer: str  # "us" or "them"
     terms: CovenantTerms
     accepted: bool = False
     message: str = ""
@@ -108,6 +111,7 @@ class NegotiationRound:
 @dataclass
 class NegotiationOutcome:
     """Record of a completed negotiation."""
+
     counterparty_id: str
     strategy_used: ConcessionStrategy
     rounds_to_deal: int
@@ -145,6 +149,7 @@ class NegotiationOutcome:
 @dataclass
 class CounterpartyProfile:
     """Learned profile for a counterparty agent."""
+
     agent_id: str
     deal_count: int = 0
     total_pot_kas: float = 0.0
@@ -174,10 +179,10 @@ class NegotiationMemory:
     """
 
     DISCOUNT_TIERS = [
-        (0, 0.0),           # 0% discount for < 100 KAS
-        (100, 0.10),        # 10% for 100-1000 KAS
-        (1000, 0.20),       # 20% for 1000-10000 KAS
-        (10000, 0.30),      # 30% for 10000+ KAS
+        (0, 0.0),  # 0% discount for < 100 KAS
+        (100, 0.10),  # 10% for 100-1000 KAS
+        (1000, 0.20),  # 20% for 1000-10000 KAS
+        (10000, 0.30),  # 30% for 10000+ KAS
     ]
 
     def __init__(self, storage_path: str = ""):
@@ -218,8 +223,7 @@ class NegotiationMemory:
         self._outcomes.append(outcome)
 
         # Update counterparty profile
-        profile = self._profiles.get(outcome.counterparty_id,
-                                       CounterpartyProfile(agent_id=outcome.counterparty_id))
+        profile = self._profiles.get(outcome.counterparty_id, CounterpartyProfile(agent_id=outcome.counterparty_id))
         profile.deal_count += 1
         profile.total_pot_kas += outcome.pot_sompi / 100_000_000  # sompi → KAS
         profile.last_interaction = outcome.timestamp
@@ -263,10 +267,8 @@ class NegotiationMemory:
         return {
             "total_deals": len(self._outcomes),
             "unique_counterparties": len(self._profiles),
-            "total_pot_kas": sum(
-                p.total_pot_kas for p in self._profiles.values()
-            ),
-            "avg_rounds_to_deal": (
-                sum(o.rounds_to_deal for o in self._outcomes) / len(self._outcomes)
-            ) if self._outcomes else 0,
+            "total_pot_kas": sum(p.total_pot_kas for p in self._profiles.values()),
+            "avg_rounds_to_deal": (sum(o.rounds_to_deal for o in self._outcomes) / len(self._outcomes))
+            if self._outcomes
+            else 0,
         }

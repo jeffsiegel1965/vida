@@ -23,6 +23,7 @@ class TestKaspaRpcIntegration(unittest.TestCase):
     def test_01_network_info(self):
         """Fetch network info — should return testnet-10."""
         from vida.plugins.covenant.kaspa_rpc import get_network_info
+
         result = get_network_info()
         self.assertTrue(result.get("ok", False), result.get("error", "no error"))
         info = result.get("info", {})
@@ -32,6 +33,7 @@ class TestKaspaRpcIntegration(unittest.TestCase):
     def test_02_balance_known_address(self):
         """Fetch balance from a known address — should be > 0."""
         from vida.plugins.covenant.kaspa_rpc import get_balance
+
         result = get_balance(TEST_ADDR)
         self.assertTrue(result.get("ok", False), result.get("error", "no error"))
         balance = result.get("balance_sompi", 0)
@@ -40,6 +42,7 @@ class TestKaspaRpcIntegration(unittest.TestCase):
     def test_03_balance_format(self):
         """Balance response should include sompi and KAS string."""
         from vida.plugins.covenant.kaspa_rpc import get_balance
+
         result = get_balance(TEST_ADDR)
         self.assertTrue(result.get("ok", False))
         self.assertIn("balance_sompi", result)
@@ -50,6 +53,7 @@ class TestKaspaRpcIntegration(unittest.TestCase):
     def test_04_utxos_known_address(self):
         """Fetch UTXOs — should return a list."""
         from vida.plugins.covenant.kaspa_rpc import get_utxos
+
         result = get_utxos(TEST_ADDR)
         self.assertTrue(result.get("ok", False), result.get("error", "no error"))
         utxos = result.get("utxos", [])
@@ -59,6 +63,7 @@ class TestKaspaRpcIntegration(unittest.TestCase):
     def test_05_blue_score(self):
         """Fetch virtual chain blue score — should be > 0."""
         from vida.plugins.covenant.kaspa_rpc import get_virtual_chain_blue_score
+
         result = get_virtual_chain_blue_score()
         self.assertTrue(result.get("ok", False), result.get("error", "no error"))
         score = result.get("blue_score", 0)
@@ -67,6 +72,7 @@ class TestKaspaRpcIntegration(unittest.TestCase):
     def test_06_keypair_generation(self):
         """Generate a keypair — should return valid address and keys."""
         from vida.plugins.covenant.kaspa_rpc import generate_keypair
+
         result = generate_keypair()
         self.assertTrue(result.get("ok", False), result.get("error", "no error"))
         self.assertIn("private_key_hex", result)

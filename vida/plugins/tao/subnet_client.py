@@ -163,14 +163,19 @@ class AgentSubnetPurchase:
         """Check if the agent has enough TAO to use a subnet."""
         try:
             bal = self._substrate.get_balance(ss58_address)
-            return {
-                "ok": bal.ok,
-                "free_tao": float(bal.free_tao),
-                "reserved_tao": float(bal.reserved_tao),
-                "address": ss58_address,
-            } if bal.ok else {
-                "ok": False, "error": bal.error,
-            }
+            return (
+                {
+                    "ok": bal.ok,
+                    "free_tao": float(bal.free_tao),
+                    "reserved_tao": float(bal.reserved_tao),
+                    "address": ss58_address,
+                }
+                if bal.ok
+                else {
+                    "ok": False,
+                    "error": bal.error,
+                }
+            )
         except Exception as e:
             return {"ok": False, "error": f"balance check failed: {e}"}
 
@@ -200,14 +205,20 @@ class AgentSubnetPurchase:
             if not hotkey_ss58:
                 return {"ok": False, "error": "hotkey_ss58 required for staking"}
             result = _stake_for_subnet_access(
-                self._substrate, self._coldkey_hex, hotkey_ss58,
-                self._subnet_info.netuid, amount_tao,
+                self._substrate,
+                self._coldkey_hex,
+                hotkey_ss58,
+                self._subnet_info.netuid,
+                amount_tao,
             )
         elif payment_type == "transfer":
             if not hotkey_ss58:
                 return {"ok": False, "error": "destination address required for transfer"}
             result = _pay_per_request(
-                self._substrate, self._coldkey_hex, hotkey_ss58, amount_tao,
+                self._substrate,
+                self._coldkey_hex,
+                hotkey_ss58,
+                amount_tao,
             )
         else:
             return {"ok": False, "error": f"unknown payment type: {payment_type}"}
@@ -281,9 +292,9 @@ def tao_list_subnets(
         return {"ok": False, "error": f"list subnets failed: {e}"}
 
 
-def tao_subnet_query(netuid: int, endpoint_path: str = "",
-                     method: str = "POST",
-                     body: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+def tao_subnet_query(
+    netuid: int, endpoint_path: str = "", method: str = "POST", body: Optional[dict[str, Any]] = None
+) -> dict[str, Any]:
     """Query a subnet's API to consume its service."""
     try:
         info = SubnetRegistry.get_by_netuid(netuid)

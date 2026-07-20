@@ -19,7 +19,7 @@ import getpass
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'vida'))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vida"))
 from secure_wallet import SecureVida, create_secure_wallet
 
 WALLET = Path(__file__).resolve().parent.parent / "vida_secure.json"
@@ -64,7 +64,7 @@ def main():
         print("=" * 64 + "\n")
         words = result["mnemonic"].split()
         for i in range(0, 24, 4):
-            print("   " + "  ".join(f"{n+1:>2}.{w}" for n, w in enumerate(words[i:i+4], start=i)))
+            print("   " + "  ".join(f"{n + 1:>2}.{w}" for n, w in enumerate(words[i : i + 4], start=i)))
         print("\n" + "=" * 64)
         print("  This is shown ONCE. It is NOT saved anywhere in plaintext.")
     else:

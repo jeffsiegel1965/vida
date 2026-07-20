@@ -13,7 +13,7 @@ import tempfile
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'vida'))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vida"))
 
 from secure_wallet import (
     PQ_AVAILABLE,
@@ -44,6 +44,7 @@ def run_test(name, fn):
             errors.append(name)
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         print(f"  ✘ ERROR: {e}")
         failed += 1
@@ -179,7 +180,9 @@ def s6_session_grant():
 
     # Wrong password can't grant
     try:
-        grant_agent_session(p, "bad-password-000", os.path.join(tmpdir, "x.json"), hours=1, max_kas_per_tx=1, max_kas_per_day=1)
+        grant_agent_session(
+            p, "bad-password-000", os.path.join(tmpdir, "x.json"), hours=1, max_kas_per_tx=1, max_kas_per_day=1
+        )
         return False
     except ValueError:
         print("  grant with wrong password refused ✓")
@@ -256,6 +259,7 @@ def s9_tamper():
 # S10: VidaTransactor compatibility — SecureVida slots into the tx engine
 def s10_transactor_compat():
     from transactions import VidaTransactor
+
     p = os.path.join(tmpdir, "w10.json")
     create_secure_wallet(p, PW, network="testnet")
     w = SecureVida(p, password=PW)
@@ -263,6 +267,7 @@ def s10_transactor_compat():
     assert tx.network == "testnet-10"
     # Offline checks only (no funds on this fresh wallet): validation gates
     import asyncio
+
     r = asyncio.run(tx.send("kaspatest:qpu63f6hy3l99pkphhfcvpgl5lxpv25fg5nn53cpykef5kygc0g0w9fly8vmu", -5))
     assert not r.success and "positive" in r.error
     r = asyncio.run(tx.send("kaspa:wrongnet", 1.0))
@@ -334,7 +339,12 @@ def s13_session_v2_hardening():
     # use dest_ok only in allowlist; another random valid testnet if we only have one, check allowlist error before bech32
     sp = os.path.join(tmpdir, "sess13.json")
     grant_agent_session(
-        p, PW, sp, hours=1, max_kas_per_tx=5.0, max_kas_per_day=20.0,
+        p,
+        PW,
+        sp,
+        hours=1,
+        max_kas_per_tx=5.0,
+        max_kas_per_day=20.0,
         allowed_destinations=[dest_ok],
     )
     agent = SecureVida(p, _session_file=sp)
@@ -416,8 +426,7 @@ def s11_aad_tamper():
         print("  extended-expiry tamper rejected (AAD) ✓")
 
     # Attacker raises the daily limit
-    grant_agent_session(p, PW, os.path.join(tmpdir, "sess11b.json"),
-                        hours=1, max_kas_per_tx=5, max_kas_per_day=20)
+    grant_agent_session(p, PW, os.path.join(tmpdir, "sess11b.json"), hours=1, max_kas_per_tx=5, max_kas_per_day=20)
     spb = os.path.join(tmpdir, "sess11b.json")
     sess = json.load(open(spb))
     sess["limits"]["max_kas_per_day"] = 999999
@@ -453,10 +462,11 @@ if __name__ == "__main__":
 
     # Cleanup: destroy the temp dir — it holds plaintext test keys (T-4)
     import shutil
+
     shutil.rmtree(tmpdir, ignore_errors=True)
 
     print("\n" + "━" * 64)
-    print(f"SUMMARY: {passed} passed, {failed} failed, {passed+failed} total")
+    print(f"SUMMARY: {passed} passed, {failed} failed, {passed + failed} total")
     if errors:
         for e in errors:
             print(f"  ✘ {e}")

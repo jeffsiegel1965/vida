@@ -199,6 +199,7 @@ def vida_tao_optimize(
 def vida_tao_session_info(session_path: str | None = None) -> dict[str, Any]:
     """Read-only: whether VIDA_TAO_SESSION exists and is unexpired (no secrets)."""
     import time
+
     sp = _session_path(session_path)
     if not sp:
         return {"ok": False, "error": "no session path", "active": False}
@@ -207,6 +208,7 @@ def vida_tao_session_info(session_path: str | None = None) -> dict[str, Any]:
         return {"ok": False, "error": "missing", "active": False, "path": sp}
     try:
         import json
+
         raw = json.loads(path.read_text())
         exp = float(raw.get("expires_at") or 0)
         return {

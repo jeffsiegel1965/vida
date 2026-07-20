@@ -151,9 +151,7 @@ class TestNegotiationSession(unittest.TestCase):
 
     def test_accept_immediately(self):
         """Counterparty offers exactly our template terms — accept."""
-        response, accepted = self.session.respond_to_offer(
-            apply_template("standard")
-        )
+        response, accepted = self.session.respond_to_offer(apply_template("standard"))
         self.assertTrue(accepted)
 
     def test_reject_then_concede(self):
@@ -188,6 +186,7 @@ class TestNegotiationSession(unittest.TestCase):
         terms = apply_template("micro")
         import os
         import tempfile
+
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
         tmp.close()
         fresh_mem = NegotiationMemory(tmp.name)

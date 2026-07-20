@@ -27,13 +27,9 @@ from dataclasses import dataclass
 # This is the address the user explicitly provided for fees.
 # Override: VIDA_FEE_ADDRESS=kaspa:your_address
 _FEE_ADDRESS_ENV = "VIDA_FEE_ADDRESS"
-FEE_ADDRESS = os.environ.get(
-    _FEE_ADDRESS_ENV,
-    "kaspa:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
-)
+FEE_ADDRESS = os.environ.get(_FEE_ADDRESS_ENV, "kaspa:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3")
 FEE_ADDRESS_TESTNET = os.environ.get(
-    "VIDA_FEE_ADDRESS_TESTNET",
-    "kaspatest:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
+    "VIDA_FEE_ADDRESS_TESTNET", "kaspatest:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
 )
 
 # ── Donation address (dev fund) ──
@@ -41,12 +37,10 @@ FEE_ADDRESS_TESTNET = os.environ.get(
 # Override: VIDA_DONATION_ADDRESS=kaspa:your_address
 _DONATION_ADDRESS_ENV = "VIDA_DONATION_ADDRESS"
 DONATION_ADDRESS = os.environ.get(
-    _DONATION_ADDRESS_ENV,
-    "kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+    _DONATION_ADDRESS_ENV, "kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
 )
 DONATION_ADDRESS_TESTNET = os.environ.get(
-    "VIDA_DONATION_ADDRESS_TESTNET",
-    "kaspatest:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+    "VIDA_DONATION_ADDRESS_TESTNET", "kaspatest:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
 )
 
 

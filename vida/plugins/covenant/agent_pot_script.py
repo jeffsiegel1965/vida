@@ -170,14 +170,15 @@ def build_agent_pot_script_template(
             "proven_on_mainnet": strategy == STRATEGY_QUINE,
             "kii_quine_covenant_id": (
                 "b802c18ba691c4a52c4a89de7f72fe475637e3a70f9f56a32663b5754a1ed4af"
-                if strategy == STRATEGY_QUINE else None
+                if strategy == STRATEGY_QUINE
+                else None
             ),
             "note": (
                 "QUINE strategy uses the self-replicating covenant pattern "
                 "KII demonstrated on Kaspa mainnet. max_tx + dest enforced "
                 "by the covenant script itself, not just soft policy."
-                if strategy == STRATEGY_QUINE else
-                "MVP strategy: fund_agent_pot creates covenant-bound pot UTXO; "
+                if strategy == STRATEGY_QUINE
+                else "MVP strategy: fund_agent_pot creates covenant-bound pot UTXO; "
                 "max_tx/dest enforced by Vida session until QUINE template ships"
             ),
         },

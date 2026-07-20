@@ -13,10 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 # Known BIP39 test vector (NOT for funds)
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 # Expected cold SS58 prefix 42 from substrate-interface (captured in this env)
 EXPECTED_COLD = "5EPCUjPxiHAcNooYipQFWr9NmmXJKpNG5RhcntXwbtUySrgH"
 EXPECTED_HOT = "5DUfE6odm5zHq9GqArraUFKDny34ormTU5FPLAhgKnSWUd8y"

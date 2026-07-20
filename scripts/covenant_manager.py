@@ -32,9 +32,7 @@ from vida.plugins.covenant.tools import (
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Covenant manager")
-    ap.add_argument("command", choices=[
-        "status", "describe", "gates", "plan", "check", "record"
-    ])
+    ap.add_argument("command", choices=["status", "describe", "gates", "plan", "check", "record"])
 
     ap.add_argument("--wallet-id", default="default")
     ap.add_argument("--max-per-tx", type=float, default=0)

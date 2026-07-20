@@ -27,10 +27,7 @@ from vida.plugins.tao.yield_optimizer import (  # noqa: E402
     build_yield_plan,
 )
 
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 
 class TestYieldPlan(unittest.TestCase):
@@ -39,18 +36,14 @@ class TestYieldPlan(unittest.TestCase):
             ValidatorScore(1, 2, "5HotA", 100, True, 100.0),
             ValidatorScore(1, 3, "5HotB", 50, True, 50.0),
         ]
-        plan = build_yield_plan(
-            free_tao="1.0", netuid=1, candidates=cands, reserve_tao="0.1", min_stake="0.05"
-        )
+        plan = build_yield_plan(free_tao="1.0", netuid=1, candidates=cands, reserve_tao="0.1", min_stake="0.05")
         self.assertEqual(plan.action, "stake")
         self.assertEqual(plan.target_hotkey, "5HotA")
         self.assertEqual(plan.stake_amount, Decimal("0.9"))
 
     def test_plan_hold_if_low(self):
         cands = [ValidatorScore(1, 0, "5X", 1, True, 1.0)]
-        plan = build_yield_plan(
-            free_tao="0.015", netuid=1, candidates=cands, reserve_tao="0.01", min_stake="0.02"
-        )
+        plan = build_yield_plan(free_tao="0.015", netuid=1, candidates=cands, reserve_tao="0.01", min_stake="0.02")
         self.assertEqual(plan.action, "none")
 
 
@@ -68,9 +61,7 @@ class TestTransferAndOptimize(unittest.TestCase):
             client=self.client,
             account_store=self.store,
         )
-        r = self.plugin.owner_provision(
-            wallet_id="w1", mnemonic=TEST_MNEMONIC, password="pw"
-        )
+        r = self.plugin.owner_provision(wallet_id="w1", mnemonic=TEST_MNEMONIC, password="pw")
         self.assertTrue(r["ok"], r)
         self.session = str(Path(self.td.name) / "sess.json")
         g = grant_tao_agent_session(

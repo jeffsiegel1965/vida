@@ -62,9 +62,7 @@ def evaluate_policy(
             return PolicyDecision(False, f"action '{action_l}' not in allowlist", False)
 
     if max_per_tx > 0 and amount > max_per_tx:
-        return PolicyDecision(
-            False, f"amount {amount} exceeds max_per_tx {max_per_tx}", False
-        )
+        return PolicyDecision(False, f"amount {amount} exceeds max_per_tx {max_per_tx}", False)
 
     if daily_limit > 0 and (daily_spent + amount) > daily_limit + 1e-12:
         return PolicyDecision(

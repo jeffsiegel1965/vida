@@ -34,6 +34,7 @@ from kaspa import (
 
 class KaspaRpcError(Exception):
     """Base error for Kaspa RPC operations."""
+
     def __init__(self, message: str, original: Optional[Exception] = None):
         self.original = original
         super().__init__(message)
@@ -79,9 +80,11 @@ _network_id: str = "testnet-10"
 
 def _sync(fn: Callable) -> Callable:
     """Decorator: run an async function synchronously via asyncio.run()."""
+
     @wraps(fn)
     def wrapper(*args, **kwargs):
         return asyncio.run(fn(*args, **kwargs))
+
     return wrapper
 
 
@@ -133,9 +136,7 @@ def set_network(network: str = "testnet-10") -> None:
     # Force reconnect on next call
     global _client
     if _client is not None:
-        _client.set_network_id(
-            NetworkType.TESTNET if "testnet" in network else NetworkType.MAINNET
-        )
+        _client.set_network_id(NetworkType.TESTNET if "testnet" in network else NetworkType.MAINNET)
 
 
 # ── Public API (sync, dict-returning) ──
@@ -151,9 +152,7 @@ async def get_balance(address: str) -> dict[str, Any]:
     """
     try:
         client = await _get_client()
-        result = await client.get_balances_by_addresses(request={
-            "addresses": [address]
-        })
+        result = await client.get_balances_by_addresses(request={"addresses": [address]})
         entries = result.get("entries", [])
         if entries:
             bal = entries[0].get("balance", 0)
@@ -212,7 +211,7 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
                 tx_dict = {"hex": tx_hex}
             except ValueError:
                 tx_dict = {}
-        elif hasattr(tx_hex, 'to_dict'):
+        elif hasattr(tx_hex, "to_dict"):
             tx_dict = tx_hex.to_dict()
         elif isinstance(tx_hex, dict):
             tx_dict = tx_hex
@@ -222,10 +221,12 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
         # RpcTransaction matches to_dict() output format
         if tx_dict:
             try:
-                result = await client.submit_transaction(request={
-                    "transaction": tx_dict,
-                    "allowOrphan": False,
-                })
+                result = await client.submit_transaction(
+                    request={
+                        "transaction": tx_dict,
+                        "allowOrphan": False,
+                    }
+                )
                 txid = result.get("txid", "") if isinstance(result, dict) else str(result)
                 if txid:
                     return {"ok": True, "txid": txid, "source": "sdk"}
@@ -239,9 +240,9 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
 
             class KaspaJSONEncoder(json.JSONEncoder):
                 def default(self, obj):
-                    if hasattr(obj, 'to_dict'):
+                    if hasattr(obj, "to_dict"):
                         return obj.to_dict()
-                    elif hasattr(obj, 'hex'):
+                    elif hasattr(obj, "hex"):
                         return obj.hex()
                     return super().default(obj)
 

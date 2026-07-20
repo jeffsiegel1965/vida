@@ -21,6 +21,7 @@ from .pot_spend import check_spend_kas, load_pot_record
 _COVENANT_PLUGIN: CovenantPlugin | None = None
 _PLUGIN_LOCK = threading.Lock()
 
+
 def _plugin() -> CovenantPlugin:
     global _COVENANT_PLUGIN
     if _COVENANT_PLUGIN is None:
