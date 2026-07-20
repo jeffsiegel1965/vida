@@ -25,7 +25,8 @@ jobs:
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          pip install -r requirements.txt pytest
+          pip install kaspa cryptography pytest
+          pip install -r requirements.txt 2>/dev/null || true
 
       - name: Run covenant offline tests
         run: |

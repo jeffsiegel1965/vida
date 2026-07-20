@@ -26,10 +26,10 @@ jobs:
           pip install pqcrypto 2>/dev/null || true
 
       - name: Core wallet QA (13)
-        run: PYTHONPATH=$PWD python tests/qa_tests.py
+        run: PYTHONPATH=$PWD VIDA_LEGACY_WALLET_ALLOWED=1 python tests/qa_tests.py
 
       - name: Secure wallet QA (14)
-        run: PYTHONPATH=$PWD python tests/qa_secure_tests.py
+        run: PYTHONPATH=$PWD VIDA_LEGACY_WALLET_ALLOWED=1 python tests/qa_secure_tests.py
 
       - name: TAO plugin tests (62)
         run: PYTHONPATH=$PWD python -m unittest discover -s tests -p 'test_tao*.py'
