@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from vida.plugins.tao.x402 import X402Terms, X402Response, x402_query
+from vida.plugins.tao.x402 import X402Response, X402Terms, x402_query
 
 
 def test_payment_terms_parsing():

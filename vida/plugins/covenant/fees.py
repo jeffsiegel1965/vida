@@ -24,40 +24,30 @@ Forkers can modify or remove. The real moat is the ecosystem.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 import os
-from typing import Optional
+from dataclasses import dataclass
 
 # ── Fee address (KAS) ──
 _FEE_ADDRESS_ENV = "VIDA_FEE_ADDRESS"
-FEE_ADDRESS = os.environ.get(
-    _FEE_ADDRESS_ENV,
-    "kaspa:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
-)
+FEE_ADDRESS = os.environ.get(_FEE_ADDRESS_ENV, "kaspa:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3")
 FEE_ADDRESS_TESTNET = os.environ.get(
-    "VIDA_FEE_ADDRESS_TESTNET",
-    "kaspatest:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
+    "VIDA_FEE_ADDRESS_TESTNET", "kaspatest:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
 )
 
 # ── Donation address (KAS) ──
 _DONATION_ADDRESS_ENV = "VIDA_DONATION_ADDRESS"
 DONATION_ADDRESS = os.environ.get(
-    _DONATION_ADDRESS_ENV,
-    "kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+    _DONATION_ADDRESS_ENV, "kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
 )
 DONATION_ADDRESS_TESTNET = os.environ.get(
-    "VIDA_DONATION_ADDRESS_TESTNET",
-    "kaspatest:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+    "VIDA_DONATION_ADDRESS_TESTNET", "kaspatest:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
 )
 
 # ── TAO fee address (subnet gateway fees) ──
 # Set VIDA_TAO_FEE_ADDRESS=5GrwvaEF5zXb26Fz... to override.
 _TAO_FEE_ADDRESS_ENV = "VIDA_TAO_FEE_ADDRESS"
-TAO_FEE_ADDRESS = os.environ.get(
-    _TAO_FEE_ADDRESS_ENV,
-    "5GrwvaEF5zXb26Fz9rcQmDfKiP3pWqJhM3Lk8mX9n2Qr6sT1v"
-)
+TAO_FEE_ADDRESS = os.environ.get(_TAO_FEE_ADDRESS_ENV, "5GrwvaEF5zXb26Fz9rcQmDfKiP3pWqJhM3Lk8mX9n2Qr6sT1v")
 
 
 @dataclass
@@ -186,6 +176,6 @@ def describe_fees() -> dict:
         "currency_kas": "KAS",
         "currency_tao": "TAO",
         "note": "Fees (protocol) and donations (dev fund) go to separate addresses. "
-                "TAO fees go to a separate TAO address. All configurable via env vars.",
+        "TAO fees go to a separate TAO address. All configurable via env vars.",
         "forkability_note": "Implemented in Python for transparency. Forkers can modify or remove.",
     }

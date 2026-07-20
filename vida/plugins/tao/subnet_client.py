@@ -53,7 +53,7 @@ def _apply_subnet_query_fee(
     wallet_id: str = "",
 ) -> dict[str, Any]:
     """Calculate and return subnet gateway fee info.
-    
+
     Returns fee info including whether the query is free (first N per day).
     """
     from vida.plugins.covenant.fees import (
@@ -61,10 +61,10 @@ def _apply_subnet_query_fee(
         calc_subnet_query_fee,
         get_tao_fee_address,
     )
-    
+
     daily_count = _get_daily_query_count(wallet_id) if wallet_id else 999
     is_free = daily_count < SUBNET_FEE_SCHEDULE.free_queries_per_day
-    
+
     if is_free:
         return {
             "fee_tao": 0.0,
@@ -74,7 +74,7 @@ def _apply_subnet_query_fee(
             "tao_fee_address": "",
             "note": "Free query — within daily free tier",
         }
-    
+
     fee = calc_subnet_query_fee(amount_tao)
     return {
         "fee_tao": fee,
@@ -84,6 +84,7 @@ def _apply_subnet_query_fee(
         "tao_fee_address": get_tao_fee_address(),
         "note": f"Vida subnet gateway fee: {fee} TAO ({SUBNET_FEE_SCHEDULE.query_fee_pct * 100}%)",
     }
+
 
 # ── Payment ──
 
@@ -289,9 +290,9 @@ class AgentSubnetPurchase:
         amount_tao: float = 0.0,
     ) -> dict[str, Any]:
         """Query a subnet's API to consume the service.
-        
+
         If no endpoint_path is given, uses the subnet's default API endpoint.
-        
+
         Args:
             wallet_id: Agent wallet ID for fee tracking (query count)
             amount_tao: Amount being paid for this query (for fee calculation)
@@ -307,17 +308,17 @@ class AgentSubnetPurchase:
 
         result = _call_subnet_api(url, method=method, body=body)
         self._query_result = result
-        
+
         # Track query count and calculate fee
         if wallet_id:
             _increment_query_count(wallet_id)
         fee_info = _apply_subnet_query_fee(amount_tao, wallet_id=wallet_id)
-        
+
         if result.get("ok"):
             result["vida_fee"] = fee_info
             result["vida_gateway"] = "powered by Vida Wallet"
             result["note"] = fee_info.get("note", "")
-        
+
         return result
 
     def status(self) -> dict[str, Any]:
@@ -364,11 +365,15 @@ def tao_list_subnets(
 
 
 def tao_subnet_query(
-    netuid: int, endpoint_path: str = "", method: str = "POST", body: Optional[dict[str, Any]] = None,
-    wallet_id: str = "", amount_tao: float = 0.0,
+    netuid: int,
+    endpoint_path: str = "",
+    method: str = "POST",
+    body: Optional[dict[str, Any]] = None,
+    wallet_id: str = "",
+    amount_tao: float = 0.0,
 ) -> dict[str, Any]:
     """Query a subnet's API to consume its service.
-    
+
     Args:
         wallet_id: Agent wallet ID for fee tracking
         amount_tao: Amount being paid for this query (for fee calculation)
@@ -381,19 +386,19 @@ def tao_subnet_query(
         if not base and not endpoint_path:
             return {"ok": False, "error": "no API endpoint configured for this subnet"}
         url = f"{base.rstrip('/')}/{endpoint_path.lstrip('/')}" if base else endpoint_path
-        
+
         result = _call_subnet_api(url, method=method, body=body)
-        
+
         # Track query count and calculate fee
         if wallet_id:
             _increment_query_count(wallet_id)
         fee_info = _apply_subnet_query_fee(amount_tao, wallet_id=wallet_id)
-        
+
         if result.get("ok"):
             result["vida_fee"] = fee_info
             result["vida_gateway"] = "powered by Vida Wallet"
             result["note"] = fee_info.get("note", "")
-        
+
         return result
     except Exception as e:
         return {"ok": False, "error": f"subnet query failed: {e}"}

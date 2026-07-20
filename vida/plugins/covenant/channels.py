@@ -16,7 +16,6 @@ Flow:
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import secrets
@@ -36,16 +35,17 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ChannelState:
     """The current state of a payment channel.
-    
+
     Both parties sign this to agree on the current balance split.
     """
+
     channel_id: str
-    nonce: int                       # Increments with each update
-    balance_a: int                   # Party A's balance in sompi
-    balance_b: int                   # Party B's balance in sompi
-    sequence: int = 0                # Off-chain update counter
-    sig_a: str = ""                  # Party A's signature
-    sig_b: str = ""                  # Party B's signature
+    nonce: int  # Increments with each update
+    balance_a: int  # Party A's balance in sompi
+    balance_b: int  # Party B's balance in sompi
+    sequence: int = 0  # Off-chain update counter
+    sig_a: str = ""  # Party A's signature
+    sig_b: str = ""  # Party B's signature
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -62,18 +62,19 @@ class ChannelState:
 @dataclass
 class PaymentChannel:
     """A payment channel between two parties.
-    
+
     The channel is funded by a covenant UTXO on Kaspa. Off-chain updates
     redistribute the balance without on-chain transactions.
     """
+
     id: str
-    party_a: str                     # Address or identity
+    party_a: str  # Address or identity
     party_b: str
-    capacity_sompi: int              # Total KAS locked in the channel
-    balance_a: int                   # Current balance of A
-    balance_b: int                   # Current balance of B
-    sequence: int = 0                # Latest off-chain update number
-    status: str = "open"             # open, closing, closed, disputed
+    capacity_sompi: int  # Total KAS locked in the channel
+    balance_a: int  # Current balance of A
+    balance_b: int  # Current balance of B
+    sequence: int = 0  # Latest off-chain update number
+    status: str = "open"  # open, closing, closed, disputed
     fund_txid: str = ""
     close_txid: str = ""
     created_at: float = field(default_factory=time.time)
@@ -106,7 +107,7 @@ class PaymentChannel:
 
 class ChannelStore:
     """Persistent store for payment channels."""
-    
+
     def __init__(self, storage_dir: str = ""):
         if not storage_dir:
             storage_dir = str(Path.home() / ".vida" / "channels")
@@ -114,7 +115,7 @@ class ChannelStore:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._channels: dict[str, PaymentChannel] = {}
         self._load()
-    
+
     def _load(self) -> None:
         if self._path.exists():
             try:
@@ -124,26 +125,31 @@ class ChannelStore:
                     self._channels[c.id] = c
             except (json.JSONDecodeError, KeyError, TypeError) as e:
                 logger.warning("Channel store load error: %s", e)
-    
+
     def _save(self) -> None:
-        self._path.write_text(json.dumps({
-            "channels": [c.to_dict() for c in self._channels.values()],
-            "updated_at": time.time(),
-        }, indent=2))
-    
+        self._path.write_text(
+            json.dumps(
+                {
+                    "channels": [c.to_dict() for c in self._channels.values()],
+                    "updated_at": time.time(),
+                },
+                indent=2,
+            )
+        )
+
     def save(self, channel: PaymentChannel) -> None:
         self._channels[channel.id] = channel
         self._save()
-    
+
     def get(self, channel_id: str) -> Optional[PaymentChannel]:
         return self._channels.get(channel_id)
-    
+
     def list_open(self) -> list[PaymentChannel]:
         return [c for c in self._channels.values() if c.status == "open"]
-    
+
     def list_all(self) -> list[dict[str, Any]]:
         return [c.to_dict() for c in self._channels.values()]
-    
+
     def update(self, channel_id: str, **kwargs) -> bool:
         channel = self._channels.get(channel_id)
         if not channel:
@@ -167,19 +173,19 @@ def open_channel(
     network: str = "mainnet",
 ) -> dict[str, Any]:
     """Open a payment channel between two parties.
-    
+
     The channel is funded by a covenant UTXO. Both parties can
     exchange off-chain micropayments and settle on-chain.
-    
+
     Fee: 0.1% of channel capacity (fund_fee) to the fee address.
     """
     try:
         from vida.plugins.covenant.fees import calc_fund_fee, get_fee_address
-        
+
         channel_id = f"ch_{secrets.token_hex(8)}"
         capacity_sompi = int(capacity_kas * 100_000_000)
         fee_kas = calc_fund_fee(capacity_kas)
-        
+
         channel = PaymentChannel(
             id=channel_id,
             party_a=party_a,
@@ -189,10 +195,10 @@ def open_channel(
             balance_b=0,
             network=network,
         )
-        
+
         store = ChannelStore()
         store.save(channel)
-        
+
         return {
             "ok": True,
             "channel_id": channel_id,
@@ -216,7 +222,7 @@ def update_channel(
     store: Optional[ChannelStore] = None,
 ) -> dict[str, Any]:
     """Update the off-chain state of a payment channel.
-    
+
     Both parties sign the new balance split. The sequence number
     increments to prevent replay attacks.
     """
@@ -227,19 +233,19 @@ def update_channel(
             return {"ok": False, "error": f"channel {channel_id} not found"}
         if channel.status != "open":
             return {"ok": False, "error": f"channel is {channel.status}, not open"}
-        
+
         total = new_balance_a + new_balance_b
         if total != channel.capacity_sompi:
             return {"ok": False, "error": f"balance sum {total} != capacity {channel.capacity_sompi}"}
         if new_balance_a < 0 or new_balance_b < 0:
             return {"ok": False, "error": "negative balance"}
-        
+
         # Update state
         channel.balance_a = new_balance_a
         channel.balance_b = new_balance_b
         channel.sequence += 1
         store.save(channel)
-        
+
         return {
             "ok": True,
             "channel_id": channel_id,
@@ -258,7 +264,7 @@ def close_channel(
     store: Optional[ChannelStore] = None,
 ) -> dict[str, Any]:
     """Close a payment channel and settle on-chain.
-    
+
     The final state is submitted to the chain. Both parties withdraw
     their final balances.
     """
@@ -269,11 +275,11 @@ def close_channel(
             return {"ok": False, "error": f"channel {channel_id} not found"}
         if channel.status != "open":
             return {"ok": False, "error": f"channel is {channel.status}, not open"}
-        
+
         channel.status = "closed"
         channel.closed_at = time.time()
         store.save(channel)
-        
+
         return {
             "ok": True,
             "channel_id": channel_id,
@@ -298,7 +304,7 @@ def vida_channel_open(
     network: str = "mainnet",
 ) -> dict[str, Any]:
     """Open a payment channel between two parties.
-    
+
     The channel is funded by a covenant UTXO. Both parties can
     exchange off-chain micropayments and settle on-chain.
     """
@@ -313,12 +319,14 @@ def vida_channel_update(
     new_balance_b_kas: float,
 ) -> dict[str, Any]:
     """Update the off-channel balance between two parties.
-    
+
     Both parties must sign the new balance. The sequence number
     prevents replay attacks.
     """
     return update_channel(
-        channel_id, party_a_sig, party_b_sig,
+        channel_id,
+        party_a_sig,
+        party_b_sig,
         int(new_balance_a_kas * 100_000_000),
         int(new_balance_b_kas * 100_000_000),
     )
