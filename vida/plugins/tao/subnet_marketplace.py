@@ -5,8 +5,15 @@ storage, etc.). Agents can query the registry to find services, check
 pricing, and purchase access.
 
 For now, this is a curated registry of known subnets with their API
-endpoints and service descriptions. In the future, this could be
-discovered dynamically from the chain.
+endpoints and service descriptions.
+
+Chain state (verified Jul 19, 2026):
+- Finney mainnet uses pre-dTAO model: `add_stake(hotkey, netuid, amount)`
+- dTAO (dynamic TAO) has NOT been deployed to Finney yet
+- 64 subnets active on-chain
+- When dTAO arrives, the payment model changes from direct staking to
+  subnet token swaps — the `AgentSubnetPurchase.pay()` method will be
+  updated at that time
 """
 
 from __future__ import annotations

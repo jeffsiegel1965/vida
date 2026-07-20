@@ -1,9 +1,16 @@
 """Agent subnet client — purchase and consume Bittensor subnet services.
 
+Current chain: Finney (pre-dTAO). Agents pay for subnet access by staking
+TAO to subnet hotkeys via `add_stake(hotkey, netuid, amount_staked)`.
+
+When dTAO is deployed, the payment model will change to subnet token swaps.
+The `AgentSubnetPurchase` class is designed to abstract this — update the 
+`pay()` method when dTAO goes live.
+
 Agents can:
 1. Discover subnets offering specific services
 2. Check pricing and requirements
-3. Pay for access (stake TAO or per-request fee)
+3. Pay for access (stake TAO to subnet hotkey — current Finney model)
 4. Query the subnet's API to consume the service
 """
 
@@ -176,8 +183,15 @@ class AgentSubnetPurchase:
     ) -> dict[str, Any]:
         """Pay for subnet access.
         
+        Current Finney chain: stake TAO to a subnet hotkey via
+        `SubtensorModule.add_stake(hotkey, netuid, amount_staked)`.
+        
+        dTAO readiness: when dTAO is deployed, this method will be updated
+        to use subnet token swaps instead of direct staking. The AgentMemory
+        system will track the transition.
+        
         payment_type options:
-        - "stake": Stake TAO to a subnet hotkey (most subnets)
+        - "stake": Stake TAO to a subnet hotkey (current Finney model)
         - "transfer": Direct TAO transfer (pay-as-you-go)
         """
         if not self._subnet_info:

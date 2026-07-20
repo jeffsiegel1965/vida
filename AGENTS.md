@@ -58,15 +58,16 @@ Owner ─── grants session caps ───→ Vida Kernel
 | Capability | Status |
 |-----------|--------|
 | Kaspa send/receive via session | ✅ Mainnet |
-| TAO stake/unstake via session | ✅ Finney |
+| TAO stake/unstake via session | ✅ Finney (mainnet, pre-dTAO) |
 | Agent loop (LLM → plan → execute) | ✅ Working (K2.5) |
 | MCP server | ✅ Working (12 tools + 2 resources) |
 | Covenant pot planning | ✅ Offline |
 | Covenant deploy (on-chain) | ⚠️ TN10 only, gated |
 | SilverScript quine spend | ⚠️ Compiled, spend blocked (tooling gap) |
 | Agent negotiation | ✅ Rebuilt — templates + memory + subscriptions |
-| TAO subnet marketplace | ✅ Discovery + query tools added |
+| TAO subnet marketplace | ✅ Discovery + query tools (mainnet, pre-dTAO) |
 | Mainnet covenants | ❌ Waiting for Kaspa Toccata |
+| dTAO readiness | ✅ Code structured for update when deployed |
 
 ## Common Mistakes
 

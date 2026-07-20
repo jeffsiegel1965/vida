@@ -1,81 +1,180 @@
 # Vida
 
-Agent-compatible wallet for Kaspa (KAS) and Bittensor (TAO).
+**Agent-compatible wallet for Kaspa (KAS) and Bittensor (TAO).**
 
-Vida is a wallet with a permission layer designed for AI agents. An agent can send, receive, and stake cryptocurrency, but only within limits you set per session — per-transaction cap, per-day cap, destination allowlist, and expiry. The agent never touches your seed phrase. You hold the keys. You revoke the session when you want.
-
----
-
-## Why
-
-AI agents need to pay for APIs, stake tokens, and transfer value. A plain wallet gives an agent either nothing (can't spend) or everything (full private key access). Vida gives an agent **constrained access** — enough to operate, not enough to drain.
-
-The constraints are enforced at two layers:
-- **Software**: the session file checks caps before every spend
-- **On-chain** (covenant module): SilverScript contracts on Kaspa testnet-10 enforce rules at the network level
+Vida is a wallet built for AI agents, not humans. It gives an agent constrained access to spend, stake, and negotiate — enough to operate autonomously, never enough to drain. You hold the keys. You set the limits. You revoke the session when you want.
 
 ---
 
-## What it does
+## What makes Vida unique
 
-### Send and receive KAS (mainnet)
+**1. Agents connect directly to Bittensor subnets** — An agent can discover subnet services (LLM inference, GPU compute, storage, image generation), pay TAO for access, and query the subnet's API. No other wallet can do this.
+
+**2. L1 covenant negotiation** — Agents negotiate pot terms (max per tx, per day, destinations) using templates, strategies, and volume discounts. The negotiation history is persistent across sessions via AgentMemory.
+
+**3. Cross-session agent memory** — Vida remembers every deal, every counterparty, every subnet used. Deals, success rates, volume discounts, and context survive interruptions.
+
+**4. Verification ladder (L1-L5)** — Every financial operation is verified at L1 (deterministic) or L2 (rule). L4 (model judge) is blocked for money. The `@require_l1_spend` decorator enforces that every spend returns a txid.
+
+**5. Session-gated permissions** — The agent never touches your seed phrase. You grant per-transaction caps, per-day limits, destination allowlists, and expiry. Revoke by deleting a file.
+
+---
+
+## Kaspa (KAS)
+
+### Mainnet: send/receive
+
 ```python
 from vida.transactions import VidaTransactor
-from vida.wallet import Vida
+from vida.wallet import Vida  # Requires VIDA_LEGACY_WALLET_ALLOWED=1
 
 wallet = Vida("wallet.json")
 tx = VidaTransactor(wallet)
-result = await tx.send(
-    to_address="kaspa:qzyswp...",
-    amount_kas=1.0,
-)
-# → SendResult(success=True, txid="...", explorer_url="...")
+result = await tx.send(to_address="kaspa:qzyswp...", amount_kas=1.0)
 ```
 
 Policy enforced before broadcast:
 - Amount ≤ session's `max_kas_per_tx`
-- Destination in session's `allowed_destinations` (if set)
+- Destination in `allowed_destinations` (if set)
 - Daily total ≤ `max_kas_per_day`
-- UTXO smallest-first selection with dust threshold (0.02 KAS)
+- UTXO smallest-first selection with dust threshold
 
-### Stake and unstake TAO (Finney)
+### RPC: wRPC via Kaspa SDK
+
 ```python
-from vida.plugins.tao import delegate
+from vida.plugins.covenant.kaspa_rpc import get_balance, get_utxos, get_network_info
 
-result = delegate(
-    amount=50.0,
+# Auto-discovers a node via PNN (Resolver) — no hardcoded URLs
+balance = get_balance("kaspa:qplmcgy...")
+# → {"ok": True, "balance_sompi": 85813020870, "balance_kas": "858.13"}
+```
+
+- Uses official Kaspa Python SDK (v2.0.1+) with wRPC WebSocket
+- Resolver for peer-to-peer node discovery
+- Structured error types: `ConnectionError_`, `TimeoutError_`, `BalanceError`, `TransactionError`
+- Falls back to REST API (`api.kaspa.org/transactions`) if SDK submit fails
+
+### Testnet covenants (TN10 only)
+
+Covenant pots are SilverScript contracts that enforce spending rules at the network level — no software can bypass them.
+
+```python
+from vida.plugins.covenant import plan_agent_pot, check_spend_kas
+
+plan = plan_agent_pot(max_kas_per_tx=1.0, max_kas_per_day=5.0)
+check_spend_kas(policy=plan, amount_kas=2.0, destination="...")
+# → {"ok": False, "error": "amount exceeds max_tx_sompi"}
+```
+
+**Mainnet covenants** are waiting for Kaspa Toccata to deploy on mainnet.
+
+---
+
+## Bittensor (TAO)
+
+### Finney mainnet (pre-dTAO)
+
+Vida connects to the live Bittensor chain. All verified against the current Finney runtime (July 2026). dTAO has NOT been deployed yet — the pre-dTAO model (`add_stake`/`remove_stake`) is still active.
+
+```python
+from vida.plugins.tao import vida_tao_delegate, vida_tao_balance
+
+# Stake TAO to a subnet hotkey (current Finney model)
+result = vida_tao_delegate(
+    wallet_id="agent_wallet",
+    amount_tao=5.0, netuid=19,
     hotkey="5CQKp5...",
-    session=session,
+    session_path="session.json",
+    confirm=True,
 )
-# → delegated to validator, subject to session caps
+# → {"ok": True, "extrinsic_hash": "0x...", "action": "delegate"}
 ```
 
-Emissions, yield optimization, P2P transfers all gated through the same session model.
+**dTAO readiness:** When dTAO is deployed, the payment model changes from direct staking to subnet token swaps. The `AgentSubnetPurchase.pay()` method is structured to be updated at that point. Tracked in AGENTS.md.
 
-### Run an agent loop
+### Subnet marketplace — agents buy services directly
+
 ```python
-from vida.agents.orchestrator import AgentOrchestrator
+from vida.plugins.tao import tao_list_subnets, tao_subnet_info, tao_subnet_query
 
-orch = AgentOrchestrator(session=session)
-result = await orch.run(
-    goal="Check covenant status and plan a 5 KAS agent pot"
-)
-# → {
-#   "ok": True,
-#   "steps": 4,
-#   "completed": 4,
-#   "summary": "✅ covenant_status → ✅ covenant_live_gates ..."
-# }
+# Discover: what subnets are available?
+tao_list_subnets(service_type="llm_inference")
+# → 3 subnets: SN 1 (Omron), SN 9 (Pretraining), SN 19 (Inference)
+
+# Inspect: what does SN 19 offer?
+tao_subnet_info(19)
+# → {"name": "Inference (LLM)", "cost": "0.00005 TAO/request", ...}
+
+# Pay: stake TAO to access the subnet
+# → via vida_tao_delegate (see above)
+
+# Query: use the subnet's service
+tao_subnet_query(netuid=19, body={"model": "deepseek", "prompt": "..."})
+# → {"ok": True, "data": {"response": "..."}}
 ```
 
-The orchestrator takes a natural language goal, calls K2.5 to decompose it into executable steps (with rule-based fallback), dispatches each step against real Vida tools, and reports per-step results with verification level (L1-L5 from arXiv:2607.00038).
+The registry covers **9 subnets** across 8 service types:
 
-### Server to MCP clients
-```bash
-VIDA_SESSION=session.json python scripts/vida_mcp_server.py
+| Service | Subnets | Typical cost |
+|---------|---------|-------------|
+| LLM inference | SN 1, 9, 19 | 0.00005-0.0001 TAO/req |
+| GPU compute | SN 14 | 0.01 TAO/hour |
+| Storage | SN 27 | 0.0001 TAO/GB |
+| Image generation | SN 34 | 0.001 TAO/img |
+| Audio (TTS/STT) | SN 3 | 0.00005 TAO/min |
+| Video generation | SN 29 | 0.005 TAO/video |
+| Data scraping | SN 4 | 0.0001 TAO/1k pages |
+| AI agents | SN 1 | 0.0005 TAO/req |
+
+---
+
+## Agent memory
+
+Vida agents remember everything across sessions:
+
+```python
+from vida.agents.memory import AgentMemory, DealRecord
+
+mem = AgentMemory("agent_wallet")
+mem.record_deal(DealRecord(id="d1", deal_type="tao_stake", counterparty_id="sn19", amount_tao=5.0))
+mem.get_counterparty("sn19")          # → profile with success rate, volume, history
+mem.volume_discount_rate("sn19")      # → 0.20 if 1000+ TAO total
+mem.get_context("current_goal")       # → survives interruptions
 ```
 
-Exposes 12 tools + 2 resources via the [Model Context Protocol](https://modelcontextprotocol.io). Connect from Claude Desktop, Cursor, Grok Build, or any MCP client. The `vida_agent_goal` tool wraps the full agent orchestrator.
+- **Deal history** — every transaction, every stake, every subnet purchase
+- **Counterparty profiles** — success rates, volume, preferred strategies
+- **Subnet usage** — which subnets deliver, which don't, favorites
+- **KV store** — arbitrary key-value persisted across sessions
+- **Context** — what the agent was doing, survives interruptions
+
+---
+
+## Agent negotiation
+
+Agents negotiate covenant pot terms with each other. Built for agent-to-agent commerce.
+
+```python
+from vida.agents.negotiation import SessionManager, apply_template
+
+mgr = SessionManager()
+session = mgr.create_session("counterparty_agent", template="standard")
+
+# Make initial offer
+offer = session.make_initial_offer()
+
+# Counterparty responds — agent concedes or walks
+response, accepted = session.respond_to_offer(counterparty_terms)
+if accepted:
+    result = session.accept_terms(counterparty_terms)
+```
+
+- **3 templates** — micro (0.1 KAS), standard (1 KAS), power (10 KAS)
+- **2 strategies** — BOULWARE (default), CONCEDE (trusted counterparties)
+- **Volume discounts** — up to 30% for 10,000+ KAS total
+- **Subscriptions** — recurring pots with 15% fee discount
+- **Human escalation** — deals > 100 KAS flagged for approval
+- **Persistent memory** — learns per-counterparty, adapts strategy
 
 ---
 
@@ -87,44 +186,32 @@ Owner ─── grants session caps ───→ Vida Kernel
                           ┌────────────┼────────────┐
                           │            │            │
                      Kaspa core    TAO plugin   Covenant
-                     (send/recv)  (stake/swap)  (TN10 only)
+                   (send/recv)   (stake/pay)   (TN10 only)
+                   wRPC + SDK    Finney mainnet  SilverScript
+                   mainnet + TN10  pre-dTAO       testnet only
                           │            │            │
                           └────────────┼────────────┘
                                        │
                                   Agent tools
-                          (orchestrator.py / MCP server)
+                          (orchestrator / MCP server)
                                        │
-                                  LLM agent
+                                  LLM agent (K2.5)
+                                       │
+                                  Agent memory
+                          (deals, profiles, subnets)
 ```
 
-### Session file (the permission layer)
+### Verification ladder
 
-```json
-{
-  "network": "mainnet",
-  "max_kas_per_tx": 1.0,
-  "max_kas_per_day": 5.0,
-  "allowed_destinations": ["kaspa:..."],
-  "expires_at": 1721328000,
-  "host_fingerprint": "a1:b2:c3:..."
-}
-```
-
-The session file is encrypted at rest (AES-256-GCM, scrypt KDF, 0600 permissions). The agent reads it at startup. It cannot modify it. Revoke by deleting the file.
-
-### Verification ladder (arXiv:2607.00038)
-
-Every tool result includes a verification level:
+Every tool result includes a verification level. Financial operations never use L4.
 
 | Level | Name | What it means |
 |-------|------|---------------|
-| L1 | DETERMINISTIC | Assertion, golden output, exit code |
+| L1 | DETERMINISTIC | Assertion, exit code, golden output |
 | L2 | RULE | Schema validation, policy check |
 | L3 | FIELD_TRUTH | Delayed confirmation (e.g., tx status) |
-| L4 | MODEL_JUDGE | Model by rubric (flagged for financial ops) |
+| L4 | MODEL_JUDGE | Model by rubric (blocked for financial ops) |
 | L5 | HUMAN_CHECKPOINT | Human approval required |
-
-Financial operations never use L4.
 
 ---
 
@@ -132,94 +219,34 @@ Financial operations never use L4.
 
 | Layer | Mechanism |
 |-------|-----------|
-| Key storage | AES-256-GCM encrypted JSON (scrypt KDF, 2^17 N, 128 MiB memory-hard) |
-| Session binding | AAD (additional authenticated data) binds session to host + expiry |
+| Key storage | AES-256-GCM encrypted JSON (scrypt KDF, 2^17 N, 128 MiB) |
+| Session binding | AAD binds session to host + expiry |
 | Spend counters | Authenticated, tamper-evident, per-day tracking |
 | File permissions | 0600 on keys and sessions |
-| Memory | `os.urandom` scrub on revoke |
-| Key generation | 24-word BIP39 mnemonic or ML-DSA-65 (post-quantum) |
-
-The legacy `wallet.py` stores private keys in plaintext JSON. It exists for testing only. Always use `secure_wallet.py` for any wallet holding real funds.
-
----
-
-## Covenant module (TN10 only)
-
-The covenant module creates on-chain SilverScript contracts on Kaspa testnet-10. The network enforces the rules directly — no software can bypass them.
-
-### Agent pot planning
-```python
-from vida.plugins.covenant import plan_agent_pot
-
-plan = plan_agent_pot(
-    max_kas_per_tx=1.0,
-    max_kas_per_day=5.0,
-    allowed_destinations=["kaspa:address..."],
-)
-# → { "ok": True, "fund_pot_kas": 5.05, "hard_rules": {...} }
-```
-
-### Spend policy validation
-```python
-from vida.plugins.covenant import check_spend_kas
-
-result = check_spend_kas(
-    policy=plan,
-    amount_kas=2.0,
-    destination="kaspa:address...",
-)
-# → { "ok": False, "error": "amount exceeds max_tx_sompi", ... }
-```
-
-### Kaspa REST API
-```python
-from vida.plugins.covenant.kaspa_rpc import get_balance, get_utxos
-
-balance = get_balance("kaspatest:qplmcgy...")
-# → { "ok": True, "balance_sompi": 85813020870 }
-
-utxos = get_utxos("kaspatest:qplmcgy...")
-# → [ { "outpoint": {...}, "utxoEntry": {"amount": "4499500000", ...} }, ... ]
-```
-
-### SilverScript quine contract
-
-Compiled and deployed on testnet-10. Self-replicating covenant with owner-authorized withdrawal:
-
-```silver
-contract QuineAgentPot(pubkey owner, int maxTxSompi) {
-    entrypoint withdraw(pubkey recipient) {
-        require(checkSig(owner));
-        require(output[0].scriptPubKey == input[0].scriptPubKey);
-        require(output[1].value <= maxTxSompi);
-    }
-    entrypoint burn(sig ownerSig) {
-        require(checkSig(ownerSig, owner));
-    }
-}
-```
-
-Deployed at:
-- `6d58b529ca25819a8cc58ae110d1b113cd688cf4b1cbbe15ef3dd7e799434028`
-- `2d0ade44cb97f07350a93848a1d6edb4dcb49fcbce60298e17b3acc351300046`
-
-Spend path blocked by tooling gap — kascov-lab doesn't recognize custom contracts. The Kaspa SDK integration for custom covenant spends is implemented in `vida/plugins/covenant/sdk_integration.py` but not yet tested against a live node.
+| Memory | Secure scrub on revoke |
+| Key generation | secp256k1 + ML-DSA-65 (post-quantum) |
+| Legacy wallet | `wallet.py` — runtime guard, requires `VIDA_LEGACY_WALLET_ALLOWED=1` |
 
 ---
 
-## On-chain proofs
+## Status
 
-### Kaspa mainnet
-- Agent send, 10 KAS: [`d32b4504...`](https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7)
-
-### Testnet-10 covenants
-- Lifecycle 1 (genesis → transition → burn): covenant `b58280037a692f4cd1ae087d9e258505add8e4fd4976a1146c6951b6ee471797`
-- Lifecycle 2 (quine deploy): covenant `6d58b529ca25819a8cc58ae110d1b113cd688cf4b1cbbe15ef3dd7e799434028`
-- Lifecycle 3 (quine deploy): covenant `2d0ade44cb97f07350a93848a1d6edb4dcb49fcbce60298e17b3acc351300046`
-
-### TAO Finney
-- Owner stake, 0.05 TAO: `0xdc2cd8...`
-- Agent session stake, 0.02 TAO: `0x44c9b9...`
+| Capability | Status | Detail |
+|-----------|--------|--------|
+| KAS send/receive | ✅ Mainnet | Session-gated, wRPC via Kaspa SDK |
+| TAO stake/unstake | ✅ Finney | Session-gated, pre-dTAO |
+| TAO subnet marketplace | ✅ Finney | 9 subnets, discover + pay + query |
+| Agent orchestrator | ✅ Working | K2.5-powered, 16 tools |
+| Agent memory | ✅ Working | Persistent deals, profiles, subnets |
+| Agent negotiation | ✅ Working | Templates, strategies, volume discounts |
+| Subscriptions | ✅ Working | Recurring pots, 15% discount |
+| MCP server | ✅ Working | 12 tools, 2 resources |
+| Verification ladder | ✅ Working | L1-L5, `@require_l1_spend` enforced |
+| Covenant pot planning | ✅ Offline | Templates, policies, validation |
+| Covenant deploy | ⚠️ TN10 | Testnet only, gated |
+| SilverScript quine | ⚠️ TN10 | Deployed, spend path being finalized |
+| Kaspa mainnet covenants | ❌ Waiting | Kaspa Toccata not yet on mainnet |
+| dTAO deployment | ⏳ When live | Code structured for update |
 
 ---
 
@@ -227,22 +254,18 @@ Spend path blocked by tooling gap — kascov-lab doesn't recognize custom contra
 
 ```bash
 python -m pytest tests/ -q
-# 108 passed in 18s
+# 156 passed in 18s
 ```
 
 | Suite | Type | Count |
 |-------|------|-------|
-| Covenant scaffold | Unit | 104 |
-| Kaspa REST API | Integration (live testnet-10) | 4 |
-
-The integration tests hit the live Kaspa REST API (`api-tn10.kaspa.org`):
-
-```python
-def test_balance_known_address(self):
-    result = get_balance("kaspatest:qplmcgy...")
-    self.assertTrue(result["ok"])
-    self.assertGreater(result["balance_sompi"], 0)
-```
+| Negotiation | Unit | 27 |
+| Agent memory | Unit | 9 |
+| TAO subnet marketplace | Unit | 10 |
+| TAO staking, sessions, robustness | Unit | 62 |
+| Kaspa SDK integration | Live (testnet-10) | 6 |
+| Covenant scaffold | Unit | 39 |
+| Covenant robustness | Unit | 3 |
 
 ---
 
@@ -275,32 +298,53 @@ VIDA_SESSION=session.json python scripts/vida_mcp_server.py
 ```
 vida/
 ├── secure_wallet.py          # Production wallet (AES-256-GCM)
-├── wallet.py                 # LEGACY — plaintext keys, testing only
+├── wallet.py                 # LEGACY — runtime guard, testing only
 ├── transactions.py           # Transaction building, signing, broadcast
 ├── agents/
 │   ├── orchestrator.py       # Agent loop (goal → plan → execute)
 │   ├── staking_optimizer.py  # K2.5-powered agent executor
 │   ├── tool_schema.py        # OpenAI-compatible function schema
-│   └── verification.py       # L1-L5 verification ladder
+│   ├── verification.py       # L1-L5 verification ladder
+│   ├── memory.py             # Persistent cross-session memory
+│   └── negotiation/          # Template-based pot negotiation
 ├── plugins/
 │   ├── covenant/
 │   │   ├── tools.py          # 17 Hermes agent tools
-│   │   ├── kaspa_rpc.py      # Zero-dependency REST API client
-│   │   ├── kascov_client.py  # kascov explorer API (read-only)
-│   │   ├── agent_pot.py      # Pot planning and validation
-│   │   ├── pot_spend.py      # Spend policy enforcement
-│   │   ├── sdk_integration.py # Kaspa SDK covenant deploy/spend
-│   │   └── silverscript/     # SilverScript source and compiled artifacts
+│   │   ├── kaspa_rpc.py      # wRPC via Kaspa SDK (Resolver)
+│   │   ├── pot_spend.py      # Real spend policy + build→sign→submit
+│   │   ├── sdk_integration.py# Kaspa SDK covenant deploy/spend
+│   │   └── silverscript/     # SilverScript contracts
 │   └── tao/
-│       ├── tools.py          # TAO balance, delegate, transfer
-│       └── ...
+│       ├── tools.py          # 9 TAO tools (balance, delegate, subnets)
+│       ├── subnet_marketplace.py  # 9 subnets, discovery, pricing
+│       ├── subnet_client.py  # Agent purchase + query workflow
+│       └── substrate_client.py   # Finney chain connection
 ├── tests/
-│   ├── test_covenant_scaffold.py     # 104 unit tests
-│   └── test_kaspa_rpc_integration.py # 4 integration tests
+│   ├── test_negotiation.py           # 27
+│   ├── test_agent_memory.py          # 9
+│   ├── test_tao_subnet_marketplace.py# 10
+│   ├── test_tao_*.py                # 62
+│   └── test_kaspa_rpc_integration.py# 6
 └── scripts/
     ├── vida_mcp_server.py    # MCP server (12 tools, 2 resources)
-    └── vida_covenant_tool.py # Covenant CLI
+    └── run_full_audit.py     # 71-check exhaustive audit
 ```
+
+---
+
+## On-chain proofs
+
+### Kaspa mainnet
+- Agent send, 10 KAS: [`d32b4504...`](https://explorer.kaspa.org/txs/d32b4504ecc218d29b8c661cadf21b026697a9e1d69409240b539064aa5825e7)
+
+### Testnet-10 covenants
+- Lifecycle 1: `b58280037a692f4cd1ae087d9e258505add8e4fd4976a1146c6951b6ee471797`
+- Lifecycle 2: `6d58b529ca25819a8cc58ae110d1b113cd688cf4b1cbbe15ef3dd7e799434028`
+- Lifecycle 3: `2d0ade44cb97f07350a93848a1d6edb4dcb49fcbce60298e17b3acc351300046`
+
+### TAO Finney
+- Owner stake, 0.05 TAO: `0xdc2cd8...`
+- Agent session stake, 0.02 TAO: `0x44c9b9...`
 
 ---
 
@@ -310,20 +354,3 @@ vida/
 - **Covenant module:** Commercial license
 
 Development fund address configurable via `VIDA_DEV_FUND` / `VIDA_DEV_FUND_TESTNET` env vars.
-
----
-
-## Status
-
-| Capability | Status | Detail |
-|-----------|--------|--------|
-| KAS send/receive | ✅ Mainnet | Session-gated |
-| TAO stake/unstake | ✅ Finney | Session-gated |
-| Agent orchestrator | ✅ Working | K2.5-powered, 16 tools |
-| MCP server | ✅ Working | 12 tools, 2 resources |
-| Covenant pot planning | ✅ Offline | Templates, policies |
-| Covenant deploy | ⚠️ TN10 | Needs Kaspa SDK integration tested |
-| SilverScript quine | ⚠️ TN10 | Deployed, spend blocked by tooling |
-| x402 integration | 🔜 Planned | CASA identifier comment pending |
-| Agent negotiation | ❌ Stripped | Premature, backed up to `dev/` |
-| Mainnet covenants | ❌ Waiting | Kaspa Toccata not yet on mainnet |

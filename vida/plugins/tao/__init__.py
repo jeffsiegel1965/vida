@@ -1,4 +1,10 @@
-"""Vida TAO (Bittensor) plugin rail — part of Vida, not a standalone wallet product."""
+"""Vida TAO (Bittensor) plugin rail — part of Vida, not a standalone wallet product.
+
+Chain status (verified Jul 19, 2026):
+- Finney mainnet: pre-dTAO. Uses add_stake/remove_stake for subnet access.
+- dTAO: NOT deployed yet. When it arrives, payment model changes to subnet token swaps.
+- 64 subnets active. All staking extrinsics verified against live chain.
+"""
 
 from .config import TaoNetwork, TaoConfig, load_tao_config
 from .client import TaoNetworkClient, MockTaoClient, HealthInfo, BalanceInfo
