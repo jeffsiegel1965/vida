@@ -1,20 +1,19 @@
-"""Vida covenant monetization — low fees in KAS.
+"""Vida covenant monetization — low fees in KAS, separate from donations.
 
 Model:
-  - Covenant pot funding: 0.1% fee (min 0.01 KAS, max 1 KAS) to dev fund
+  - Covenant pot funding: 0.1% fee (min 0.01 KAS, max 1 KAS) to fee address
   - Covenant pot spend: 0.05% fee (min 0.005 KAS, max 0.5 KAS)
   - Agent covenant negotiation: free
   - kascov API queries: free
   - First pot free per wallet
 
-HONEST NOTE ON FORKABILITY:
-These fees are implemented in Python for transparency and ease of audit.
-Any forker can modify or remove them — the fee is a good-faith support
-mechanism, not a technical enforcement. We compete on quality, not fee
-extraction. The real moat is the kascov-lab binary (complex to build)
-and the Vida ecosystem.
+Separate addresses:
+  - FEE address: protocol fees collected on every transaction
+  - DONATION address: voluntary contributions / dev fund (separate from fees)
 
-All fees are transparent, documented, and paid in KAS.
+Both are configurable via env vars. Neither is enforced on-chain — fees are
+a good-faith support mechanism, implemented in Python for transparency.
+Any forker can modify or remove them. The real moat is the ecosystem.
 """
 
 from __future__ import annotations
@@ -24,19 +23,30 @@ import math
 import os
 from typing import Optional
 
-# Dev fund address — loaded from env var with fallback.
-# Set VIDA_DEV_FUND=kaspa:your_address to override.
-# This is a good-faith support mechanism, not technical enforcement.
-# The fee is transparent and can be removed by any forker.
-_DEV_FUND_ENV = "VIDA_DEV_FUND"
-DEV_FUND_ADDRESS = os.environ.get(
-    _DEV_FUND_ENV,
-    "kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+# ── Fee address ──
+# Protocol fee collected on every covenant transaction.
+# This is the address the user explicitly provided for fees.
+# Override: VIDA_FEE_ADDRESS=kaspa:your_address
+_FEE_ADDRESS_ENV = "VIDA_FEE_ADDRESS"
+FEE_ADDRESS = os.environ.get(
+    _FEE_ADDRESS_ENV,
+    "kaspa:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
+)
+FEE_ADDRESS_TESTNET = os.environ.get(
+    "VIDA_FEE_ADDRESS_TESTNET",
+    "kaspatest:qzmqqnkmqhtghmyh5hax5m2082em85j2ap5th06rnmhy2nmm078nsvqc7vwh3"
 )
 
-# Dev fund address (testnet-10 variant)
-DEV_FUND_ADDRESS_TESTNET = os.environ.get(
-    "VIDA_DEV_FUND_TESTNET",
+# ── Donation address (dev fund) ──
+# Voluntary contributions. Separate from protocol fees.
+# Override: VIDA_DONATION_ADDRESS=kaspa:your_address
+_DONATION_ADDRESS_ENV = "VIDA_DONATION_ADDRESS"
+DONATION_ADDRESS = os.environ.get(
+    _DONATION_ADDRESS_ENV,
+    "kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
+)
+DONATION_ADDRESS_TESTNET = os.environ.get(
+    "VIDA_DONATION_ADDRESS_TESTNET",
     "kaspatest:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
 )
 
@@ -86,15 +96,22 @@ def calc_spend_fee(amount_kas: float, volume_discount_pct: float = 0.0) -> float
     return round(max(fee, 0.0), 6)
 
 
-def get_dev_address(network: str = "mainnet") -> str:
-    """Get dev fund address for the given network."""
+def get_fee_address(network: str = "mainnet") -> str:
+    """Get the protocol fee address for the given network."""
     if network == "mainnet":
-        return DEV_FUND_ADDRESS
-    return DEV_FUND_ADDRESS_TESTNET
+        return FEE_ADDRESS
+    return FEE_ADDRESS_TESTNET
+
+
+def get_donation_address(network: str = "mainnet") -> str:
+    """Get the donation/dev fund address for the given network."""
+    if network == "mainnet":
+        return DONATION_ADDRESS
+    return DONATION_ADDRESS_TESTNET
 
 
 def describe_fees() -> dict:
-    """Return fee schedule for display."""
+    """Return fee schedule for display, with both addresses."""
     return {
         "fund_fee_pct": FEE_SCHEDULE.fund_fee_pct * 100,
         "fund_fee_min_kas": FEE_SCHEDULE.fund_fee_min_kas,
@@ -103,8 +120,9 @@ def describe_fees() -> dict:
         "spend_fee_min_kas": FEE_SCHEDULE.spend_fee_min_kas,
         "spend_fee_max_kas": FEE_SCHEDULE.spend_fee_max_kas,
         "free_pots_per_wallet": FEE_SCHEDULE.free_pots_per_wallet,
-        "dev_address": DEV_FUND_ADDRESS,
+        "fee_address": FEE_ADDRESS,
+        "donation_address": DONATION_ADDRESS,
         "currency": "KAS",
-        "note": "Fees are transparent and paid in KAS per transaction.",
-        "forkability_note": "These fees are implemented in Python for transparency. A forker can modify them. The real moat is the kascov-lab binary and the Vida ecosystem.",
+        "note": "Fees (protocol) and donations (dev fund) go to separate addresses. Both are configurable via env vars.",
+        "forkability_note": "Implemented in Python for transparency. Forkers can modify or remove.",
     }

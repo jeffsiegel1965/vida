@@ -13,7 +13,7 @@ from .plugin import CovenantPlugin
 from .pot_spend import check_spend_allowed, check_spend_kas, load_pot_record
 from .agent_pot import plan_agent_pot, SOMPI_PER_KAS
 from .agent_pot_script import build_agent_pot_script_template, verify_policy_hash
-from .fees import calc_fund_fee, calc_spend_fee, get_dev_address, describe_fees
+from .fees import calc_fund_fee, calc_spend_fee, get_fee_address, get_donation_address, describe_fees
 from .lab_client import live_gates_ok
 
 
@@ -100,12 +100,13 @@ def covenant_plan_with_fees(
     plan["fee"] = {
         "dev_fee_kas": fee,
         "dev_fee_sompi": int(round(fee * SOMPI_PER_KAS)),
-        "dev_address": get_dev_address(network),
+        "dev_address": get_fee_address(network),
         "network": network,
         "total_kas": pot_kas + fee,
         "total_sompi": int(round((pot_kas + fee) * SOMPI_PER_KAS)),
         "fee_pct": fee / pot_kas * 100 if pot_kas > 0 else 0,
-        "note": "Fee is added to the pot funding transaction as an additional output to the dev fund address.",
+        "note": "Fee is added to the pot funding transaction as an additional output to the fee address.",
+        "donation_address": get_donation_address(network),
     }
     return plan
 
@@ -124,7 +125,8 @@ def covenant_estimate_fee(amount_kas: float, fee_type: str = "fund") -> dict[str
         "fee_kas": fee,
         "fee_type": fee_type,
         "fee_pct": fee / amount_kas * 100 if amount_kas > 0 else 0,
-        "dev_address": get_dev_address("mainnet"),
+        "fee_address": get_fee_address("mainnet"),
+        "donation_address": get_donation_address("mainnet"),
     }
 
 

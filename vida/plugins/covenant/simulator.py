@@ -18,7 +18,7 @@ from typing import Any, Optional
 from .agent_pot import plan_agent_pot, validate_agent_pot_plan, SOMPI_PER_KAS
 from .agent_pot_script import build_agent_pot_script_template, verify_policy_hash
 from .pot_spend import check_spend_allowed, check_spend_kas, save_pot_record, load_pot_record
-from .fees import calc_fund_fee, calc_spend_fee, get_dev_address
+from .fees import calc_fund_fee, calc_spend_fee, get_fee_address
 
 
 @dataclass
@@ -103,7 +103,7 @@ class CovenantSimulator:
             "policy_template": template,
             "fee": {
                 "dev_fee_kas": fee,
-                "dev_address": get_dev_address(network),
+                "dev_address": get_fee_address(network),
             },
             "pot": pot.summary(),
         }

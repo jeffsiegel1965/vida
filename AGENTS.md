@@ -45,7 +45,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 
 ## Rules
 
-1. **Never store API keys in code.** Use env vars: `ZYLOO_API_KEY`, `VIDA_DEV_FUND`.
+1. **Never store API keys in code.** Use env vars: `ZYLOO_API_KEY`, `VIDA_FEE_ADDRESS`, `VIDA_DONATION_ADDRESS`.
 2. **Never push without approval.** All changes go through hostile QA first.
 3. **Every tool must return `{"ok": bool, ...}`.** No exceptions.
 4. **No tool aliases.** If a tool name says "balance", it must return a balance.

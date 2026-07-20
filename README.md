@@ -353,4 +353,6 @@ vida/
 - **Kaspa core + TAO plugin:** MIT
 - **Covenant module:** Commercial license
 
-Development fund address configurable via `VIDA_DEV_FUND` / `VIDA_DEV_FUND_TESTNET` env vars.
+Fees and donations are separate and configurable via env vars:
+- `VIDA_FEE_ADDRESS` — protocol fee address (default: the one documented in fees.py)
+- `VIDA_DONATION_ADDRESS` — voluntary donations / dev fund (separate from fees)
