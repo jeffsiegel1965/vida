@@ -98,9 +98,10 @@ Owner ─── grants session caps ───→ Vida Kernel
 | KAS send/receive | ✅ Mainnet | Session-gated, wRPC via Kaspa SDK |
 | TAO stake/unstake | ✅ Finney | Session-gated, pre-dTAO (verified Jul 19) |
 | TAO subnet marketplace | ✅ Finney | 9 subnets, discover + pay + query |
-| Agent loop (LLM → plan → execute) | ✅ Working | K2.5-powered, 16 tools |
+| Agent loop (LLM → plan → execute) | ✅ Working | K2.5-powered, 19 tools |
 | Agent memory | ✅ Working | Deals, counterparties, subnets, KV, context |
 | Agent negotiation | ✅ Working | 3 templates, 2 strategies, subscriptions, volume discounts |
+| Escrow covenants | ✅ Working | Release/refund/resolve, 17 tests, fees baked in |
 | MCP server | ✅ Working | 12 tools + 2 resources |
 | Verification ladder | ✅ Working | L1-L5, `@require_l1_spend` enforced |
 | Kaspa covenants (SilverScript) | ✅ Mainnet | Toccata fork at DAA 389M, currently 490M |

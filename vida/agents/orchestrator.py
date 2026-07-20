@@ -36,6 +36,11 @@ from vida.plugins.covenant import (
     covenant_quine_info,
     covenant_spend_policy_check,
     covenant_status,
+    covenant_plan_with_fees,
+    covenant_estimate_fee,
+    vida_escrow_create,
+    vida_escrow_status,
+    vida_escrow_list,
 )
 
 logger = logging.getLogger("vida.agents")
@@ -118,6 +123,9 @@ class AgentOrchestrator:
         "covenant_estimate_fee": lambda ctx, **kw: _safe_tool("covenant_estimate_fee", **kw),
         "covenant_fee_schedule": lambda ctx: _safe_tool("covenant_fee_schedule"),
         "covenant_plan_with_fees": lambda ctx, **kw: _safe_tool("covenant_plan_with_fees", **kw),
+        "escrow_create": lambda ctx, **kw: vida_escrow_create(**kw),
+        "escrow_status": lambda ctx, escrow_id: vida_escrow_status(escrow_id),
+        "escrow_list": lambda ctx: vida_escrow_list(),
         "kaspa_balance": lambda ctx: _kaspa_balance(),
         "kaspa_send": lambda ctx, **kw: _kaspa_send(**kw),
     }

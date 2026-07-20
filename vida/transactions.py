@@ -36,7 +36,7 @@ try:
 except ImportError:
     aiohttp = None
 
-from vida.wallet import Vida, DelegationMode  # Uses legacy wallet (plaintext keys) — only for testnet
+from vida.secure_wallet import SecureVida, DelegationMode  # Secure wallet with encrypted keys
 
 # Kaspa dust threshold: outputs below ~0.02 KAS incur massive storage-mass
 # penalties and get rejected (verified on testnet-10, July 2026).
@@ -388,7 +388,7 @@ class VidaTransactor:
 # ── CLI helpers for quick manual use ─────────────────────────────────────────
 
 async def _balance_cmd(wallet_path: str, network: str):
-    vida = Vida(wallet_path, network=network)
+    vida = SecureVida(wallet_path)
     tx = VidaTransactor(vida)
     bal = await tx.get_balance()
     utxos = await tx.get_utxos()
@@ -398,7 +398,7 @@ async def _balance_cmd(wallet_path: str, network: str):
 
 
 async def _send_cmd(wallet_path: str, network: str, to_address: str, amount: float):
-    vida = Vida(wallet_path, network=network)
+    vida = SecureVida(wallet_path)
     tx = VidaTransactor(vida)
     print(f"Sending {amount} KAS -> {to_address}")
     result = await tx.send(to_address=to_address, amount_kas=amount)
