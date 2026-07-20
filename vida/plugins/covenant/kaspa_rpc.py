@@ -206,16 +206,32 @@ async def submit_transaction(tx_hex: str) -> dict[str, Any]:
     """
     try:
         client = await _get_client()
-        # Convert hex to bytes and submit
         tx_bytes = bytes.fromhex(tx_hex)
-        # SDK expects a dict or Transaction object
-        # Use the raw submission endpoint
-        result = await client.submit_transaction(request=tx_hex)
-        return {"ok": True, "txid": result.get("txid") or result.get("transaction_id", tx_hex[:16])}
-    except ConnectionError_ as e:
-        return _error_response(e)
-    except (asyncio.TimeoutError, asyncio.CancelledError) as e:
-        return _error_response(TimeoutError_("transaction submission timed out", original=e))
+        # Method 1: Try SDK submit
+        try:
+            result = await client.submit_transaction(request=tx_bytes)
+            txid = result.get("txid", "") if isinstance(result, dict) else result
+            if txid:
+                return {"ok": True, "txid": txid, "source": "sdk"}
+        except Exception as sdk_err:
+            logger.warning("SDK submit failed: %s — trying REST fallback", sdk_err)
+        
+        # Method 2: Fall back to REST API
+        import json
+        from urllib.request import Request, urlopen, URLError
+        base = "https://api-tn10.kaspa.org" if "testnet" in _network_id else "https://api.kaspa.org"
+        req = Request(
+            f"{base}/transactions",
+            data=tx_hex.encode(),
+            headers={"Content-Type": "application/octet-stream"},
+            method="POST",
+        )
+        with urlopen(req, timeout=30) as resp:
+            body = json.loads(resp.read().decode())
+            txid = body.get("txid") or body.get("transactionId", "")
+            return {"ok": True, "txid": txid, "source": "rest_api"}
+    except URLError as e:
+        return _error_response(TransactionError(f"REST API submit failed: {e.reason}"))
     except (ValueError, TypeError, RuntimeError, OSError) as e:
         return _error_response(TransactionError(f"transaction submission failed", original=e))
 
