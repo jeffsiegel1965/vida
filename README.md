@@ -351,8 +351,12 @@ vida/
 
 ## License
 
-- **Kaspa core + TAO plugin:** MIT
-- **Covenant module:** Commercial license
+Vida uses a dual license:
+
+- **Kaspa core, TAO plugin, Agent layer, CLI tools:** MIT
+- **Covenant module (SilverScript contracts, escrow, negotiation):** Commercial license
+
+The MIT parts are free to use, fork, and modify. The covenant module is commercial — contact for details.
 
 Fees and donations are separate and configurable via env vars:
 - `VIDA_FEE_ADDRESS` — protocol fee address (default: the one documented in fees.py)
