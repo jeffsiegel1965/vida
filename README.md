@@ -1,8 +1,10 @@
 # Vida
 
-**Agent-compatible wallet for Kaspa (KAS) and Bittensor (TAO).**
+**The agent wallet. Kaspa + Bittensor.**
 
-Vida is a wallet built for AI agents, not humans. It gives an agent constrained access to spend, stake, and negotiate — enough to operate autonomously, never enough to drain. You hold the keys. You set the limits. You revoke the session when you want.
+Vida is a wallet built for autonomous AI agents, not humans. Agents use it to discover subnet services on Bittensor, negotiate covenant terms on Kaspa, and pay for compute, inference, storage, and data — all within session-gated caps you control. The agent never touches your keys. You revoke access by deleting a file.
+
+**What makes it unique:** Vida is the only wallet where agents can connect directly to Bittensor subnets, the only wallet with L1 covenant negotiation between agents, and the only wallet with persistent cross-session agent memory.
 
 ---
 
