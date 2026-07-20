@@ -174,9 +174,12 @@ def deploy_escrow(
     
     Creates a UTXO locked by the escrow SilverScript program.
     The escrow holds funds until release, refund, or resolution.
+    
+    Fee: 0.1% of escrow amount (min 0.01 KAS, max 1 KAS) to fee address.
     """
     try:
         import secrets
+        from .fees import calc_fund_fee, get_fee_address, get_donation_address
         
         # Validate addresses are non-empty
         if not buyer_address or not seller_address:
@@ -187,6 +190,12 @@ def deploy_escrow(
         # Generate unique escrow ID
         escrow_id = f"escrow_{secrets.token_hex(8)}"
         amount_sompi = int(amount_kas * 100_000_000)
+        
+        # Calculate fee
+        fee_kas = calc_fund_fee(amount_kas)
+        fee_sompi = int(fee_kas * 100_000_000)
+        total_kas = amount_kas + fee_kas
+        total_sompi = amount_sompi + fee_sompi
         
         # Create the escrow record
         record = EscrowRecord(
@@ -210,12 +219,19 @@ def deploy_escrow(
             "covenant_id": escrow_covenant_id(),
             "amount_kas": amount_kas,
             "amount_sompi": amount_sompi,
+            "fee_kas": fee_kas,
+            "fee_sompi": fee_sompi,
+            "fee_address": get_fee_address(network),
+            "donation_address": get_donation_address(network),
+            "total_kas": total_kas,
+            "total_sompi": total_sompi,
             "buyer": buyer_address,
             "seller": seller_address,
             "arbiter": arbiter_address,
             "timeout_blocks": timeout_blocks,
             "network": network,
-            "note": "Escrow recorded. Fund with KAS to activate on-chain.",
+            "note": f"Escrow recorded. Fund with {total_kas} KAS ({amount_kas} + {fee_kas} fee). "
+                    f"Fee goes to {get_fee_address(network)[:20]}...",
             "next_step": "Use spend_to_agent() to fund the escrow UTXO",
         }
     except Exception as e:
