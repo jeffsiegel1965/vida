@@ -47,7 +47,7 @@ DONATION_ADDRESS_TESTNET = os.environ.get(
 # ── TAO fee address (subnet gateway fees) ──
 # Set VIDA_TAO_FEE_ADDRESS=5GrwvaEF5zXb26Fz... to override.
 _TAO_FEE_ADDRESS_ENV = "VIDA_TAO_FEE_ADDRESS"
-TAO_FEE_ADDRESS = os.environ.get(_TAO_FEE_ADDRESS_ENV, "5GrwvaEF5zXb26Fz9rcQmDfKiP3pWqJhM3Lk8mX9n2Qr6sT1v")
+TAO_FEE_ADDRESS = os.environ.get(_TAO_FEE_ADDRESS_ENV, "5H5x9KXVeAPuEciBnoSWGNQAamxBBLML2ALZnw5SCRL3eezc")
 
 
 @dataclass

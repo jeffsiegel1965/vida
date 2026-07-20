@@ -28,9 +28,9 @@ Vida is a wallet built for autonomous AI agents, not humans. Agents use it to di
 
 ```python
 from vida.transactions import VidaTransactor
-from vida.wallet import Vida  # Requires VIDA_LEGACY_WALLET_ALLOWED=1
+from vida.secure_wallet import SecureVida
 
-wallet = Vida("wallet.json")
+wallet = SecureVida("wallet.json")
 tx = VidaTransactor(wallet)
 result = await tx.send(to_address="kaspa:qzyswp...", amount_kas=1.0)
 ```
@@ -70,31 +70,75 @@ check_spend_kas(policy=plan, amount_kas=2.0, destination="...")
 
 The covenant module works on both mainnet and testnet-10. Set `set_network("mainnet")` for mainnet operations.
 
+### Escrow covenants
+
+Agent-to-agent escrow with three paths:
+
+```python
+from vida.plugins.covenant.escrow import vida_escrow_create, vida_escrow_status
+
+# Deploy: lock funds in escrow
+escrow = vida_escrow_create(
+    buyer_address="kaspa:buyer...",
+    seller_address="kaspa:seller...",
+    amount_kas=10.0,
+)
+# → {"ok": True, "escrow_id": "escrow_...", "fee_kas": 0.01, ...}
+
+# Release: seller delivers, arbiter countersigns
+# → vida_escrow_release(escrow_id, seller_sig, arbiter_sig)
+
+# Refund: buyer reclaims after timeout
+# → vida_escrow_refund(escrow_id, buyer_sig)
+
+# Resolve: arbiter routes to buyer or seller (constrained — can't steal)
+# → vida_escrow_resolve(escrow_id, arbiter_sig, recipient)
+```
+
+Fee: 0.1% of escrow amount (min 0.01 KAS, max 1 KAS) to the fee address.
+
+### Payment channels
+
+Off-chain micropayments with on-chain settlement. Two agents open a channel, exchange thousands of updates, settle on Kaspa once.
+
+```python
+from vida.plugins.covenant.channels import vida_channel_open, vida_channel_update, vida_channel_close
+
+# Open: 10 KAS channel between two agents
+ch = vida_channel_open("agent_a", "agent_b", capacity_kas=10.0)
+
+# Update: after 100 micropayments, balances shift
+vida_channel_update(ch["channel_id"], "sig_a", "sig_b", 6.0, 4.0)
+
+# Close: settle on-chain
+vida_channel_close(ch["channel_id"])
+```
+
+Fee: 0.1% of channel capacity. This is how Vida scales to billions of transactions.
+
 ---
 
 ## Bittensor (TAO)
 
-### Finney mainnet (pre-dTAO)
+Vida's TAO integration is the most comprehensive available. Agents can discover, pay for, and consume subnet services — all programmatically, without human intervention.
 
-Vida connects to the live Bittensor chain. All verified against the current Finney runtime (July 2026). dTAO has NOT been deployed yet — the pre-dTAO model (`add_stake`/`remove_stake`) is still active.
+### Chain status
 
-```python
-from vida.plugins.tao import vida_tao_delegate, vida_tao_balance
+- **Finney mainnet** — live, verified July 2026. Pre-dTAO model (`add_stake`/`remove_stake`).
+- **dTAO** — not deployed yet. Code structured for update when it arrives.
 
-# Stake TAO to a subnet hotkey (current Finney model)
-result = vida_tao_delegate(
-    wallet_id="agent_wallet",
-    amount_tao=5.0, netuid=19,
-    hotkey="5CQKp5...",
-    session_path="session.json",
-    confirm=True,
-)
-# → {"ok": True, "extrinsic_hash": "0x...", "action": "delegate"}
-```
+### Core capabilities
 
-**dTAO readiness:** When dTAO is deployed, the payment model changes from direct staking to subnet token swaps. The `AgentSubnetPurchase.pay()` method is structured to be updated at that point. Tracked in AGENTS.md.
+| Capability | How it works |
+|-----------|--------------|
+| **Stake/unstake** | `vida_tao_delegate(session_path, amount_tao, netuid, hotkey)` |
+| **Transfer** | `vida_tao_transfer(session_path, dest, amount_tao)` |
+| **Balance check** | `vida_tao_balance(session_path)` |
+| **Session management** | `vida_tao_session_info(session_path)` |
 
-### Subnet marketplace — agents buy services directly
+### Subnet marketplace — discover, pay, query
+
+This is the unique feature. Agents browse subnets, pay for access, and consume services — all in code.
 
 ```python
 from vida.plugins.tao import tao_list_subnets, tao_subnet_info, tao_subnet_query
@@ -108,7 +152,7 @@ tao_subnet_info(19)
 # → {"name": "Inference (LLM)", "cost": "0.00005 TAO/request", ...}
 
 # Pay: stake TAO to access the subnet
-# → via vida_tao_delegate (see above)
+vida_tao_delegate(session_path, amount_tao=5.0, netuid=19, hotkey="5CQKp5...")
 
 # Query: use the subnet's service
 tao_subnet_query(netuid=19, body={"model": "deepseek", "prompt": "..."})
@@ -127,6 +171,33 @@ The registry covers **9 subnets** across 8 service types:
 | Video generation | SN 29 | 0.005 TAO/video |
 | Data scraping | SN 4 | 0.0001 TAO/1k pages |
 | AI agents | SN 1 | 0.0005 TAO/req |
+
+### x402 — auto-pay subnet APIs
+
+When a subnet responds with HTTP 402 "Payment Required," Vida auto-pays and retries the request. Standard for machine payments.
+
+```python
+from vida.plugins.tao.x402 import x402_query
+
+# If the subnet returns 402 + payment terms, Vida auto-pays
+result = x402_query("https://subnet.api/query", substrate_client, coldkey_hex)
+# → X402Response(paid=True, txid="0x...", original_result={...})
+```
+
+Vida's fee: 0.05% of the payment amount. First 100 queries per day are free.
+
+### Subnet gateway fees
+
+Every query routed through Vida includes fee tracking:
+
+```python
+result = tao_subnet_query(netuid=19, wallet_id="agent_1", amount_tao=0.001)
+# → {"ok": True, "data": {...}, "vida_fee": {"fee_tao": 0.0000005, "is_free": True, ...}}
+```
+
+- 0.05% per query (billed to the agent)
+- First 100 queries/day free per wallet
+- Separate TAO fee address (`VIDA_TAO_FEE_ADDRESS`)
 
 ---
 
@@ -168,7 +239,7 @@ offer = session.make_initial_offer()
 # Counterparty responds — agent concedes or walks
 response, accepted = session.respond_to_offer(counterparty_terms)
 if accepted:
-    result = session.accept_terms(counterparty_terms)
+    result = session.accept_terms(counterparty_terms, deploy_escrow=True)
 ```
 
 - **3 templates** — micro (0.1 KAS), standard (1 KAS), power (10 KAS)
@@ -176,6 +247,7 @@ if accepted:
 - **Volume discounts** — up to 30% for 10,000+ KAS total
 - **Subscriptions** — recurring pots with 15% fee discount
 - **Human escalation** — deals > 100 KAS flagged for approval
+- **Escrow integration** — accepted terms can deploy an on-chain escrow covenant
 - **Persistent memory** — learns per-counterparty, adapts strategy
 
 ---
@@ -187,9 +259,10 @@ Owner ─── grants session caps ───→ Vida Kernel
                                        │
                           ┌────────────┼────────────┐
                           │            │            │
-                     Kaspa core    TAO plugin   Covenant (SilverScript)
-                   (send/recv)   (stake/pay)   (mainnet + TN10)
-                   wRPC + SDK    Finney mainnet  Toccata active
+                     Kaspa core    TAO plugin   Covenant
+                   (send/recv)   (stake/pay)   (SilverScript)
+                   wRPC + SDK    Finney        escrow + channels
+                   mainnet       pre-dTAO      x402 gateway
                           │            │            │
                           └────────────┼────────────┘
                                        │
@@ -198,8 +271,10 @@ Owner ─── grants session caps ───→ Vida Kernel
                                        │
                                   LLM agent (K2.5)
                                        │
-                                  Agent memory
-                          (deals, profiles, subnets)
+                          Agent memory + negotiation
+                     (deals, profiles, subnets, sessions)
+                                       │
+                          Subnet gateway fees (0.05%)
 ```
 
 ### Verification ladder
@@ -235,19 +310,21 @@ Every tool result includes a verification level. Financial operations never use 
 | Capability | Status | Detail |
 |-----------|--------|--------|
 | KAS send/receive | ✅ Mainnet | Session-gated, wRPC via Kaspa SDK |
-| TAO stake/unstake | ✅ Finney | Session-gated, pre-dTAO |
+| TAO stake/unstake | ✅ Finney | Session-gated, pre-dTAO (verified Jul 19) |
 | TAO subnet marketplace | ✅ Finney | 9 subnets, discover + pay + query |
-| Agent orchestrator | ✅ Working | K2.5-powered, 16 tools |
+| x402 auto-pay | ✅ Built | HTTP 402 Payment Required, auto-pay subnet APIs |
+| Subnet gateway fees | ✅ Built | 0.05% per query, free tier, TAO fee address |
+| Payment channels | ✅ Built | Off-chain micropayments, on-chain settlement, 17 tests |
+| Escrow covenants | ✅ Built | 3 paths, 17 tests, fees baked in |
+| Agent orchestrator | ✅ Working | K2.5-powered, 19 tools |
 | Agent memory | ✅ Working | Persistent deals, profiles, subnets |
-| Agent negotiation | ✅ Working | Templates, strategies, volume discounts |
+| Agent negotiation | ✅ Working | Templates, strategies, volume discounts, escrow integration |
 | Subscriptions | ✅ Working | Recurring pots, 15% discount |
 | MCP server | ✅ Working | 12 tools, 2 resources |
 | Verification ladder | ✅ Working | L1-L5, `@require_l1_spend` enforced |
-| Covenant pot planning | ✅ Offline | Templates, policies, validation |
-| Covenant deploy | ⚠️ Tested on TN10 | Mainnet should work (Toccata active) |
-| SilverScript quine | ⚠️ TN10 | Deployed, spend path being finalized |
-| Kaspa mainnet covenants | ✅ Active | Toccata fork at DAA 389M, currently 490M |
-| dTAO deployment | ⏳ When live | Code structured for update |
+| Kaspa covenants (SilverScript) | ✅ Mainnet | Toccata active (DAA 490M) |
+| Covenant deploy | ⚠️ Tested on TN10 | Mainnet ready, needs funded key |
+| dTAO deployment | ⏳ Not on Finney yet | Pre-dTAO is correct. Code structured for update. |
 
 ---
 
@@ -255,7 +332,7 @@ Every tool result includes a verification level. Financial operations never use 
 
 ```bash
 python -m pytest tests/ -q
-# 156 passed in 18s
+# 191 passed in 17s
 ```
 
 | Suite | Type | Count |
@@ -264,9 +341,11 @@ python -m pytest tests/ -q
 | Agent memory | Unit | 9 |
 | TAO subnet marketplace | Unit | 10 |
 | TAO staking, sessions, robustness | Unit | 62 |
+| Escrow covenants | Unit | 17 |
+| Payment channels | Unit | 17 |
+| x402 (auto-pay) | Unit | 7 |
 | Kaspa SDK integration | Live (testnet-10) | 6 |
 | Covenant scaffold | Unit | 39 |
-| Covenant robustness | Unit | 3 |
 
 ---
 
@@ -302,7 +381,7 @@ vida/
 ├── wallet.py                 # LEGACY — runtime guard, testing only
 ├── transactions.py           # Transaction building, signing, broadcast
 ├── agents/
-│   ├── orchestrator.py       # Agent loop (goal → plan → execute)
+│   ├── orchestrator.py       # Agent loop (goal → plan → execute), 19 tools
 │   ├── staking_optimizer.py  # K2.5-powered agent executor
 │   ├── tool_schema.py        # OpenAI-compatible function schema
 │   ├── verification.py       # L1-L5 verification ladder
@@ -310,21 +389,27 @@ vida/
 │   └── negotiation/          # Template-based pot negotiation
 ├── plugins/
 │   ├── covenant/
-│   │   ├── tools.py          # 17 Hermes agent tools
+│   │   ├── tools.py          # Covenant tools (status, plan, fees, escrow)
 │   │   ├── kaspa_rpc.py      # wRPC via Kaspa SDK (Resolver)
 │   │   ├── pot_spend.py      # Real spend policy + build→sign→submit
-│   │   ├── sdk_integration.py# Kaspa SDK covenant deploy/spend
+│   │   ├── escrow.py         # Agent-to-agent escrow (release/refund/resolve)
+│   │   ├── channels.py       # Payment channels (off-chain, on-chain settle)
+│   │   ├── fees.py           # Fee schedules (KAS + TAO), addresses
 │   │   └── silverscript/     # SilverScript contracts
 │   └── tao/
-│       ├── tools.py          # 9 TAO tools (balance, delegate, subnets)
+│       ├── tools.py          # TAO tools (balance, delegate, subnets)
+│       ├── x402.py           # HTTP 402 auto-pay for subnet APIs
 │       ├── subnet_marketplace.py  # 9 subnets, discovery, pricing
-│       ├── subnet_client.py  # Agent purchase + query workflow
+│       ├── subnet_client.py  # Agent purchase + query + fee tracking
 │       └── substrate_client.py   # Finney chain connection
 ├── tests/
 │   ├── test_negotiation.py           # 27
 │   ├── test_agent_memory.py          # 9
 │   ├── test_tao_subnet_marketplace.py# 10
 │   ├── test_tao_*.py                # 62
+│   ├── test_escrow.py               # 17
+│   ├── test_channels.py             # 17
+│   ├── test_x402.py                 # 7
 │   └── test_kaspa_rpc_integration.py# 6
 └── scripts/
     ├── vida_mcp_server.py    # MCP server (12 tools, 2 resources)
@@ -354,10 +439,11 @@ vida/
 Vida uses a dual license:
 
 - **Kaspa core, TAO plugin, Agent layer, CLI tools:** MIT
-- **Covenant module (SilverScript contracts, escrow, negotiation):** Commercial license
+- **Covenant module (SilverScript contracts, escrow, negotiation, channels):** Commercial license
 
 The MIT parts are free to use, fork, and modify. The covenant module is commercial — contact for details.
 
 Fees and donations are separate and configurable via env vars:
-- `VIDA_FEE_ADDRESS` — protocol fee address (default: the one documented in fees.py)
-- `VIDA_DONATION_ADDRESS` — voluntary donations / dev fund (separate from fees)
+- `VIDA_FEE_ADDRESS` — protocol fee address (KAS)
+- `VIDA_DONATION_ADDRESS` — voluntary donations / dev fund (KAS)
+- `VIDA_TAO_FEE_ADDRESS` — subnet gateway fees (TAO)
