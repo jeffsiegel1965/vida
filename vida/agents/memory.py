@@ -6,6 +6,8 @@ An agent that remembers nothing is useless. This module gives Vida agents:
 - Subnet usage history and preferences
 - Current context/session state
 - Volume discount tracking
+- Bittensor v11 conviction voting positions
+- Multisig proposal history
 """
 
 from __future__ import annotations
@@ -140,6 +142,7 @@ class AgentMemory:
         self._subnets: dict[int, SubnetUsageRecord] = {}
         self._context: AgentContext = AgentContext()
         self._kv_store: dict[str, Any] = {}
+        self._convictions: list[dict[str, Any]] = []
 
         self._load()
 
@@ -158,6 +161,8 @@ class AgentMemory:
                 self._context = AgentContext.from_dict(data["context"])
             if "kv" in data:
                 self._kv_store = data["kv"]
+            if "convictions" in data:
+                self._convictions = data["convictions"]
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             logger.warning("Memory load error: %s", e)
         self._loaded = True
@@ -169,7 +174,8 @@ class AgentMemory:
             "subnets": {str(k): v.to_dict() for k, v in self._subnets.items()},
             "context": self._context.to_dict(),
             "kv": self._kv_store,
-            "version": 1,
+            "convictions": self._convictions,
+            "version": 2,
             "updated_at": time.time(),
         }
         self._file.write_text(json.dumps(data, indent=2))
@@ -332,4 +338,44 @@ class AgentMemory:
         self._subnets = {}
         self._context = AgentContext()
         self._kv_store = {}
+        self._convictions = []
         self._save()
+    
+    # ── Bittensor v11 Conviction Voting ──
+    
+    def record_conviction(self, netuid: int, amount_locked: float, lock_period_blocks: int) -> dict[str, Any]:
+        """Record a conviction voting position on a subnet.
+        
+        Conviction = locking α-tokens or TAO to gain voting power on subnet
+        ownership decisions. Stronger/longer locks = more weight.
+        """
+        record = {
+            "netuid": netuid,
+            "amount_locked": amount_locked,
+            "lock_period_blocks": lock_period_blocks,
+            "locked_at": time.time(),
+            "active": True,
+        }
+        self._convictions.append(record)
+        self._save()
+        return {"ok": True, "conviction": record}
+    
+    def list_convictions(self, active_only: bool = True) -> list[dict[str, Any]]:
+        """List all conviction voting positions."""
+        if active_only:
+            return [c for c in self._convictions if c.get("active")]
+        return list(self._convictions)
+    
+    def total_conviction_locked(self) -> float:
+        """Total amount locked across all active convictions."""
+        return sum(c["amount_locked"] for c in self._convictions if c.get("active"))
+    
+    def release_conviction(self, netuid: int) -> dict[str, Any]:
+        """Release a conviction position (mark as inactive)."""
+        for c in self._convictions:
+            if c["netuid"] == netuid and c.get("active"):
+                c["active"] = False
+                c["released_at"] = time.time()
+                self._save()
+                return {"ok": True, "netuid": netuid, "released": True}
+        return {"ok": False, "error": f"no active conviction for subnet {netuid}"}
