@@ -12,6 +12,14 @@ from .scripts import (
     describe_compute_budget_rules,
     offline_validate_budget,
 )
+from .tools import (
+    covenant_describe,
+    covenant_live_gates,
+    covenant_plan_pot,
+    covenant_quine_info,
+    covenant_spend_policy_check,
+    covenant_status,
+)
 
 __all__ = [
     "CovenantConfig",
