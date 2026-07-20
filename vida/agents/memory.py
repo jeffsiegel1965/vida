@@ -340,12 +340,12 @@ class AgentMemory:
         self._kv_store = {}
         self._convictions = []
         self._save()
-    
+
     # ── Bittensor v11 Conviction Voting ──
-    
+
     def record_conviction(self, netuid: int, amount_locked: float, lock_period_blocks: int) -> dict[str, Any]:
         """Record a conviction voting position on a subnet.
-        
+
         Conviction = locking α-tokens or TAO to gain voting power on subnet
         ownership decisions. Stronger/longer locks = more weight.
         """
@@ -359,17 +359,17 @@ class AgentMemory:
         self._convictions.append(record)
         self._save()
         return {"ok": True, "conviction": record}
-    
+
     def list_convictions(self, active_only: bool = True) -> list[dict[str, Any]]:
         """List all conviction voting positions."""
         if active_only:
             return [c for c in self._convictions if c.get("active")]
         return list(self._convictions)
-    
+
     def total_conviction_locked(self) -> float:
         """Total amount locked across all active convictions."""
         return sum(c["amount_locked"] for c in self._convictions if c.get("active"))
-    
+
     def release_conviction(self, netuid: int) -> dict[str, Any]:
         """Release a conviction position (mark as inactive)."""
         for c in self._convictions:

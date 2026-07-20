@@ -20,6 +20,10 @@ Vida is a wallet built for autonomous AI agents, not humans. Agents use it to di
 
 **5. Session-gated permissions** — The agent never touches your seed phrase. You grant per-transaction caps, per-day limits, destination allowlists, and expiry. Revoke by deleting a file.
 
+**6. Multisig (Bittensor v11)** — M-of-N wallet for subnet treasury management. Agents can propose, approve, execute, and cancel multisig operations. Native support aligned with the v431/v11 tooling release.
+
+**7. Bittensor v11 conviction voting** — Track locked α-token/TAO positions for subnet ownership voting. Record, release, and list conviction positions in AgentMemory.
+
 ---
 
 ## Kaspa (KAS)
@@ -317,9 +321,10 @@ Every tool result includes a verification level. Financial operations never use 
 | Payment channels | ✅ Built | Off-chain micropayments, on-chain settlement, 17 tests |
 | Escrow covenants | ✅ Built | 3 paths, 17 tests, fees baked in |
 | Agent orchestrator | ✅ Working | K2.5-powered, 19 tools |
-| Agent memory | ✅ Working | Persistent deals, profiles, subnets |
+| Agent memory | ✅ Working | Persistent deals, profiles, subnets, conviction voting |
 | Agent negotiation | ✅ Working | Templates, strategies, volume discounts, escrow integration |
 | Subscriptions | ✅ Working | Recurring pots, 15% discount |
+| Multisig (Bittensor v11) | ✅ Built | M-of-N propose/approve/execute/cancel, 17 tests |
 | MCP server | ✅ Working | 12 tools, 2 resources |
 | Verification ladder | ✅ Working | L1-L5, `@require_l1_spend` enforced |
 | Kaspa covenants (SilverScript) | ✅ Mainnet | Toccata active (DAA 490M) |

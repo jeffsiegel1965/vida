@@ -38,10 +38,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MultisigProposal:
     """A multisig proposal waiting for approvals."""
+
     id: str
     network: str
     module: str  # e.g. "SubtensorModule"
-    call: str    # e.g. "add_stake", "transfer"
+    call: str  # e.g. "add_stake", "transfer"
     params: dict[str, Any]
     threshold: int
     signers: list[str]
@@ -74,7 +75,7 @@ class MultisigProposal:
 
 class MultisigStore:
     """Persistent store for multisig proposals."""
-    
+
     def __init__(self, storage_dir: str = ""):
         if not storage_dir:
             storage_dir = str(Path.home() / ".vida" / "multisig")
@@ -82,7 +83,7 @@ class MultisigStore:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._proposals: dict[str, MultisigProposal] = {}
         self._load()
-    
+
     def _load(self) -> None:
         if self._path.exists():
             try:
@@ -92,23 +93,28 @@ class MultisigStore:
                     self._proposals[p.id] = p
             except (json.JSONDecodeError, KeyError, TypeError) as e:
                 logger.warning("Multisig store load error: %s", e)
-    
+
     def _save(self) -> None:
-        self._path.write_text(json.dumps({
-            "proposals": [p.to_dict() for p in self._proposals.values()],
-            "updated_at": time.time(),
-        }, indent=2))
-    
+        self._path.write_text(
+            json.dumps(
+                {
+                    "proposals": [p.to_dict() for p in self._proposals.values()],
+                    "updated_at": time.time(),
+                },
+                indent=2,
+            )
+        )
+
     def save(self, proposal: MultisigProposal) -> None:
         self._proposals[proposal.id] = proposal
         self._save()
-    
+
     def get(self, proposal_id: str) -> Optional[MultisigProposal]:
         return self._proposals.get(proposal_id)
-    
+
     def list_open(self) -> list[MultisigProposal]:
         return [p for p in self._proposals.values() if p.status == "open"]
-    
+
     def list_all(self) -> list[dict[str, Any]]:
         return [p.to_dict() for p in self._proposals.values()]
 
@@ -127,9 +133,9 @@ def propose(
     network: str = "finney",
 ) -> dict[str, Any]:
     """Propose a multisig operation.
-    
+
     Creates a proposal that needs M-of-N signers to approve before execution.
-    
+
     Args:
         signers: List of SS58 addresses that can sign
         threshold: Number of approvals needed to execute
@@ -143,9 +149,9 @@ def propose(
             return {"ok": False, "error": f"threshold {threshold} > signers {len(signers)}"}
         if threshold < 1:
             return {"ok": False, "error": "threshold must be >= 1"}
-        
+
         proposal_id = f"ms_{secrets.token_hex(8)}"
-        
+
         proposal = MultisigProposal(
             id=proposal_id,
             network=network,
@@ -155,10 +161,10 @@ def propose(
             threshold=threshold,
             signers=signers,
         )
-        
+
         store = MultisigStore()
         store.save(proposal)
-        
+
         return {
             "ok": True,
             "proposal_id": proposal_id,
@@ -179,7 +185,7 @@ def approve(
     signer: str,
 ) -> dict[str, Any]:
     """Approve a multisig proposal.
-    
+
     Adds the signer's approval. When threshold is met, the proposal
     is marked as approved and ready for execution.
     """
@@ -194,15 +200,15 @@ def approve(
             return {"ok": False, "error": f"{signer[:20]}... is not an authorized signer"}
         if signer in proposal.approvals:
             return {"ok": False, "error": f"{signer[:20]}... already approved"}
-        
+
         proposal.approvals.append(signer)
-        
+
         # Check if threshold met
         if len(proposal.approvals) >= proposal.threshold:
             proposal.status = "approved"
-        
+
         store.save(proposal)
-        
+
         return {
             "ok": True,
             "proposal_id": proposal_id,
@@ -221,7 +227,7 @@ def execute(
     coldkey_hex: str = "",
 ) -> dict[str, Any]:
     """Execute an approved multisig proposal.
-    
+
     Submits the extrinsic to the chain. All signers must have approved.
     """
     try:
@@ -231,7 +237,7 @@ def execute(
             return {"ok": False, "error": f"proposal {proposal_id} not found"}
         if proposal.status != "approved":
             return {"ok": False, "error": f"proposal is {proposal.status}, not approved"}
-        
+
         # Submit via substrate (or via bittensor SDK when available)
         if substrate_client and coldkey_hex:
             try:
@@ -244,11 +250,11 @@ def execute(
                 proposal.extrinsic_hash = result.get("extrinsic_hash", "")
             except Exception as e:
                 return {"ok": False, "error": f"execution failed: {e}"}
-        
+
         proposal.status = "executed"
         proposal.executed_at = time.time()
         store.save(proposal)
-        
+
         return {
             "ok": True,
             "proposal_id": proposal_id,
@@ -265,7 +271,7 @@ def cancel(
     signer: str,
 ) -> dict[str, Any]:
     """Cancel a multisig proposal.
-    
+
     Any authorized signer can cancel an open proposal.
     """
     try:
@@ -277,10 +283,10 @@ def cancel(
             return {"ok": False, "error": f"proposal is {proposal.status}, cannot cancel"}
         if signer not in proposal.signers:
             return {"ok": False, "error": f"{signer[:20]}... is not an authorized signer"}
-        
+
         proposal.status = "cancelled"
         store.save(proposal)
-        
+
         return {"ok": True, "proposal_id": proposal_id, "status": "cancelled"}
     except Exception as e:
         return {"ok": False, "error": f"cancel failed: {e}"}
@@ -300,7 +306,7 @@ def vida_multisig_propose(
     network: str = "finney",
 ) -> dict[str, Any]:
     """Propose a multisig operation.
-    
+
     M-of-N signers must approve before the operation executes.
     """
     return propose(signers, threshold, module, call, params or {}, network)
