@@ -12,6 +12,8 @@ If no row matches, read the README.md and then the relevant module.
 |-------------------|-----------------|
 | Send / receive KAS | `vida/transactions.py` + `vida/secure_wallet.py` |
 | Deploy a covenant | `vida/plugins/covenant/sdk_integration.py` + `silverscript/` |
+| Use a covenant pattern | `vida/plugins/covenant/covenant_patterns.py` + `tools.py` (`_deploy_pattern`) |
+| Compile a new contract | `scripts/compile_contracts.py` |
 | Spend from a covenant | `vida/plugins/covenant/pot_spend.py` |
 | Open an escrow | `vida/plugins/covenant/escrow.py` |
 | Create a payment channel | `vida/plugins/covenant/channels.py` (KCC-0402 mode) |
@@ -97,8 +99,10 @@ Owner ─── grants session caps ───→ Vida Kernel
 | `vida/plugins/covenant/escrow.py` | Agent-to-agent escrow (release/refund/resolve). |
 | `vida/plugins/covenant/channels.py` | Payment channels (KCC-0402 + bidirectional). 36 tests. |
 | `vida/plugins/covenant/fees.py` | Fee schedules (KAS + TAO), addresses. |
-| `vida/plugins/covenant/sdk_integration.py` | SDK-based covenant deploy/spend. |
-| `vida/plugins/covenant/silverscript/` | SilverScript contract sources (quine, agent pot). |
+| `vida/plugins/covenant/sdk_integration.py` | SDK-based covenant deploy/spend (v1, compute_budget). |
+| `vida/plugins/covenant/covenant_patterns.py` | Compiled pattern library: Ownable, TimeLock, HTLC, Vesting, SocialRecovery, StreamingPayment, DeadMansSwitch. |
+| `vida/plugins/covenant/silverscript/` | SilverScript contract sources (.sil) + compiled JSON. Contracts: AtomicSwapHTLC, DeadMansSwitch, MultiSigVault, Ownable, SocialRecovery, StreamingPayment, Subscription, TimeLock, VaultV1, Vesting, escrow_v1. |
+| `scripts/compile_contracts.py` | Compile .sil files to deployment-ready JSON. |
 
 ### TAO plugin
 | File | Purpose |
@@ -120,7 +124,8 @@ Owner ─── grants session caps ───→ Vida Kernel
 | `tests/test_channels.py` | 36 |
 | `tests/test_x402.py` | 7 |
 | `tests/test_kaspa_rpc_integration.py` | 6 (live testnet-10) |
-| **Total** | **221** |
+| `tests/test_covenant_deploy.py` | 3 |
+| **Total** | **257** |
 
 ## Rules
 
@@ -152,8 +157,10 @@ Owner ─── grants session caps ───→ Vida Kernel
 | MCP server | ✅ Working | 12 tools, 2 resources |
 | Verification ladder | ✅ Working | L1-L5, `@require_l1_spend` enforced |
 | Kaspa covenants (SilverScript) | ✅ Mainnet | Toccata active (DAA 490M) |
+| Covenant pattern library | ✅ Built | 7 pre-compiled SilverScript patterns (Ownable, TimeLock, HTLC, Vesting, SocialRecovery, Streaming, DeadMansSwitch) |
 | Covenant v1 transactions | ✅ Unblocked | compute_budget=10 applied to pot_spend.py. smartgoo confirmed Jul 21. |
-| Covenant deploy | ⚠️ Tested on TN10 | Mainnet ready, needs funded key |
+| Covenant deploy | ✅ TN10 | Tested on testnet-10. Mainnet ready, needs funded key. |
+| Covenant pattern deploy | ✅ Built | `_deploy_pattern` in tools.py, 7 deploy functions |
 | dTAO deployment | ⏳ Not on Finney yet | Pre-dTAO is correct. Code structured for update. |
 
 ## Common Mistakes
@@ -177,6 +184,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 - KCC-0402 channel alignment (Jul 20, 2026). BIP340 vouchers, 36 tests.
 - STE100 README rewrite (Jul 20, 2026). No marketing language.
 - Social preview optimized: 1.1MB PNG → 202KB JPEG (Jul 20, 2026).
+- sdk_integration.py: rewrite for v1 covenant support (TransactionInput/Transaction, compute_budget). Pattern library: 7 SilverScript contracts (Jul 21, 2026).
 - Covenant v1 compute_budget fix (Jul 21, 2026). smartgoo: set tx.version=1, inp.compute_budget=10 after create_transaction(). Applied to pot_spend.py.
 
 ## Memory
