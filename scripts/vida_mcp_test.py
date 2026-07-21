@@ -42,7 +42,7 @@ for line in out.strip().splitlines():
             print(f"OK — {len(tools)} tools:")
             for t in tools:
                 print(f"  {t['name']}: {t['description'][:80]}")
-    except:
+    except Exception:
         pass
 
 proc.kill()

@@ -6,28 +6,28 @@ import tempfile
 import unittest
 
 from vida.plugins.covenant.channels import (
-    KCC0402Channel,
-    KCC0402ChannelStore,
-    open_kcc0402,
-    pay_kcc0402,
-    close_kcc0402,
-    create_voucher,
-    voucher_message,
-    voucher_digest,
-    verify_voucher,
-    vida_channel_open,
-    vida_channel_pay,
-    vida_channel_close,
-    vida_channel_status,
-    vida_channel_list,
-    vida_channel_offer,
-    vida_channel_voucher,
     # Legacy
     ChannelStore,
+    KCC0402Channel,
+    KCC0402ChannelStore,
     PaymentChannel,
-    open_channel,
-    update_channel,
     close_channel,
+    close_kcc0402,
+    create_voucher,
+    open_channel,
+    open_kcc0402,
+    pay_kcc0402,
+    update_channel,
+    verify_voucher,
+    vida_channel_close,
+    vida_channel_list,
+    vida_channel_offer,
+    vida_channel_open,
+    vida_channel_pay,
+    vida_channel_status,
+    vida_channel_voucher,
+    voucher_digest,
+    voucher_message,
 )
 
 
@@ -190,6 +190,7 @@ class TestKCC0402Operations(unittest.TestCase):
 
     def test_open_with_voucher(self):
         import secrets
+
         from kaspa import PrivateKey
 
         key_hex = secrets.token_hex(32)
@@ -209,6 +210,7 @@ class TestKCC0402Operations(unittest.TestCase):
 
     def test_pay_and_close(self):
         import secrets
+
         from kaspa import PrivateKey
 
         key_hex = secrets.token_hex(32)
@@ -242,6 +244,7 @@ class TestKCC0402Operations(unittest.TestCase):
 
     def test_pay_closed(self):
         import secrets
+
         from kaspa import PrivateKey
 
         key_hex = secrets.token_hex(32)
@@ -266,6 +269,7 @@ class TestKCC0402Operations(unittest.TestCase):
 
     def test_close_already_closed(self):
         import secrets
+
         from kaspa import PrivateKey
 
         key_hex = secrets.token_hex(32)
@@ -306,6 +310,7 @@ class TestHermesTools(unittest.TestCase):
 
     def test_channel_pay(self):
         import secrets
+
         from kaspa import PrivateKey
 
         key_hex = secrets.token_hex(32)
@@ -362,6 +367,7 @@ class TestHermesTools(unittest.TestCase):
 
     def test_voucher(self):
         import secrets
+
         from kaspa import PrivateKey
 
         key_hex = secrets.token_hex(32)

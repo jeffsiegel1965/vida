@@ -163,8 +163,11 @@ class TestNegotiationSession(unittest.TestCase):
 
     def setUp(self):
         from vida.plugins.covenant.negotiation import (
-            NegotiationSession, Negotiator, NegotiationPhase,
-            UserControls, NegotiationError,
+            NegotiationError,
+            NegotiationPhase,
+            NegotiationSession,
+            Negotiator,
+            UserControls,
         )
         self.NegotiationSession = NegotiationSession
         self.Negotiator = Negotiator
@@ -234,7 +237,7 @@ class TestDealBook(unittest.TestCase):
     """Tests for counterparty learning memory."""
 
     def setUp(self):
-        from vida.plugins.covenant.negotiation import DealBook, CovenantTerms
+        from vida.plugins.covenant.negotiation import DealBook
         self.DealBook = DealBook
         self.CovenantTerms = CovenantTerms
 

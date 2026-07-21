@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 # Kaspa SDK
 from kaspa import (
     PrivateKey,
-    PublicKey,
     sign_message,
 )
 

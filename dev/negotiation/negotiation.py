@@ -36,7 +36,7 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
@@ -163,7 +163,6 @@ class CovenantTerms:
         return None
 
     def to_policy_template(self, strategy: str = "covenant_bound_p2pk_pot") -> dict[str, Any]:
-        from .agent_pot import SOMPI_PER_KAS
         from .agent_pot_script import build_agent_pot_script_template
 
         return build_agent_pot_script_template(
