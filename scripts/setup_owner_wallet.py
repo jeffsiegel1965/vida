@@ -15,6 +15,7 @@ Anyone with the words has your money. No one without them (or your
 password + wallet file) can touch it.
 """
 
+import argparse
 import getpass
 import sys
 from pathlib import Path
@@ -26,6 +27,13 @@ WALLET = Path(__file__).resolve().parent.parent / "vida_secure.json"
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Setup Vida secure wallet")
+    parser.add_argument("--non-interactive", action="store_true", help="Non-interactive mode for CI/testing")
+    parser.add_argument("--password", help="Password for non-interactive mode")
+    parser.add_argument("--mnemonic", help="Existing 24-word mnemonic for restoration")
+    parser.add_argument("--network", default="mainnet", choices=["mainnet", "testnet"], help="Network")
+    args = parser.parse_args()
+
     print("=" * 64)
     print("  VIDA SECURE WALLET SETUP (owner-only)")
     print("=" * 64)
@@ -36,27 +44,34 @@ def main():
         print("funds are recovered elsewhere before deleting).")
         sys.exit(1)
 
-    restore = input("\nRestore from an existing 24-word phrase? [y/N]: ").strip().lower()
-    phrase = None
-    if restore == "y":
-        phrase = getpass.getpass("Paste your 24 words (input hidden): ").strip()
-        if len(phrase.split()) != 24:
-            print("ERROR: that was not 24 words.")
-            sys.exit(1)
+    phrase = args.mnemonic
+    if not args.non_interactive:
+        restore = input("\nRestore from an existing 24-word phrase? [y/N]: ").strip().lower()
+        if restore == "y":
+            phrase = getpass.getpass("Paste your 24 words (input hidden): ").strip()
+            if len(phrase.split()) != 24:
+                print("ERROR: that was not 24 words.")
+                sys.exit(1)
 
-    while True:
-        pw = getpass.getpass("\nChoose a password (min 10 chars, input hidden): ")
+    if args.non_interactive and args.password:
+        pw = args.password
         if len(pw) < 10:
-            print("Too short — 10 characters minimum.")
-            continue
-        pw2 = getpass.getpass("Type it again: ")
-        if pw != pw2:
-            print("Passwords do not match, try again.")
-            continue
-        break
+            print(f"ERROR: Password too short — 10 characters minimum. Got {len(pw)} chars.")
+            sys.exit(1)
+    else:
+        while True:
+            pw = getpass.getpass("\nChoose a password (min 10 chars, input hidden): ")
+            if len(pw) < 10:
+                print("Too short — 10 characters minimum.")
+                continue
+            pw2 = getpass.getpass("Type it again: ")
+            if pw != pw2:
+                print("Passwords do not match, try again.")
+                continue
+            break
 
     print("\nCreating encrypted wallet (scrypt is intentionally slow, ~1-2s)...")
-    result = create_secure_wallet(WALLET, pw, network="mainnet", mnemonic_phrase=phrase)
+    result = create_secure_wallet(WALLET, pw, network=args.network, mnemonic_phrase=phrase)
 
     print("\n" + "=" * 64)
     if phrase is None:
