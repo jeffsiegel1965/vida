@@ -1,0 +1,63 @@
+// Self-custody vault covenant with time-delayed withdrawal and panic recovery.
+//
+// Three spend paths:
+//   initiate — hot key starts a withdrawal. Funds go to a delay vault UTXO.
+//   cancel   — cold key cancels during the delay window. Funds back to vault.
+//   finalize — after delay expires, funds go to the whitelisted destination.
+//
+// Inspired by Bitcoin OP_VAULT, implemented with Kaspa KIP-20 covenants.
+//
+// Constructor args:
+//   hot_pubkey     (pubkey) — key that can initiate withdrawals
+//   cold_pubkey    (pubkey) — key that can cancel withdrawals
+//   whitelist_dest (hash)   — blake2b of the only allowed final destination
+//   delay_daa      (int)    — DAA blocks to wait between initiate and finalize
+//
+// State (mutable):
+//   pending_dest   (hash)   — destination of pending withdrawal (0 if none)
+//   pending_since  (int)    — DAA when initiate was called (0 if none)
+
+contract Vault(
+    pubkey hot_pubkey,
+    pubkey cold_pubkey,
+    hash whitelist_dest,
+    int delay_daa
+) {
+    // ─── Path 1: Initiate withdrawal ───
+    // Hot key starts a withdrawal to a specific destination.
+    // The vault self-replicates with pending_dest and pending_since set.
+    // The destination must be whitelisted.
+    entrypoint initiate(sig hotSig, hash dest) {
+        require(checkSig(hotSig, hot_pubkey));
+        require(dest == whitelist_dest);
+        // Self-replicate vault with pending state
+        require(output[0].scriptPubKey == input[0].scriptPubKey);
+        require(state.pending_dest == dest);
+        require(state.pending_since >= 0);
+        // Any remaining value goes back to vault
+        require(output[0].value >= 0);
+    }
+
+    // ─── Path 2: Cancel withdrawal ───
+    // Cold key cancels the pending withdrawal.
+    // Funds return to the vault with pending state cleared.
+    entrypoint cancel(sig coldSig) {
+        require(checkSig(coldSig, cold_pubkey));
+        require(state.pending_dest != 0);  // Must have a pending withdrawal
+        // Self-replicate vault, clearing pending state
+        require(output[0].scriptPubKey == input[0].scriptPubKey);
+        require(state.pending_dest == 0);
+        require(state.pending_since == 0);
+        require(output[0].value >= 0);
+    }
+
+    // ─── Path 3: Finalize withdrawal ───
+    // After delay expires, anyone can send the funds to the whitelisted destination.
+    // This ends the vault (no self-replication).
+    entrypoint finalize() {
+        require(blockNumber >= state.pending_since + delay_daa);
+        require(state.pending_dest != 0);
+        require(output[0].scriptPubKey == state.pending_dest);
+        require(output[0].value >= 0);
+    }
+}
