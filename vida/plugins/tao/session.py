@@ -112,32 +112,51 @@ def _host_fingerprint() -> str:
     return hashlib.sha256(combined.encode()).hexdigest()[:32]
 
 
-def _seal_spend(machine_key: bytes, day: str, daily_spent: float) -> dict:
+def _seal_spend(machine_key: bytes, day: str, daily_spent: float, version: int = 2) -> dict:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     import hashlib
     
-    spend_data = {
-        "day": day,
-        "daily_spent": daily_spent,
-        "timestamp": time.time(),  # Include timestamp for freshness
-        "counter_version": 1       # Version field for future updates
-    }
-    
-    # Create integrity hash of spend data
-    spend_json = json.dumps(spend_data, sort_keys=True)
-    spend_hash = hashlib.sha256(spend_json.encode()).hexdigest()
-    spend_data["integrity_hash"] = spend_hash
-    
-    # Encrypt with versioned AAD for tamper detection
-    aad = b"vida-tao-session-spend-v2"  # Upgraded AAD version
-    nonce = os.urandom(12)
-    ct = AESGCM(machine_key).encrypt(nonce, spend_json.encode(), aad)
-    
-    return {
-        "nonce": nonce.hex(),
-        "ct": ct.hex(),
-        "version": 2  # Track encryption version
-    }
+    if version == 1:
+        # Legacy v1 format for backward compatibility
+        spend = json.dumps({
+            "day": day,
+            "daily_spent": daily_spent
+        })
+        aad = b"vida-tao-session-spend-v1"
+        nonce = os.urandom(12)
+        ct = AESGCM(machine_key).encrypt(nonce, spend.encode(), aad)
+        
+        return {
+            "nonce": nonce.hex(),
+            "ct": ct.hex(),
+            "version": 1
+        }
+    elif version == 2:
+        # Enhanced v2 format with integrity protection
+        spend_data = {
+            "day": day,
+            "daily_spent": daily_spent,
+            "timestamp": time.time(),  # Include timestamp for freshness
+            "counter_version": 1       # Version field for future updates
+        }
+        
+        # Create integrity hash of spend data
+        spend_json = json.dumps(spend_data, sort_keys=True)
+        spend_hash = hashlib.sha256(spend_json.encode()).hexdigest()
+        spend_data["integrity_hash"] = spend_hash
+        
+        # Encrypt with versioned AAD for tamper detection
+        aad = b"vida-tao-session-spend-v2"  # Upgraded AAD version
+        nonce = os.urandom(12)
+        ct = AESGCM(machine_key).encrypt(nonce, json.dumps(spend_data).encode(), aad)
+        
+        return {
+            "nonce": nonce.hex(),
+            "ct": ct.hex(),
+            "version": 2  # Track encryption version
+        }
+    else:
+        raise ValueError(f"Unsupported spend counter version: {version}")
 
 
 def _session_aad(
@@ -292,7 +311,8 @@ def grant_tao_agent_session(
         "host_id": host_id,
         "machine_key": machine_key.hex(),
         "enc_secrets": _encrypt(machine_key, secret_blob, aad),
-        "enc_spend": _seal_spend(machine_key, time.strftime("%Y-%m-%d", time.gmtime()), 0.0),
+        # For new sessions, start with v1 for backward compatibility
+        "enc_spend": _seal_spend(machine_key, time.strftime("%Y-%m-%d", time.gmtime()), 0.0, version=1),
         "limits": limits,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
@@ -451,7 +471,9 @@ def record_tao_session_spend(session_path: str | Path, amount: float) -> dict[st
             except Exception:
                 return {"ok": False, "error": "enc_spend decrypt failed"}
         spent = float(spent) + float(amount)
-        sess["enc_spend"] = _seal_spend(machine_key, today, spent)
+        # Maintain existing spend counter version for consistency
+        existing_version = sess.get("enc_spend", {}).get("version", 1)
+        sess["enc_spend"] = _seal_spend(machine_key, today, spent, version=existing_version)
         _write_0600(path, sess)
         return {"ok": True, "daily_spent": spent, "day": today}
     except Exception as e:
