@@ -152,6 +152,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 | MCP server | ✅ Working | 12 tools, 2 resources |
 | Verification ladder | ✅ Working | L1-L5, `@require_l1_spend` enforced |
 | Kaspa covenants (SilverScript) | ✅ Mainnet | Toccata active (DAA 490M) |
+| Covenant v1 transactions | ✅ Unblocked | compute_budget=10 applied to pot_spend.py. smartgoo confirmed Jul 21. |
 | Covenant deploy | ⚠️ Tested on TN10 | Mainnet ready, needs funded key |
 | dTAO deployment | ⏳ Not on Finney yet | Pre-dTAO is correct. Code structured for update. |
 
@@ -176,6 +177,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 - KCC-0402 channel alignment (Jul 20, 2026). BIP340 vouchers, 36 tests.
 - STE100 README rewrite (Jul 20, 2026). No marketing language.
 - Social preview optimized: 1.1MB PNG → 202KB JPEG (Jul 20, 2026).
+- Covenant v1 compute_budget fix (Jul 21, 2026). smartgoo: set tx.version=1, inp.compute_budget=10 after create_transaction(). Applied to pot_spend.py.
 
 ## Memory
 

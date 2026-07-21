@@ -1,0 +1,77 @@
+pragma silverscript ^0.1.0;
+
+// Dead Man's Switch — Agent Inactivity Timeout
+//
+// If the agent (owner) stops pinging within the timeout window,
+// the fallback recipient can claim the funds. The owner pings
+// to reset the timer.
+//
+// State: owner, fallback, timeout_age, last_ping_age
+// Entrypoints:
+//   claim(fallback_pk, fallback_sig)    — fallback takes funds after timeout
+//   ping(age, owner_pk, owner_sig)      — owner resets the timer
+//   update_fallback(next, owner_pk, sig) — owner changes fallback
+contract DeadMansSwitch(
+    pubkey init_owner,
+    pubkey init_fallback,
+    int init_timeout_age,
+    int init_last_ping_age
+) {
+    pubkey owner = init_owner;
+    pubkey fallback = init_fallback;
+    int timeout_age = init_timeout_age;
+    int last_ping_age = init_last_ping_age;
+
+    function requireOwner(pubkey owner_pk, sig owner_sig, State prev_state) {
+        require(owner_pk == prev_state.owner);
+        require(checkSig(owner_sig, owner_pk));
+    }
+
+    function requireFallback(pubkey fallback_pk, sig fallback_sig, State prev_state) {
+        require(fallback_pk == prev_state.fallback);
+        require(checkSig(fallback_sig, fallback_pk));
+    }
+
+    function requireValidState(State prev_state) {
+        require(prev_state.timeout_age > 0);
+        require(prev_state.last_ping_age >= 0);
+    }
+
+    entrypoint function claim(pubkey fallback_pk, sig fallback_sig) {
+        State prev_state = {
+            owner: owner,
+            fallback: fallback,
+            timeout_age: timeout_age,
+            last_ping_age: last_ping_age
+        };
+        requireValidState(prev_state);
+        require(this.age >= prev_state.timeout_age);
+        requireFallback(fallback_pk, fallback_sig, prev_state);
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function ping(State prev_state, int next_last_ping_age, pubkey owner_pk, sig owner_sig) : (State) {
+        requireValidState(prev_state);
+        requireOwner(owner_pk, owner_sig, prev_state);
+        require(next_last_ping_age >= 0);
+        return({
+            owner: prev_state.owner,
+            fallback: prev_state.fallback,
+            timeout_age: prev_state.timeout_age,
+            last_ping_age: next_last_ping_age
+        });
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function update_fallback(State prev_state, pubkey next_fallback, pubkey owner_pk, sig owner_sig) : (State) {
+        requireValidState(prev_state);
+        requireOwner(owner_pk, owner_sig, prev_state);
+        require(next_fallback != prev_state.fallback);
+        return({
+            owner: prev_state.owner,
+            fallback: next_fallback,
+            timeout_age: prev_state.timeout_age,
+            last_ping_age: prev_state.last_ping_age
+        });
+    }
+}

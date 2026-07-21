@@ -161,6 +161,36 @@ Fee: 0.1% of channel capacity.
 
 ---
 
+### Covenant pattern library
+
+Vida has a library of reusable covenant patterns. Each pattern is a pre-compiled SilverScript contract with typed parameters (owner address, timelock duration, guardian addresses, etc.).
+
+| Pattern | Description |
+|---------|-------------|
+| **TimeLock** | Lock funds until a block height. Use for delayed payments, vesting cliffs. |
+| **Ownable** | Single-owner covenant. Use for agent-controlled pots. |
+| **AtomicSwap** | HTLC (Hashed Timelock Contract). Use for trustless cross-party exchange. |
+| **Vesting** | Linear release over time. Use for grants, salaries, token distributions. |
+| **SocialRecovery** | Owner + N guardian addresses. Use for wallet recovery. |
+| **StreamingPayment** | Continuous payment stream per second. Use for pay-as-you-go. |
+| **DeadMansSwitch** | If owner does not touch for N blocks, beneficiary claims. |
+
+Deploy any pattern:
+
+```python
+from vida.plugins.covenant.tools import covenant_deploy_ownable
+
+result = covenant_deploy_ownable(
+    private_key_hex="...",
+    value_sompi=100_000_000,  # 1 KAS
+)
+# → {"ok": True, "covenant_id": "...", "txid": "...", "address": "kaspa:..."}
+```
+
+V1 covenant transactions use `compute_budget=10` for SilverScript introspection. Confirmed working on testnet-10 by the Kaspa SDK team (smartgoo, Jul 21).
+
+---
+
 ## Bittensor (TAO)
 
 Vida has the most comprehensive TAO integration available.
@@ -439,13 +469,15 @@ vida/
 │   └── negotiation/          # Template-based pot negotiation
 ├── plugins/
 │   ├── covenant/
-│   │   ├── tools.py          # Covenant tools (status, plan, fees, escrow)
+│   │   ├── tools.py          # Covenant tools (status, plan, fees, escrow, patterns)
+│   │   ├── sdk_integration.py # SDK-based covenant deploy/spend (v1, compute_budget)
+│   │   ├── covenant_patterns.py # Compiled covenant pattern library (7 patterns)
 │   │   ├── kaspa_rpc.py      # wRPC via Kaspa SDK (Resolver)
 │   │   ├── pot_spend.py      # Real spend policy + build→sign→submit
 │   │   ├── escrow.py         # Agent-to-agent escrow (release/refund/resolve)
 │   │   ├── channels.py       # Payment channels (off-chain, on-chain settle)
 │   │   ├── fees.py           # Fee schedules (KAS + TAO), addresses
-│   │   └── silverscript/     # SilverScript contracts
+│   │   └── silverscript/     # SilverScript contracts (Ownable, TimeLock, HTLC, Vesting, SocialRecovery, Streaming, DeadMansSwitch)
 │   └── tao/
 │       ├── tools.py          # TAO tools (balance, delegate, subnets)
 │       ├── x402.py           # HTTP 402 auto-pay for subnet APIs
@@ -453,14 +485,15 @@ vida/
 │       ├── subnet_client.py  # Agent purchase + query + fee tracking
 │       └── substrate_client.py   # Finney chain connection
 ├── tests/
-│   ├── test_negotiation.py           # 27
-│   ├── test_agent_memory.py          # 9
-│   ├── test_tao_subnet_marketplace.py# 10
-│   ├── test_tao_*.py                # 62
-│   ├── test_escrow.py               # 17
-│   ├── test_channels.py             # 17
-│   ├── test_x402.py                 # 7
-│   └── test_kaspa_rpc_integration.py# 6
+|   ├── test_negotiation.py           # 27
+|   ├── test_agent_memory.py          # 9
+|   ├── test_tao_subnet_marketplace.py# 10
+|   ├── test_tao_*.py                # 62
+|   ├── test_escrow.py               # 17
+|   ├── test_channels.py             # 36
+|   ├── test_x402.py                 # 7
+|   ├── test_kaspa_rpc_integration.py# 6
+|   └── test_covenant_deploy.py      # 3
 └── scripts/
     ├── vida_mcp_server.py    # MCP server (12 tools, 2 resources)
     └── run_full_audit.py     # 71-check exhaustive audit

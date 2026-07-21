@@ -1,0 +1,42 @@
+pragma silverscript ^0.1.0;
+
+// Ownable — two-step ownership handoff for covenant admin.
+// Owner proposes a transfer, pending owner accepts.
+// State: owner, has_pending_owner, pending_owner
+
+contract Ownable(pubkey init_owner, bool init_has_pending_owner, pubkey init_pending_owner) {
+    pubkey owner = init_owner;
+    bool has_pending_owner = init_has_pending_owner;
+    pubkey pending_owner = init_pending_owner;
+
+    function requireOwner(pubkey owner_pk, sig owner_sig, State prev_state) {
+        require(owner_pk == prev_state.owner);
+        require(checkSig(owner_sig, owner_pk));
+    }
+
+    function requirePendingOwner(pubkey pending_owner_pk, sig pending_owner_sig, State prev_state) {
+        require(prev_state.has_pending_owner);
+        require(pending_owner_pk == prev_state.pending_owner);
+        require(checkSig(pending_owner_sig, pending_owner_pk));
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function propose_transfer(State prev_state, pubkey next_owner, pubkey owner_pk, sig owner_sig) : (State) {
+        requireOwner(owner_pk, owner_sig, prev_state);
+        require(next_owner != prev_state.owner);
+        return({ owner: prev_state.owner, has_pending_owner: true, pending_owner: next_owner });
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function accept_transfer(State prev_state, pubkey pending_owner_pk, sig pending_owner_sig) : (State) {
+        requirePendingOwner(pending_owner_pk, pending_owner_sig, prev_state);
+        return({ owner: prev_state.pending_owner, has_pending_owner: false, pending_owner: prev_state.pending_owner });
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function cancel_transfer(State prev_state, pubkey owner_pk, sig owner_sig) : (State) {
+        requireOwner(owner_pk, owner_sig, prev_state);
+        require(prev_state.has_pending_owner);
+        return({ owner: prev_state.owner, has_pending_owner: false, pending_owner: prev_state.pending_owner });
+    }
+}

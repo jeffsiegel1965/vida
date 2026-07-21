@@ -1,0 +1,98 @@
+pragma silverscript ^0.1.0;
+
+// Streaming Payment — Continuous Agent Subscription Payments
+//
+// Sender funds a stream. Recipient withdraws at rate_per_claim per period.
+// Sender can cancel and reclaim the unspent balance.
+//
+// State: sender, recipient, rate_per_claim, total_allowance,
+//        remaining_allowance, period, next_release_time
+// Entrypoints:
+//   withdraw(recipient_pk, sig, next_states)  — pull payment
+//   cancel(sender_pk, sig)                     — close stream, reclaim funds
+contract StreamingPayment(
+    pubkey init_sender,
+    pubkey init_recipient,
+    int init_rate_per_claim,
+    int init_total_allowance,
+    int init_remaining_allowance,
+    int init_period,
+    int init_next_release_time
+) {
+    pubkey sender = init_sender;
+    pubkey recipient = init_recipient;
+    int rate_per_claim = init_rate_per_claim;
+    int total_allowance = init_total_allowance;
+    int remaining_allowance = init_remaining_allowance;
+    int period = init_period;
+    int next_release_time = init_next_release_time;
+
+    function requireSender(pubkey sender_pk, sig sender_sig, State prev_state) {
+        require(sender_pk == prev_state.sender);
+        require(checkSig(sender_sig, sender_pk));
+    }
+
+    function requireRecipient(pubkey recipient_pk, sig recipient_sig, State prev_state) {
+        require(recipient_pk == prev_state.recipient);
+        require(checkSig(recipient_sig, recipient_pk));
+    }
+
+    function requireValidStream(State prev_state) {
+        require(prev_state.rate_per_claim > 0);
+        require(prev_state.total_allowance > 0);
+        require(prev_state.remaining_allowance >= 0);
+        require(prev_state.total_allowance >= prev_state.remaining_allowance);
+        require(prev_state.period >= 0);
+    }
+
+    function requireExactPayout(pubkey destination, int amount) {
+        byte[34] destinationLock = new ScriptPubKeyP2PK(destination);
+        require(tx.outputs[0].value == amount);
+        require(tx.outputs[0].scriptPubKey == byte[](destinationLock));
+    }
+
+    #[covenant.singleton(mode = transition, termination = allowed)]
+    function withdraw(State prev_state, pubkey recipient_pk, sig recipient_sig, State[] next_states) : (State[]) {
+        requireValidStream(prev_state);
+        requireRecipient(recipient_pk, recipient_sig, prev_state);
+        require(tx.time >= prev_state.next_release_time);
+        require(prev_state.remaining_allowance > 0);
+
+        require(next_states.length <= 1);
+
+        if (next_states.length == 1) {
+            require(prev_state.remaining_allowance > prev_state.rate_per_claim);
+            requireExactPayout(prev_state.recipient, prev_state.rate_per_claim);
+
+            require(next_states[0].sender == prev_state.sender);
+            require(next_states[0].recipient == prev_state.recipient);
+            require(next_states[0].rate_per_claim == prev_state.rate_per_claim);
+            require(next_states[0].total_allowance == prev_state.total_allowance);
+            require(next_states[0].remaining_allowance == prev_state.remaining_allowance - prev_state.rate_per_claim);
+            require(next_states[0].period == prev_state.period);
+            require(next_states[0].next_release_time == prev_state.next_release_time + prev_state.period);
+        } else {
+            require(prev_state.remaining_allowance <= prev_state.rate_per_claim);
+            requireExactPayout(prev_state.recipient, prev_state.remaining_allowance);
+        }
+
+        return(next_states);
+    }
+
+    entrypoint function cancel(pubkey sender_pk, sig sender_sig) {
+        State prev_state = {
+            sender: sender,
+            recipient: recipient,
+            rate_per_claim: rate_per_claim,
+            total_allowance: total_allowance,
+            remaining_allowance: remaining_allowance,
+            period: period,
+            next_release_time: next_release_time
+        };
+        requireValidStream(prev_state);
+        requireSender(sender_pk, sender_sig, prev_state);
+        int minerFee = 1000;
+        int amount = tx.inputs[this.activeInputIndex].value - minerFee;
+        requireExactPayout(prev_state.sender, amount);
+    }
+}

@@ -233,6 +233,100 @@ def covenant_kascov_address(address: str, network: str = "testnet-10") -> dict[s
     return get_kascov(network=network).address(address)
 
 
+# ── Covenant Pattern Library Tools ──
+
+
+def _covenant_patterns_list() -> dict[str, Any]:
+    """List all available covenant patterns with descriptions."""
+    from .covenant_patterns import COMPILED_ARTIFACTS
+
+    patterns = []
+    for name, artifact in COMPILED_ARTIFACTS.items():
+        path = artifact["json_path"]
+        size = path.stat().st_size if path.exists() else 0
+        patterns.append({
+            "name": name,
+            "contract": artifact["contract_name"],
+            "compiled_bytes": size,
+            "ready": path.exists(),
+        })
+    return {"ok": True, "patterns": patterns, "count": len(patterns)}
+
+
+def _deploy_pattern(pattern_name: str, private_key_hex: str, value_sompi: int = 100_000_000,
+                    network: str = "testnet-10") -> dict[str, Any]:
+    """Deploy a covenant pattern by name."""
+    from .covenant_patterns import COMPILED_ARTIFACTS
+
+    artifact = COMPILED_ARTIFACTS.get(pattern_name)
+    if not artifact:
+        return {"ok": False, "error": f"unknown pattern: {pattern_name}"}
+    if not artifact["json_path"].exists():
+        return {"ok": False, "error": f"pattern {pattern_name} not compiled"}
+
+    import asyncio
+    from .sdk_integration import deploy_covenant
+
+    with open(artifact["json_path"]) as f:
+        import json
+        data = json.load(f)
+    program_hex = bytes(data["script"]).hex()
+
+    result = asyncio.run(deploy_covenant(
+        program_hex=program_hex,
+        private_key_hex=private_key_hex,
+        value_sompi=value_sompi,
+        network=network,
+    ))
+    if result.ok:
+        return {"ok": True, "covenant_id": result.covenant_id, "txid": result.txid,
+                "address": result.address, "value_sompi": result.value_sompi,
+                "pattern": pattern_name}
+    return {"ok": False, "error": result.error}
+
+
+def _covenant_deploy_ownable(private_key_hex: str, value_sompi: int = 100_000_000,
+                             network: str = "testnet-10") -> dict[str, Any]:
+    """Deploy an Ownable covenant."""
+    return _deploy_pattern("ownable", private_key_hex, value_sompi, network)
+
+
+def _covenant_deploy_timelock(private_key_hex: str, value_sompi: int = 100_000_000,
+                              network: str = "testnet-10") -> dict[str, Any]:
+    """Deploy a TimeLock covenant."""
+    return _deploy_pattern("timelock", private_key_hex, value_sompi, network)
+
+
+def _covenant_deploy_atomic_swap(private_key_hex: str, value_sompi: int = 100_000_000,
+                                 network: str = "testnet-10") -> dict[str, Any]:
+    """Deploy an Atomic Swap HTLC covenant."""
+    return _deploy_pattern("atomic_swap_htlc", private_key_hex, value_sompi, network)
+
+
+def _covenant_deploy_social_recovery(private_key_hex: str, value_sompi: int = 100_000_000,
+                                     network: str = "testnet-10") -> dict[str, Any]:
+    """Deploy a Social Recovery covenant."""
+    return _deploy_pattern("social_recovery", private_key_hex, value_sompi, network)
+
+
+def _covenant_deploy_dms(private_key_hex: str, value_sompi: int = 100_000_000,
+                         network: str = "testnet-10") -> dict[str, Any]:
+    """Deploy a Dead Man's Switch covenant."""
+    return _deploy_pattern("dead_mans_switch", private_key_hex, value_sompi, network)
+
+
+def _covenant_deploy_stream(private_key_hex: str, value_sompi: int = 100_000_000,
+                            network: str = "testnet-10") -> dict[str, Any]:
+    """Deploy a Streaming Payment covenant."""
+    return _deploy_pattern("streaming_payment", private_key_hex, value_sompi, network)
+
+
+def _covenant_deploy_vesting(private_key_hex: str, value_sompi: int = 100_000_000,
+                             network: str = "testnet-10") -> dict[str, Any]:
+    """Deploy a Vesting covenant."""
+    return _deploy_pattern("vesting", private_key_hex, value_sompi, network)
+
+
 # ── Registry for Hermes tool discovery ──
 
 HERMES_TOOLS: dict[str, dict[str, Any]] = {
@@ -324,5 +418,46 @@ HERMES_TOOLS: dict[str, dict[str, Any]] = {
         "fn": covenant_fee_schedule,
         "description": "Get the full fee schedule for covenant services",
         "params": {},
+    },
+    # ── Covenant Pattern Library ──
+    "covenant_patterns_list": {
+        "fn": _covenant_patterns_list,
+        "description": "List all available covenant patterns with descriptions",
+        "params": {},
+    },
+    "covenant_deploy_ownable": {
+        "fn": _covenant_deploy_ownable,
+        "description": "Deploy an Ownable covenant — two-step ownership handoff",
+        "params": {"private_key_hex": "str", "value_sompi": "int", "network": "str"},
+    },
+    "covenant_deploy_timelock": {
+        "fn": _covenant_deploy_timelock,
+        "description": "Deploy a TimeLock covenant — time-based conditional release",
+        "params": {"private_key_hex": "str", "value_sompi": "int", "network": "str"},
+    },
+    "covenant_deploy_atomic_swap": {
+        "fn": _covenant_deploy_atomic_swap,
+        "description": "Deploy an Atomic Swap HTLC covenant — hash time-lock cross-party swap",
+        "params": {"private_key_hex": "str", "value_sompi": "int", "network": "str"},
+    },
+    "covenant_deploy_social_recovery": {
+        "fn": _covenant_deploy_social_recovery,
+        "description": "Deploy a Social Recovery covenant — guardian-quorum key replacement",
+        "params": {"private_key_hex": "str", "value_sompi": "int", "network": "str"},
+    },
+    "covenant_deploy_dms": {
+        "fn": _covenant_deploy_dms,
+        "description": "Deploy a Dead Man's Switch covenant — agent inactivity timeout with fallback",
+        "params": {"private_key_hex": "str", "value_sompi": "int", "network": "str"},
+    },
+    "covenant_deploy_stream": {
+        "fn": _covenant_deploy_stream,
+        "description": "Deploy a Streaming Payment covenant — continuous per-period payment streaming",
+        "params": {"private_key_hex": "str", "value_sompi": "int", "network": "str"},
+    },
+    "covenant_deploy_vesting": {
+        "fn": _covenant_deploy_vesting,
+        "description": "Deploy a Vesting covenant — cliff-gated scheduled release",
+        "params": {"private_key_hex": "str", "value_sompi": "int", "network": "str"},
     },
 }

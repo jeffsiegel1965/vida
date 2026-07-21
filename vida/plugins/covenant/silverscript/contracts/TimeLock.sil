@@ -1,0 +1,62 @@
+pragma silverscript ^0.1.0;
+
+// TimeLock — time-based conditional release.
+// Beneficiary claims after unlock_time. Owner can cancel before unlock_time
+// if soft_cancel_enabled. Owner can extend lock time.
+// State: owner, beneficiary, unlock_time, soft_cancel_enabled
+
+contract TimeLock(pubkey init_owner, pubkey init_beneficiary, int init_unlock_time, bool init_soft_cancel_enabled) {
+    pubkey owner = init_owner;
+    pubkey beneficiary = init_beneficiary;
+    int unlock_time = init_unlock_time;
+    bool soft_cancel_enabled = init_soft_cancel_enabled;
+
+    function requireOwner(pubkey owner_pk, sig owner_sig, State prev_state) {
+        require(owner_pk == prev_state.owner);
+        require(checkSig(owner_sig, owner_pk));
+    }
+
+    function requireBeneficiary(pubkey beneficiary_pk, sig beneficiary_sig, State prev_state) {
+        require(beneficiary_pk == prev_state.beneficiary);
+        require(checkSig(beneficiary_sig, beneficiary_pk));
+    }
+
+    function requireExactPayout(pubkey destination) {
+        int minerFee = 1000;
+        int amount = tx.inputs[this.activeInputIndex].value - minerFee;
+        byte[34] destinationLock = new ScriptPubKeyP2PK(destination);
+        require(tx.outputs[0].value == amount);
+        require(tx.outputs[0].scriptPubKey == byte[](destinationLock));
+    }
+
+    entrypoint function claim(pubkey beneficiary_pk, sig beneficiary_sig) {
+        State prev_state = {
+            owner: owner, beneficiary: beneficiary,
+            unlock_time: unlock_time, soft_cancel_enabled: soft_cancel_enabled
+        };
+        require(tx.time >= prev_state.unlock_time);
+        requireBeneficiary(beneficiary_pk, beneficiary_sig, prev_state);
+        requireExactPayout(prev_state.beneficiary);
+    }
+
+    entrypoint function cancel(pubkey owner_pk, sig owner_sig) {
+        State prev_state = {
+            owner: owner, beneficiary: beneficiary,
+            unlock_time: unlock_time, soft_cancel_enabled: soft_cancel_enabled
+        };
+        require(prev_state.soft_cancel_enabled);
+        require(tx.locktime < prev_state.unlock_time);
+        requireOwner(owner_pk, owner_sig, prev_state);
+        requireExactPayout(prev_state.owner);
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function extend_lock(State prev_state, int next_unlock_time, pubkey owner_pk, sig owner_sig) : (State) {
+        requireOwner(owner_pk, owner_sig, prev_state);
+        require(next_unlock_time >= prev_state.unlock_time);
+        return({
+            owner: prev_state.owner, beneficiary: prev_state.beneficiary,
+            unlock_time: next_unlock_time, soft_cancel_enabled: prev_state.soft_cancel_enabled
+        });
+    }
+}

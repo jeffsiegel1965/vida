@@ -274,6 +274,10 @@ def spend_to_agent(
                     outputs=[send_out, chg_out],
                     priority_fee=10_000,
                 )
+                # V1 transaction for covenant support (compute_budget)
+                tx.version = 1
+                for inp in tx.inputs:
+                    inp.compute_budget = 10
                 signed = sign_transaction(tx, [priv], True)
 
                 result = await client.submit_transaction(request=signed)
