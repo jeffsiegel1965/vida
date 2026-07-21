@@ -114,24 +114,3 @@ def verify(message: bytes, signature: bytes, public_key: bytes) -> bool:
         pk_buf,
     )
     return ret == 0
-
-
-def encode_signature(signature_bytes: bytes) -> bytes:
-    """
-    Encode signature (identity function for ML-DSA-65).
-    ML-DSA-65 signatures are already raw bytes.
-    """
-    return signature_bytes
-
-
-def decode_signature(signature_bytes: bytes) -> bytes:
-    """
-    Decode signature (identity function for ML-DSA-65).
-    ML-DSA-65 signatures are already raw bytes.
-    """
-    return signature_bytes
-
-
-def hex_to_bytes(hex_string: str) -> bytes:
-    """Convert hex string to bytes."""
-    return bytes.fromhex(hex_string)

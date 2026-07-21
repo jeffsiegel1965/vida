@@ -235,7 +235,7 @@ class TestKCC0402Operations(unittest.TestCase):
         self.assertEqual(pay_result["paid_kas"], 0.3)
 
         # Close
-        close_result = close_kcc0402(cid, store=self.store)
+        close_result = close_kcc0402(cid)
         self.assertTrue(close_result["ok"])
         self.assertEqual(close_result["payee_gets_kas"], 0.3)
 

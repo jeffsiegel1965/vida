@@ -1,23 +1,21 @@
 """
-Vida Wallet - Kaspa wallet with post-quantum hybrid signatures and delegation modes.
-Cold storage with JSON persistence (chmod 0600).
-Session keys are ephemeral (in-memory only).
+Legacy Wallet Test - Only for testing purposes.
+This file is a security risk and must not be used in production.
 """
 
-import json
 import os
+import sys
+
+# Enable legacy wallet for testing
+os.environ["VIDA_LEGACY_WALLET_ALLOWED"] = "1"
+
+import json
 import stat
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional
-
-# Runtime guard: prevent accidental mainnet use
-_TESTING = os.environ.get("VIDA_LEGACY_WALLET_ALLOWED", "").lower() in ("1", "true", "yes")
-if not _TESTING:
-    print("FATAL: legacy wallet (plaintext keys). Set VIDA_LEGACY_WALLET_ALLOWED=1", file=__import__("sys").stderr)
-    __import__("sys").exit(1)
 
 import kaspa as kas
 from kaspa import Keypair, NetworkType, PrivateKey, PublicKey

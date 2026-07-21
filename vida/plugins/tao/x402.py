@@ -9,11 +9,13 @@ from ..covenant.fees import calc_subnet_query_fee
 class X402Terms:
     """Payment terms from a 402 response."""
 
-    def __init__(self, amount: float, destination: str, network: str, description: str = ""):
+    def __init__(self, amount: float, destination: str, network: str, description: str = "", expires_at: Optional[int] = None, challenge_expires_at: Optional[int] = None):
         self.amount = amount
         self.destination = destination
         self.network = network
         self.description = description
+        self.expires_at = expires_at
+        self.challenge_expires_at = challenge_expires_at
 
     @classmethod
     def from_headers(cls, headers: Dict[str, str]) -> Optional["X402Terms"]:
@@ -21,11 +23,20 @@ class X402Terms:
         if not all(key in headers for key in ["X-Payment-Required", "X-Payment-Amount", "X-Payment-Destination"]):
             return None
 
+        # Enforce expiry ordering: authorization.expiresAt ≤ challengeExpiresAt
+        expires_at = int(headers.get("X-Payment-Expires-At", "0")) if headers.get("X-Payment-Expires-At") else None
+        challenge_expires_at = int(headers.get("X-Challenge-Expires-At", "0")) if headers.get("X-Challenge-Expires-At") else None
+
+        if expires_at and challenge_expires_at and expires_at > challenge_expires_at:
+            raise ValueError("Authorization expiry must not exceed challenge expiry")
+
         return cls(
             amount=float(headers["X-Payment-Amount"]),
             destination=headers["X-Payment-Destination"],
             network=headers.get("X-Payment-Network", "KAS"),
             description=headers.get("X-Payment-Description", ""),
+            expires_at=expires_at,
+            challenge_expires_at=challenge_expires_at,
         )
 
 
@@ -54,7 +65,7 @@ def x402_pay(substrate_client, coldkey_hex: str, terms: X402Terms) -> str:
 
 
 def x402_query(
-    url: str, substrate_client, coldkey_hex: str, method: str = "GET", body: Optional[dict] = None, max_retries: int = 2
+    url: str, substrate_client, coldkey_hex: str, method: str = "GET", body: Optional[dict] = None, max_retries: int = 5
 ) -> X402Response:
     """
     Query an endpoint with automatic 402 payment handling.

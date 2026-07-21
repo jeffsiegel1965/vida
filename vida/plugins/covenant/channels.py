@@ -668,6 +668,38 @@ def vida_channel_pay(
     return pay_kcc0402(channel_id, cumulative_total_sompi, payer_privkey_hex)
 
 
+def close_kcc0402(
+    channel_id: str,
+    store: Optional[KCC0402ChannelStore] = None,
+) -> dict[str, Any]:
+    """Close a KCC-0402 channel."""
+    try:
+        store = store or KCC0402ChannelStore()
+        channel = store.get(channel_id)
+        if not channel:
+            return {"ok": False, "error": f"channel {channel_id} not found"}
+        if channel.status != "open":
+            return {"ok": False, "error": f"channel is {channel.status}, not open"}
+        
+        # Calculate payee gets from latest voucher
+        payee_gets_sompi = channel.cumulative_paid_sompi
+        payee_gets_kas = payee_gets_sompi / SOMIPI_PER_KAS
+        
+        # Update channel status
+        channel.status = "closed"
+        store.save(channel)
+        
+        return {
+            "ok": True,
+            "channel_id": channel_id,
+            "payee_gets_kas": payee_gets_kas,
+            "payee_gets_sompi": payee_gets_sompi,
+            "note": "Channel closed. Submit to chain to settle.",
+        }
+    except Exception as e:
+        return {"ok": False, "error": f"close kcc0402 failed: {e}"}
+
+
 def vida_channel_close(
     channel_id: str,
     mode: str = "kcc0402",
@@ -675,7 +707,7 @@ def vida_channel_close(
 ) -> dict[str, Any]:
     """Close a payment channel."""
     if mode == "kcc0402":
-        return close_kcc0402(channel_id)
+        return close_kcc0402(channel_id, kwargs.get("store"))
     final_sig_a = kwargs.get("final_sig_a", "")
     final_sig_b = kwargs.get("final_sig_b", "")
     return close_channel(channel_id, final_sig_a, final_sig_b)
