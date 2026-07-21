@@ -1,0 +1,62 @@
+name: CI Debug
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Debug Environment
+      run: |
+        echo "=== Python Version ==="
+        python --version
+        echo "=== Python Path ==="
+        which python
+        echo "=== pip Version ==="
+        pip --version
+        echo "=== Environment ==="
+        env | grep -E "(PYTHON|PIP|PATH)" | sort
+        echo "=== System Info ==="
+        uname -a
+        echo "=== Available Memory ==="
+        free -h
+        echo "=== Disk Space ==="
+        df -h
+        echo "=== CPU Info ==="
+        nproc
+        lscpu | head -20
+    
+    - name: Install deps in exact order
+      run: |
+        echo "=== Installing base deps ==="
+        python -m pip install --upgrade pip
+        pip install kaspa cryptography aiohttp "substrate-interface>=1.7.0,<2" bittensor mnemonic mcp pytest pytest-anyio
+        echo "=== Dependency versions ==="
+        pip list | grep -E "(kaspa|cryptography|aiohttp|substrate|bittensor|mnemonic|mcp|pytest)"
+    
+    - name: Install vida
+      run: |
+        echo "=== Installing vida ==="
+        pip install -e .
+        echo "=== Verifying vida install ==="
+        python -c "from vida.plugins.covenant.kaspa_rpc import RpcClient; print('Import OK')"
+    
+    - name: Run tests with verbose output
+      timeout-minutes: 10
+      run: |
+        echo "=== Running test suite ==="
+        python -m pytest tests/ --tb=short --no-header -v | head -50
+        echo "=== Test completion check ==="
+        python -m pytest tests/ --tb=short --no-header -q --co --quiet | wc -l
+        echo "=== Running full test suite ==="
+        python -m pytest tests/ --tb=short --no-header -q
