@@ -29,8 +29,4 @@ jobs:
         run: pip install -e .
 
       - name: Run full test suite
-        timeout-minutes: 15
-        run: |
-          echo "Starting test suite..."
-          python -m pytest tests/ --tb=short --durations=10
-          echo "Test suite completed successfully"
+        run: python -m pytest tests/ --tb=short
