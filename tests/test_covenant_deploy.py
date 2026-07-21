@@ -19,11 +19,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from vida.plugins.covenant.sdk_integration import (
-    deploy_covenant,
-    covenant_balance,
-    program_to_covenant_id,
-    TX_VERSION,
     COMPUTE_BUDGET,
+    TX_VERSION,
+    covenant_balance,
+    deploy_covenant,
+    program_to_covenant_id,
 )
 
 # Load the compiled QuineAgentPot program
@@ -47,7 +47,7 @@ async def main():
     print()
 
     if EXISTING_KEY:
-        from kaspa import PrivateKey, NetworkType, Keypair
+        from kaspa import Keypair, NetworkType, PrivateKey
 
         priv_key = PrivateKey(EXISTING_KEY)
         keypair = Keypair.from_private_key(priv_key)
@@ -56,7 +56,7 @@ async def main():
         print(f"Using existing key — address: {address}")
     else:
         # Generate a new keypair for this test
-        from kaspa import Keypair, PrivateKey, NetworkType
+        from kaspa import Keypair, NetworkType, PrivateKey
 
         keypair = Keypair.random()
         priv_key = PrivateKey(keypair.private_key)

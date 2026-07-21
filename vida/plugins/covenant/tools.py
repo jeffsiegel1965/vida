@@ -265,6 +265,7 @@ def _deploy_pattern(pattern_name: str, private_key_hex: str, value_sompi: int = 
         return {"ok": False, "error": f"pattern {pattern_name} not compiled"}
 
     import asyncio
+
     from .sdk_integration import deploy_covenant
 
     with open(artifact["json_path"]) as f:

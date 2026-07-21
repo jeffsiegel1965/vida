@@ -44,6 +44,9 @@ venv/
 # OS
 .DS_Store
 
+# Agent context (internal — not for public repo)
+AGENTS.md
+
 # Plugin local stores (TAO accounts, etc.)
 data/
 

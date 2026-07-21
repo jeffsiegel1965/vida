@@ -165,7 +165,7 @@ async def deploy_covenant(
 
         # Use the largest UTXO as funding source
         fund = max(entries, key=lambda e: e["utxoEntry"]["amount"] if isinstance(e, dict) else e.amount)
-        fund_amount = fund["utxoEntry"]["amount"] if isinstance(fund, dict) else fund.amount
+        fund["utxoEntry"]["amount"] if isinstance(fund, dict) else fund.amount
         fund_outpoint_dict = fund["outpoint"] if isinstance(fund, dict) else {"transactionId": fund.outpoint.transaction_id, "index": fund.outpoint.index}
 
         # Build covenant P2SH locking script

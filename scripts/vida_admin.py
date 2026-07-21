@@ -241,7 +241,7 @@ async def dashboard():
     <h2>Recent Commits</h2>
     <table>
       <tr><th>SHA</th><th>Message</th><th>When</th></tr>
-      {"".join(f"<tr><td><code>{c["sha"]}</code></td><td>{c["msg"]}</td><td>{c["ago"]}</td></tr>" for c in commits)}
+      {"".join(f"<tr><td><code>{c['sha']}</code></td><td>{c['msg']}</td><td>{c['ago']}</td></tr>" for c in commits)}
     </table>
 
     <h2>Active Sessions</h2>
