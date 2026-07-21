@@ -220,7 +220,7 @@ def create_secure_wallet(
         "pq_public_key": pq_pub_hex,
         "kdf": {"algo": "scrypt", "n": SCRYPT_N, "r": SCRYPT_R, "p": SCRYPT_P, "salt": salt.hex()},
         "enc_seed": _encrypt(key, seed_bytes),
-        "enc_schnorr": _encrypt(key, kp.private_key.encode()),
+        "enc_schnorr": _secure_key_operation(kp.private_key, lambda pk_bytes: _encrypt(key, pk_bytes)),
         "enc_pq_sk": _encrypt(key, pq_sk_bytes) if pq_sk_bytes else None,
     }
     _write_0600(wallet_path, data)
@@ -228,7 +228,37 @@ def create_secure_wallet(
     return {"address": address, "pq_public_key": pq_pub_hex, "mnemonic": mnemonic.phrase}
 
 
-# ── Unlocking ────────────────────────────────────────────────────────────────
+def _secure_key_operation(private_key_hex: str, operation_func):
+    """
+    Perform operations on private keys with immediate clearing.
+    
+    Args:
+        private_key_hex: The private key as hex string
+        operation_func: Function to execute with the private key bytes
+    
+    Returns:
+        Result of operation_func
+    """
+    # Convert to bytearray for mutable operations
+    private_key_bytes = bytearray.fromhex(private_key_hex)
+    
+    try:
+        # Execute the operation
+        result = operation_func(bytes(private_key_bytes))
+        return result
+    finally:
+        # Securely clear the bytearray
+        import secrets
+        for i in range(len(private_key_bytes)):
+            private_key_bytes[i] = secrets.randbits(8) & 0xFF
+        
+        # Clear again with zeros
+        for i in range(len(private_key_bytes)):
+            private_key_bytes[i] = 0
+        
+        # Force garbage collection
+        import gc
+        gc.collect()
 
 
 class SecureVida:
