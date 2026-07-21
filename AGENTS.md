@@ -41,6 +41,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 | `vida/wallet.py` | LEGACY — runtime guard (`VIDA_LEGACY_WALLET_ALLOWED=1`). Testing only. |
 | `vida/transactions.py` | Kaspa transaction building/signing/broadcasting. |
 | `docs/coamm-integration.md` | CoAMM (Zealous Swap) integration plan — design doc, not yet built. |
+| `docs/x402-spec-gaps.md` | x402 spec gaps found by Rust implementer — affects Vida's x402.py |
 
 ### Agent layer
 | File | Purpose |

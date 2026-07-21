@@ -2,6 +2,10 @@
 
 **The agent wallet. Kaspa + Bittensor.**
 
+<p align="center">
+  <img src="assets/social-preview.jpg" width="800" alt="Vida — The Agent Wallet" />
+</p>
+
 Vida is a wallet for autonomous AI agents. It is not a wallet for humans.
 Agents use Vida to discover subnet services on Bittensor.
 Agents use Vida to negotiate covenant terms on Kaspa.
