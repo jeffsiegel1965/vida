@@ -1,0 +1,6 @@
+# Development dependencies
+pytest>=9.0
+pytest-anyio
+
+# Production dependencies 
+-r requirements.txt
