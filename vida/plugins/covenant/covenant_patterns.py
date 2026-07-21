@@ -63,6 +63,7 @@ COMPILED_ARTIFACTS: dict[str, dict[str, Any]] = {
 @dataclass
 class PatternResult:
     """Standard result from any covenant pattern operation."""
+
     ok: bool
     txid: str = ""
     pattern: str = ""
@@ -341,10 +342,14 @@ def deploy_dms(
     network: str = "testnet-10",
 ) -> PatternResult:
     """Sync wrapper for deploy_dead_mans_switch."""
-    return asyncio.run(deploy_dead_mans_switch(
-        private_key_hex=private_key_hex, config=config,
-        value_sompi=value_sompi, network=network,
-    ))
+    return asyncio.run(
+        deploy_dead_mans_switch(
+            private_key_hex=private_key_hex,
+            config=config,
+            value_sompi=value_sompi,
+            network=network,
+        )
+    )
 
 
 def deploy_stream(
@@ -354,10 +359,14 @@ def deploy_stream(
     network: str = "testnet-10",
 ) -> PatternResult:
     """Sync wrapper for deploy_streaming_payment."""
-    return asyncio.run(deploy_streaming_payment(
-        private_key_hex=private_key_hex, config=config,
-        value_sompi=value_sompi, network=network,
-    ))
+    return asyncio.run(
+        deploy_streaming_payment(
+            private_key_hex=private_key_hex,
+            config=config,
+            value_sompi=value_sompi,
+            network=network,
+        )
+    )
 
 
 def deploy_vest(
@@ -367,7 +376,11 @@ def deploy_vest(
     network: str = "testnet-10",
 ) -> PatternResult:
     """Sync wrapper for deploy_vesting."""
-    return asyncio.run(deploy_vesting(
-        private_key_hex=private_key_hex, config=config,
-        value_sompi=value_sompi, network=network,
-    ))
+    return asyncio.run(
+        deploy_vesting(
+            private_key_hex=private_key_hex,
+            config=config,
+            value_sompi=value_sompi,
+            network=network,
+        )
+    )

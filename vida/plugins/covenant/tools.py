@@ -244,17 +244,20 @@ def _covenant_patterns_list() -> dict[str, Any]:
     for name, artifact in COMPILED_ARTIFACTS.items():
         path = artifact["json_path"]
         size = path.stat().st_size if path.exists() else 0
-        patterns.append({
-            "name": name,
-            "contract": artifact["contract_name"],
-            "compiled_bytes": size,
-            "ready": path.exists(),
-        })
+        patterns.append(
+            {
+                "name": name,
+                "contract": artifact["contract_name"],
+                "compiled_bytes": size,
+                "ready": path.exists(),
+            }
+        )
     return {"ok": True, "patterns": patterns, "count": len(patterns)}
 
 
-def _deploy_pattern(pattern_name: str, private_key_hex: str, value_sompi: int = 100_000_000,
-                    network: str = "testnet-10") -> dict[str, Any]:
+def _deploy_pattern(
+    pattern_name: str, private_key_hex: str, value_sompi: int = 100_000_000, network: str = "testnet-10"
+) -> dict[str, Any]:
     """Deploy a covenant pattern by name."""
     from .covenant_patterns import COMPILED_ARTIFACTS
 
@@ -270,60 +273,75 @@ def _deploy_pattern(pattern_name: str, private_key_hex: str, value_sompi: int = 
 
     with open(artifact["json_path"]) as f:
         import json
+
         data = json.load(f)
     program_hex = bytes(data["script"]).hex()
 
-    result = asyncio.run(deploy_covenant(
-        program_hex=program_hex,
-        private_key_hex=private_key_hex,
-        value_sompi=value_sompi,
-        network=network,
-    ))
+    result = asyncio.run(
+        deploy_covenant(
+            program_hex=program_hex,
+            private_key_hex=private_key_hex,
+            value_sompi=value_sompi,
+            network=network,
+        )
+    )
     if result.ok:
-        return {"ok": True, "covenant_id": result.covenant_id, "txid": result.txid,
-                "address": result.address, "value_sompi": result.value_sompi,
-                "pattern": pattern_name}
+        return {
+            "ok": True,
+            "covenant_id": result.covenant_id,
+            "txid": result.txid,
+            "address": result.address,
+            "value_sompi": result.value_sompi,
+            "pattern": pattern_name,
+        }
     return {"ok": False, "error": result.error}
 
 
-def _covenant_deploy_ownable(private_key_hex: str, value_sompi: int = 100_000_000,
-                             network: str = "testnet-10") -> dict[str, Any]:
+def _covenant_deploy_ownable(
+    private_key_hex: str, value_sompi: int = 100_000_000, network: str = "testnet-10"
+) -> dict[str, Any]:
     """Deploy an Ownable covenant."""
     return _deploy_pattern("ownable", private_key_hex, value_sompi, network)
 
 
-def _covenant_deploy_timelock(private_key_hex: str, value_sompi: int = 100_000_000,
-                              network: str = "testnet-10") -> dict[str, Any]:
+def _covenant_deploy_timelock(
+    private_key_hex: str, value_sompi: int = 100_000_000, network: str = "testnet-10"
+) -> dict[str, Any]:
     """Deploy a TimeLock covenant."""
     return _deploy_pattern("timelock", private_key_hex, value_sompi, network)
 
 
-def _covenant_deploy_atomic_swap(private_key_hex: str, value_sompi: int = 100_000_000,
-                                 network: str = "testnet-10") -> dict[str, Any]:
+def _covenant_deploy_atomic_swap(
+    private_key_hex: str, value_sompi: int = 100_000_000, network: str = "testnet-10"
+) -> dict[str, Any]:
     """Deploy an Atomic Swap HTLC covenant."""
     return _deploy_pattern("atomic_swap_htlc", private_key_hex, value_sompi, network)
 
 
-def _covenant_deploy_social_recovery(private_key_hex: str, value_sompi: int = 100_000_000,
-                                     network: str = "testnet-10") -> dict[str, Any]:
+def _covenant_deploy_social_recovery(
+    private_key_hex: str, value_sompi: int = 100_000_000, network: str = "testnet-10"
+) -> dict[str, Any]:
     """Deploy a Social Recovery covenant."""
     return _deploy_pattern("social_recovery", private_key_hex, value_sompi, network)
 
 
-def _covenant_deploy_dms(private_key_hex: str, value_sompi: int = 100_000_000,
-                         network: str = "testnet-10") -> dict[str, Any]:
+def _covenant_deploy_dms(
+    private_key_hex: str, value_sompi: int = 100_000_000, network: str = "testnet-10"
+) -> dict[str, Any]:
     """Deploy a Dead Man's Switch covenant."""
     return _deploy_pattern("dead_mans_switch", private_key_hex, value_sompi, network)
 
 
-def _covenant_deploy_stream(private_key_hex: str, value_sompi: int = 100_000_000,
-                            network: str = "testnet-10") -> dict[str, Any]:
+def _covenant_deploy_stream(
+    private_key_hex: str, value_sompi: int = 100_000_000, network: str = "testnet-10"
+) -> dict[str, Any]:
     """Deploy a Streaming Payment covenant."""
     return _deploy_pattern("streaming_payment", private_key_hex, value_sompi, network)
 
 
-def _covenant_deploy_vesting(private_key_hex: str, value_sompi: int = 100_000_000,
-                             network: str = "testnet-10") -> dict[str, Any]:
+def _covenant_deploy_vesting(
+    private_key_hex: str, value_sompi: int = 100_000_000, network: str = "testnet-10"
+) -> dict[str, Any]:
     """Deploy a Vesting covenant."""
     return _deploy_pattern("vesting", private_key_hex, value_sompi, network)
 

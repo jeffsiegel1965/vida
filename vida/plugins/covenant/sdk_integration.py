@@ -41,10 +41,10 @@ from kaspa import (
 USE_RESOLVER = True
 
 # Covenant transaction constants (from official SDK examples)
-TX_VERSION = 1                          # v1 for covenant transactions
-COMPUTE_BUDGET = 10                     # compute budget for covenant introspection
-SUBNETWORK_ID = bytes(20)              # zero subnetwork (main/payment network)
-FEE_MARGIN = 1.1                        # 10% headroom on fee estimates
+TX_VERSION = 1  # v1 for covenant transactions
+COMPUTE_BUDGET = 10  # compute budget for covenant introspection
+SUBNETWORK_ID = bytes(20)  # zero subnetwork (main/payment network)
+FEE_MARGIN = 1.1  # 10% headroom on fee estimates
 
 
 @dataclass
@@ -84,10 +84,7 @@ def _build_covenant_spk(program_hex: str) -> ScriptPublicKey:
     a P2SH (pay-to-script-hash) locking script.
     """
     program = bytes.fromhex(program_hex)
-    return (
-        ScriptBuilder.from_script(program, covenants_enabled=True)
-        .create_pay_to_script_hash_script()
-    )
+    return ScriptBuilder.from_script(program, covenants_enabled=True).create_pay_to_script_hash_script()
 
 
 def _make_utxo_entry(entry: dict) -> UtxoEntryReference:
@@ -166,7 +163,11 @@ async def deploy_covenant(
         # Use the largest UTXO as funding source
         fund = max(entries, key=lambda e: e["utxoEntry"]["amount"] if isinstance(e, dict) else e.amount)
         fund["utxoEntry"]["amount"] if isinstance(fund, dict) else fund.amount
-        fund_outpoint_dict = fund["outpoint"] if isinstance(fund, dict) else {"transactionId": fund.outpoint.transaction_id, "index": fund.outpoint.index}
+        fund_outpoint_dict = (
+            fund["outpoint"]
+            if isinstance(fund, dict)
+            else {"transactionId": fund.outpoint.transaction_id, "index": fund.outpoint.index}
+        )
 
         # Build covenant P2SH locking script
         covenant_spk = _build_covenant_spk(program_hex)
@@ -204,9 +205,7 @@ async def deploy_covenant(
         )
 
         # Populate genesis covenant binding
-        tx.populate_genesis_covenants(
-            [GenesisCovenantGroup(authorizing_input=0, outputs=[0])]
-        )
+        tx.populate_genesis_covenants([GenesisCovenantGroup(authorizing_input=0, outputs=[0])])
 
         # Set mass after covenant binding
         tx.mass = calculate_transaction_mass(network, tx)
@@ -305,10 +304,14 @@ async def spend_from_covenant(
             return CovenantSpendResult(ok=False, error="no covenant UTXO found")
 
         cov_amount = cov_entry["utxoEntry"]["amount"] if isinstance(cov_entry, dict) else cov_entry.amount
-        cov_outpoint_dict = cov_entry["outpoint"] if isinstance(cov_entry, dict) else {
-            "transactionId": cov_entry.outpoint.transaction_id,
-            "index": cov_entry.outpoint.index,
-        }
+        cov_outpoint_dict = (
+            cov_entry["outpoint"]
+            if isinstance(cov_entry, dict)
+            else {
+                "transactionId": cov_entry.outpoint.transaction_id,
+                "index": cov_entry.outpoint.index,
+            }
+        )
 
         # Build covenant spend input
         spend_input = TransactionInput(
