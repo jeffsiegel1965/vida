@@ -312,41 +312,7 @@ def pay_kcc0402(
         return {"ok": False, "error": f"pay_kcc0402 failed: {e}"}
 
 
-def close_kcc0402(
-    channel_id: str,
-    store: Optional[KCC0402ChannelStore] = None,
-) -> dict[str, Any]:
-    """Close a KCC-0402 channel.
-
-    Submits the last voucher on-chain. The payee receives the signed
-    total, the payer receives the remainder.
-
-    Args:
-        channel_id: Channel to close
-        store: Optional store override
-    """
-    try:
-        store = store or KCC0402ChannelStore()
-        channel = store.get(channel_id)
-        if not channel:
-            return {"ok": False, "error": f"channel {channel_id} not found"}
-        if channel.status != "open":
-            return {"ok": False, "error": f"channel is {channel.status}"}
-
-        channel.status = "closed"
-        store.save(channel)
-
-        return {
-            "ok": True,
-            "channel_id": channel_id,
-            "payee_gets_kas": channel.cumulative_paid_sompi / SOMIPI_PER_KAS,
-            "payer_gets_kas": channel.payer_remainder() / SOMIPI_PER_KAS,
-            "last_voucher": channel.last_voucher[:32] + "..." if channel.last_voucher else "",
-            "note": "Submit close transaction on-chain with the last voucher to settle.",
-        }
-
-    except Exception as e:
-        return {"ok": False, "error": f"close_kcc0402 failed: {e}"}
+# Duplicate function removed - using the improved version below
 
 
 # ══════════════════════════════════════════════════════════
@@ -680,15 +646,15 @@ def close_kcc0402(
             return {"ok": False, "error": f"channel {channel_id} not found"}
         if channel.status != "open":
             return {"ok": False, "error": f"channel is {channel.status}, not open"}
-        
+
         # Calculate payee gets from latest voucher
         payee_gets_sompi = channel.cumulative_paid_sompi
         payee_gets_kas = payee_gets_sompi / SOMIPI_PER_KAS
-        
+
         # Update channel status
         channel.status = "closed"
         store.save(channel)
-        
+
         return {
             "ok": True,
             "channel_id": channel_id,

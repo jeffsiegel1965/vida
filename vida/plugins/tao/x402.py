@@ -9,7 +9,15 @@ from ..covenant.fees import calc_subnet_query_fee
 class X402Terms:
     """Payment terms from a 402 response."""
 
-    def __init__(self, amount: float, destination: str, network: str, description: str = "", expires_at: Optional[int] = None, challenge_expires_at: Optional[int] = None):
+    def __init__(
+        self,
+        amount: float,
+        destination: str,
+        network: str,
+        description: str = "",
+        expires_at: Optional[int] = None,
+        challenge_expires_at: Optional[int] = None,
+    ):
         self.amount = amount
         self.destination = destination
         self.network = network
@@ -25,7 +33,9 @@ class X402Terms:
 
         # Enforce expiry ordering: authorization.expiresAt ≤ challengeExpiresAt
         expires_at = int(headers.get("X-Payment-Expires-At", "0")) if headers.get("X-Payment-Expires-At") else None
-        challenge_expires_at = int(headers.get("X-Challenge-Expires-At", "0")) if headers.get("X-Challenge-Expires-At") else None
+        challenge_expires_at = (
+            int(headers.get("X-Challenge-Expires-At", "0")) if headers.get("X-Challenge-Expires-At") else None
+        )
 
         if expires_at and challenge_expires_at and expires_at > challenge_expires_at:
             raise ValueError("Authorization expiry must not exceed challenge expiry")
