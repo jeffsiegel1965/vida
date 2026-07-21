@@ -15,7 +15,7 @@ from pathlib import Path
 # Ensure vida directory is in path for ml_dsa_65 import
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vida"))
 
-from wallet import (
+from vida.wallet import (
     PQ_AVAILABLE,
     DelegationMode,
     Vida,
