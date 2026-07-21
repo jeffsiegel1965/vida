@@ -3,6 +3,39 @@
 This file is the single source of truth for any AI agent working on the Vida codebase.
 Read this at the start of every session. Update it when you discover something new.
 
+## Task Routing
+
+If you are asked to do a task, find the row below and read the file listed first.
+If no row matches, read the README.md and then the relevant module.
+
+| If you need to... | Read this first |
+|-------------------|-----------------|
+| Send / receive KAS | `vida/transactions.py` + `vida/secure_wallet.py` |
+| Deploy a covenant | `vida/plugins/covenant/sdk_integration.py` + `silverscript/` |
+| Spend from a covenant | `vida/plugins/covenant/pot_spend.py` |
+| Open an escrow | `vida/plugins/covenant/escrow.py` |
+| Create a payment channel | `vida/plugins/covenant/channels.py` (KCC-0402 mode) |
+| Negotiate with an agent | `vida/agents/negotiation/` |
+| Check agent memory | `vida/agents/memory.py` |
+| Stake / unstake TAO | `vida/plugins/tao/substrate_client.py` |
+| Discover subnet services | `vida/plugins/tao/subnet_marketplace.py` |
+| Query a subnet | `vida/plugins/tao/subnet_client.py` |
+| Auto-pay a subnet API | `vida/plugins/tao/x402.py` |
+| Verify a transaction | `vida/agents/verification.py` |
+| Run the MCP server | `scripts/vida_mcp_server.py` |
+| Check covenant status | `vida/plugins/covenant/tools.py` |
+| Review CoAMM integration | `docs/coamm-integration.md` |
+| Review KCC ecosystem specs | `docs/kccs.md` |
+| Review x402 spec gaps | `docs/x402-spec-gaps.md` |
+| Post to X (milestone) | `scripts/post_milestone.sh` |
+| Post to X (proof card) | `scripts/post_proof_card.py` |
+| Post to X (weekly digest) | `scripts/post_weekly_digest.sh` |
+| Generate a proof card image | `scripts/post_proof_card.py` |
+| Run the pipeline test film | `scripts/run_pipeline.py` |
+| Fix CI (ruff) | `ruff check --fix --unsafe-fixes . && ruff format .` |
+| Check audit status | `AUDIT.md` |
+| Read the full spec | `README.md` |
+
 ## Identity
 
 You are working on **Vida** — a wallet built for AI agents on Kaspa (KAS) and Bittensor (TAO).
@@ -30,6 +63,8 @@ Owner ─── grants session caps ───→ Vida Kernel
                                        │
                                Agent memory + negotiation
                           (deals, profiles, subnets, sessions)
+                                       │
+                          Subnet gateway fees (0.05%)
 ```
 
 ## Key Files
@@ -46,8 +81,8 @@ Owner ─── grants session caps ───→ Vida Kernel
 ### Agent layer
 | File | Purpose |
 |------|---------|
-| `vida/agents/orchestrator.py` | Agent loop: goal → plan → execute → report. 16 tools. |
-| `vida/agents/staking_optimizer.py` | LLM-powered agent executor (K2.5 via Zyloo). |
+| `vida/agents/orchestrator.py` | Agent loop: goal → plan → execute → report. 19 tools. |
+| `vida/agents/staking_optimizer.py` | K2.5-powered agent executor. |
 | `vida/agents/tool_schema.py` | OpenAI-compatible function calling schema. |
 | `vida/agents/verification.py` | 5-level verification ladder. `@require_l1_spend` enforces txid on financial ops. |
 | `vida/agents/memory.py` | Persistent cross-session agent memory (deals, counterparties, subnets, KV). |
@@ -59,7 +94,9 @@ Owner ─── grants session caps ───→ Vida Kernel
 | `vida/plugins/covenant/kaspa_rpc.py` | wRPC via Kaspa SDK + Resolver. Structured errors. REST API fallback. |
 | `vida/plugins/covenant/tools.py` | 17 covenant tools (status, plan, fees, kascov, validate). |
 | `vida/plugins/covenant/pot_spend.py` | Spend policy enforcement. Real `spend_to_agent()` (build→sign→submit). |
-| `vida/plugins/covenant/fees.py` | Fee and donation addresses. Separate, configurable via env vars. |
+| `vida/plugins/covenant/escrow.py` | Agent-to-agent escrow (release/refund/resolve). |
+| `vida/plugins/covenant/channels.py` | Payment channels (KCC-0402 + bidirectional). 36 tests. |
+| `vida/plugins/covenant/fees.py` | Fee schedules (KAS + TAO), addresses. |
 | `vida/plugins/covenant/sdk_integration.py` | SDK-based covenant deploy/spend. |
 | `vida/plugins/covenant/silverscript/` | SilverScript contract sources (quine, agent pot). |
 
@@ -70,6 +107,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 | `vida/plugins/tao/subnet_marketplace.py` | Registry of 9 subnets with pricing, API endpoints, service types. |
 | `vida/plugins/tao/subnet_client.py` | Agent purchase workflow: resolve → pay (stake) → query API. |
 | `vida/plugins/tao/tools.py` | 9 Hermes tools (balance, delegate, subnets, info, query). |
+| `vida/plugins/tao/x402.py` | HTTP 402 auto-pay for subnet APIs. |
 
 ### Tests
 | File | Count |
@@ -78,10 +116,11 @@ Owner ─── grants session caps ───→ Vida Kernel
 | `tests/test_agent_memory.py` | 9 |
 | `tests/test_tao_subnet_marketplace.py` | 10 |
 | `tests/test_tao_*.py` | 62 (staking, sessions, robustness, PQ) |
+| `tests/test_escrow.py` | 17 |
+| `tests/test_channels.py` | 36 |
+| `tests/test_x402.py` | 7 |
 | `tests/test_kaspa_rpc_integration.py` | 6 (live testnet-10) |
-| `tests/test_covenant_scaffold.py` | 39 |
-| `tests/test_covenant_robustness.py` | 3 |
-| **Total** | **156** |
+| **Total** | **221** |
 
 ## Rules
 
@@ -92,6 +131,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 5. **Financial operations must use L1-L2 verification.** `@require_l1_spend` enforces this. Never L4 for money.
 6. **The legacy wallet (`wallet.py`) is testing-only.** `VIDA_LEGACY_WALLET_ALLOWED=1` required. Use `secure_wallet.py` for real funds.
 7. **Self-custody means self-responsibility.** No marketing claims.
+8. **Do not push infra scripts to public repo.** Review before committing.
 
 ## What's Real vs Not
 
@@ -100,16 +140,19 @@ Owner ─── grants session caps ───→ Vida Kernel
 | KAS send/receive | ✅ Mainnet | Session-gated, wRPC via Kaspa SDK |
 | TAO stake/unstake | ✅ Finney | Session-gated, pre-dTAO (verified Jul 19) |
 | TAO subnet marketplace | ✅ Finney | 9 subnets, discover + pay + query |
-| Agent loop (LLM → plan → execute) | ✅ Working | K2.5-powered, 19 tools |
-| Agent memory | ✅ Working | Deals, counterparties, subnets, KV, context |
-| Agent negotiation | ✅ Working | 3 templates, 2 strategies, subscriptions, volume discounts |
-| Escrow covenants | ✅ Working | Release/refund/resolve, 17 tests, fees baked in |
-| MCP server | ✅ Working | 12 tools + 2 resources |
+| x402 auto-pay | ✅ Built | HTTP 402, auto-pay subnet APIs |
+| Subnet gateway fees | ✅ Built | 0.05% per query, free tier, TAO fee address |
+| Payment channels | ✅ Built | KCC-0402 + bidirectional, 36 tests |
+| Escrow covenants | ✅ Built | 3 paths, 17 tests, fees baked in |
+| Multisig (Bittensor v11) | ✅ Built | M-of-N, 17 tests |
+| Agent orchestrator | ✅ Working | K2.5-powered, 19 tools |
+| Agent memory | ✅ Working | Deals, profiles, subnets, conviction voting |
+| Agent negotiation | ✅ Working | 3 templates, 2 strategies, volume discounts |
+| Subscriptions | ✅ Working | Recurring pots, 15% discount |
+| MCP server | ✅ Working | 12 tools, 2 resources |
 | Verification ladder | ✅ Working | L1-L5, `@require_l1_spend` enforced |
-| Kaspa covenants (SilverScript) | ✅ Mainnet | Toccata fork at DAA 389M, currently 490M |
-| Covenant pot planning | ✅ Offline | Templates, policies, validation |
-| Covenant deploy on mainnet | ⚠️ Need funded key | SDK tools work, mainnet accepts covenants |
-| SilverScript quine spend | ⚠️ Partially blocked | BUILD + SIGN work, SUBMIT has REST API fallback |
+| Kaspa covenants (SilverScript) | ✅ Mainnet | Toccata active (DAA 490M) |
+| Covenant deploy | ⚠️ Tested on TN10 | Mainnet ready, needs funded key |
 | dTAO deployment | ⏳ Not on Finney yet | Pre-dTAO is correct. Code structured for update. |
 
 ## Common Mistakes
@@ -120,6 +163,7 @@ Owner ─── grants session caps ───→ Vida Kernel
 - **Don't forget the verification ladder.** `@require_l1_spend` is mandatory for financial ops.
 - **Don't push marketing docs.** The `docs/brand/` directory was removed.
 - **Don't claim "agent economy"** without agent-to-agent commerce. (We now have negotiation.)
+- **Don't push infra scripts to public repo.** Check `git status` before committing.
 
 ## Past Decisions
 
@@ -129,6 +173,9 @@ Owner ─── grants session caps ───→ Vida Kernel
 - TN12 migration reverted (Jul 18, 2026). TN12 doesn't exist as public network.
 - Toccata status corrected (Jul 19, 2026). Was listed as "not on mainnet" — DAA 490M proves it's active.
 - Fee/donation addresses separated (Jul 19, 2026). `VIDA_FEE_ADDRESS` / `VIDA_DONATION_ADDRESS`.
+- KCC-0402 channel alignment (Jul 20, 2026). BIP340 vouchers, 36 tests.
+- STE100 README rewrite (Jul 20, 2026). No marketing language.
+- Social preview optimized: 1.1MB PNG → 202KB JPEG (Jul 20, 2026).
 
 ## Memory
 
