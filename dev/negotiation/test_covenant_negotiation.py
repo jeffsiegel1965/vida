@@ -17,7 +17,6 @@ from vida.plugins.covenant.negotiation import CovenantTerms, create_deal
 
 
 class TestNegotiationProtocol(unittest.TestCase):
-
     def test_create_deal(self):
         terms = create_deal(
             max_kas_per_tx=1.0,
@@ -92,6 +91,7 @@ class TestQuineStrategy(unittest.TestCase):
 
     def test_quine_template_ok(self):
         from vida.plugins.covenant.agent_pot_script import build_agent_pot_script_template
+
         t = build_agent_pot_script_template(
             max_kas_per_tx=1.0,
             max_kas_per_day=5.0,
@@ -106,6 +106,7 @@ class TestQuineStrategy(unittest.TestCase):
 
     def test_quine_with_owner_address(self):
         from vida.plugins.covenant.agent_pot_script import build_agent_pot_script_template
+
         t = build_agent_pot_script_template(
             max_kas_per_tx=1.0,
             max_kas_per_day=5.0,
@@ -117,6 +118,7 @@ class TestQuineStrategy(unittest.TestCase):
 
     def test_quine_generations(self):
         from vida.plugins.covenant.agent_pot_script import build_agent_pot_script_template
+
         t = build_agent_pot_script_template(
             max_kas_per_tx=1.0,
             max_kas_per_day=5.0,
@@ -133,6 +135,7 @@ class TestQuineStrategy(unittest.TestCase):
     def test_quine_kii_reference(self):
         """Verify the KII quine covenant ID is referenced in the template."""
         from vida.plugins.covenant.agent_pot_script import build_agent_pot_script_template
+
         t = build_agent_pot_script_template(
             max_kas_per_tx=1.0,
             max_kas_per_day=5.0,
@@ -146,6 +149,7 @@ class TestQuineStrategy(unittest.TestCase):
     def test_quine_to_policy_template(self):
         """Verify that quine terms can generate a policy template via negotiation."""
         from vida.plugins.covenant.negotiation import create_deal
+
         terms = create_deal(
             max_kas_per_tx=1.0,
             max_kas_per_day=5.0,
@@ -154,6 +158,7 @@ class TestQuineStrategy(unittest.TestCase):
         template = terms.to_policy_template()
         self.assertIn("ok", template)
         self.assertIn("policy_hash", template)
+
 
 # ── Phase 1: NegotiationSession multi-round tests ──
 
@@ -169,6 +174,7 @@ class TestNegotiationSession(unittest.TestCase):
             Negotiator,
             UserControls,
         )
+
         self.NegotiationSession = NegotiationSession
         self.Negotiator = Negotiator
         self.NegotiationPhase = NegotiationPhase
@@ -238,6 +244,7 @@ class TestDealBook(unittest.TestCase):
 
     def setUp(self):
         from vida.plugins.covenant.negotiation import DealBook
+
         self.DealBook = DealBook
         self.CovenantTerms = CovenantTerms
 
@@ -278,13 +285,16 @@ class TestNegotiatorWrapper(unittest.TestCase):
 
     def setUp(self):
         from vida.plugins.covenant.negotiation import Negotiator, UserControls
+
         self.Negotiator = Negotiator
         self.UserControls = UserControls
 
     def test_template_deal_ok(self):
         neg = self.Negotiator(owner_id="owner1")
         result = neg.template_deal(
-            max_kas_per_tx=1.0, max_kas_per_day=5.0, counterparty_id="agent_abc",
+            max_kas_per_tx=1.0,
+            max_kas_per_day=5.0,
+            counterparty_id="agent_abc",
         )
         self.assertTrue(result["ok"])
         self.assertIn("deal_hash", result)
@@ -294,7 +304,9 @@ class TestNegotiatorWrapper(unittest.TestCase):
         neg = self.Negotiator(owner_id="owner1", controls=controls)
         # 10 KAS/day * (480h / 24) = 200 KAS pot -> exceeds 10 KAS threshold
         result = neg.template_deal(
-            max_kas_per_tx=5.0, max_kas_per_day=10.0, counterparty_id="agent_abc",
+            max_kas_per_tx=5.0,
+            max_kas_per_day=10.0,
+            counterparty_id="agent_abc",
             duration_hours=480.0,
         )
         self.assertFalse(result["ok"])
@@ -305,7 +317,10 @@ class TestNegotiatorWrapper(unittest.TestCase):
         neg = self.Negotiator(owner_id="owner1", controls=controls)
         # 10 KAS/day * (120h / 24) = 50 KAS -> equals half of threshold -> escalates
         result = neg.template_deal(
-            max_kas_per_tx=5.0, max_kas_per_day=10.0, counterparty_id="new_agent", duration_hours=120.0,
+            max_kas_per_tx=5.0,
+            max_kas_per_day=10.0,
+            counterparty_id="new_agent",
+            duration_hours=120.0,
         )
         self.assertFalse(result["ok"])
         self.assertTrue(result.get("escalated"))
@@ -313,7 +328,9 @@ class TestNegotiatorWrapper(unittest.TestCase):
     def test_template_deal_validates_terms(self):
         neg = self.Negotiator(owner_id="owner1")
         result = neg.template_deal(
-            max_kas_per_tx=0, max_kas_per_day=5.0, counterparty_id="agent_abc",
+            max_kas_per_tx=0,
+            max_kas_per_day=5.0,
+            counterparty_id="agent_abc",
         )
         self.assertFalse(result["ok"])
         self.assertIn("Invalid terms", result["error"])

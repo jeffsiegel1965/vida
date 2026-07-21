@@ -1,4 +1,5 @@
 """Tests for KCC-0402 aligned payment channels."""
+
 from __future__ import annotations
 
 import os
@@ -40,7 +41,7 @@ class TestVoucherFormat(unittest.TestCase):
         msg = voucher_message(cid, total)
         self.assertEqual(len(msg), 40)  # 32 + 8
         self.assertEqual(msg[:32], bytes.fromhex(cid))
-        self.assertEqual(msg[32:], total.to_bytes(8, 'little'))
+        self.assertEqual(msg[32:], total.to_bytes(8, "little"))
 
     def test_message_bad_channel_id(self):
         with self.assertRaises(ValueError):
@@ -394,8 +395,12 @@ class TestLegacyBidirectional(unittest.TestCase):
 
     def test_update(self):
         c = PaymentChannel(
-            id="ch_test", party_a="a", party_b="b",
-            capacity_sompi=100_000_000, balance_a=100_000_000, balance_b=0,
+            id="ch_test",
+            party_a="a",
+            party_b="b",
+            capacity_sompi=100_000_000,
+            balance_a=100_000_000,
+            balance_b=0,
         )
         self.store.save(c)
         result = update_channel("ch_test", "sig_a", "sig_b", 60_000_000, 40_000_000, store=self.store)
@@ -404,8 +409,12 @@ class TestLegacyBidirectional(unittest.TestCase):
 
     def test_close(self):
         c = PaymentChannel(
-            id="ch_test", party_a="a", party_b="b",
-            capacity_sompi=100_000_000, balance_a=60_000_000, balance_b=40_000_000,
+            id="ch_test",
+            party_a="a",
+            party_b="b",
+            capacity_sompi=100_000_000,
+            balance_a=60_000_000,
+            balance_b=40_000_000,
         )
         self.store.save(c)
         result = close_channel("ch_test", store=self.store)
@@ -414,8 +423,12 @@ class TestLegacyBidirectional(unittest.TestCase):
 
     def test_update_overflow(self):
         c = PaymentChannel(
-            id="ch_test", party_a="a", party_b="b",
-            capacity_sompi=100_000_000, balance_a=100_000_000, balance_b=0,
+            id="ch_test",
+            party_a="a",
+            party_b="b",
+            capacity_sompi=100_000_000,
+            balance_a=100_000_000,
+            balance_b=0,
         )
         self.store.save(c)
         result = update_channel("ch_test", "sig_a", "sig_b", 200_000_000, 0)

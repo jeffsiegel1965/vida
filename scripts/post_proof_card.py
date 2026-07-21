@@ -37,7 +37,9 @@ CARD_W, CARD_H = 1920, 1080
 def find_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
     """Find best available sans-serif font."""
     candidates = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        if bold
+        else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/TTF/DejaVuSans.ttf",
         "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/dejavu/DejaVuSans.ttf",
     ]
@@ -126,7 +128,9 @@ def post_to_x(image_path: Path, text: str) -> bool:
         # Upload media
         result = subprocess.run(
             ["xurl", "media", "upload", str(image_path)],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if result.returncode != 0:
             print(f"Media upload failed: {result.stderr}")
@@ -139,7 +143,9 @@ def post_to_x(image_path: Path, text: str) -> bool:
         # Post with media
         post_result = subprocess.run(
             ["xurl", "post", text, "--media", media_id],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if post_result.returncode != 0:
             print(f"Post failed: {post_result.stderr}")

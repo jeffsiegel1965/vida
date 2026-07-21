@@ -379,12 +379,7 @@ class KCC0402ChannelStore:
             json.dumps(
                 {
                     "channels": [
-                        {
-                            k: v
-                            for k, v in c.__dict__.items()
-                            if not k.startswith("_")
-                        }
-                        for c in self._channels.values()
+                        {k: v for k, v in c.__dict__.items() if not k.startswith("_")} for c in self._channels.values()
                     ],
                     "updated_at": time.time(),
                 },
@@ -412,6 +407,7 @@ class KCC0402ChannelStore:
 # All functions below this line are the original Vida bidirectional
 # channel implementation. They remain for backward compatibility.
 # New development should use KCC-0402 mode above.
+
 
 @dataclass
 class ChannelState:

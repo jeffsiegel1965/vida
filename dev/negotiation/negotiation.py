@@ -43,6 +43,7 @@ from typing import Any, Optional
 
 class NegotiationError(Exception):
     """Raised on negotiation protocol violations (round limits, concession bounds, etc.)."""
+
     pass
 
 
@@ -236,8 +237,7 @@ class NegotiationRound:
             f"[{ts}] {self.party}: {self.phase.value} "
             f"(tx={self.terms.max_kas_per_tx}, "
             f"day={self.terms.max_kas_per_day}, "
-            f"dur={self.terms.duration_hours}h) "
-            + (f"— {self.note}" if self.note else "")
+            f"dur={self.terms.duration_hours}h) " + (f"— {self.note}" if self.note else "")
         )
 
 
@@ -252,9 +252,7 @@ class NegotiationSession:
       - Escalation: auto-flagged when pot exceeds human_approval_threshold
     """
 
-    session_id: str = field(default_factory=lambda: hashlib.sha256(
-        str(time.time_ns()).encode()
-    ).hexdigest()[:16])
+    session_id: str = field(default_factory=lambda: hashlib.sha256(str(time.time_ns()).encode()).hexdigest()[:16])
 
     owner_id: str = ""
     agent_id: str = ""
@@ -348,8 +346,7 @@ class NegotiationSession:
         """
         if self.phase in (NegotiationPhase.EXPIRED, NegotiationPhase.ESCALATED):
             raise NegotiationError(
-                f"Cannot counter — session is {self.phase.value}. "
-                f"Start a new session or use BATNA fallback."
+                f"Cannot counter — session is {self.phase.value}. Start a new session or use BATNA fallback."
             )
 
         if self.is_expired():
@@ -376,13 +373,11 @@ class NegotiationSession:
                 concession = gap / max(base.max_kas_per_tx, 0.001)
                 if concession < self.controls.min_concession_per_round_pct:
                     raise NegotiationError(
-                        f"Concession {concession:.2%} below minimum "
-                        f"{self.controls.min_concession_per_round_pct:.0%}"
+                        f"Concession {concession:.2%} below minimum {self.controls.min_concession_per_round_pct:.0%}"
                     )
                 if concession > self.controls.max_concession_per_round_pct:
                     raise NegotiationError(
-                        f"Concession {concession:.2%} exceeds maximum "
-                        f"{self.controls.max_concession_per_round_pct:.0%}"
+                        f"Concession {concession:.2%} exceeds maximum {self.controls.max_concession_per_round_pct:.0%}"
                     )
 
         terms = create_deal(
@@ -472,8 +467,9 @@ class NegotiationSession:
             lines.append("")
             lines.append("  BATNA fallback available.")
             if self.batna_terms:
-                lines.append(f"    Default: tx={self.batna_terms.max_kas_per_tx}, "
-                             f"day={self.batna_terms.max_kas_per_day}")
+                lines.append(
+                    f"    Default: tx={self.batna_terms.max_kas_per_tx}, day={self.batna_terms.max_kas_per_day}"
+                )
         return "\n".join(lines)
 
 
@@ -622,7 +618,7 @@ class Negotiator:
             return {
                 "ok": False,
                 "error": f"Pot value {pot_value} KAS exceeds approval threshold "
-                         f"{self.controls.human_approval_threshold_kas} KAS",
+                f"{self.controls.human_approval_threshold_kas} KAS",
                 "mode": "template",
                 "escalated": True,
                 "terms": asdict(terms),
@@ -668,7 +664,8 @@ class Negotiator:
 
     def active_sessions(self) -> list[NegotiationSession]:
         return [
-            s for s in self._sessions.values()
+            s
+            for s in self._sessions.values()
             if s.phase not in (NegotiationPhase.ACCEPT, NegotiationPhase.REJECT, NegotiationPhase.EXPIRED)
         ]
 
