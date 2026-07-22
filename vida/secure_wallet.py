@@ -11,7 +11,7 @@ Security model
   (n=2^15, r=8, p=1 — memory-hard, resists GPU cracking).
 - Schnorr funds key: derived from the seed (m/44'/111111'/0'/0/0).
   Recoverable from the 24 words alone in any standard Kaspa wallet.
-- ML-DSA-65 post-quantum keys: generated at setup, stored ENCRYPTED in the
+- ML-DSA-44 post-quantum keys: generated at setup, stored ENCRYPTED in the
   same wallet file. HONEST LIMITATION: the PQClean reference implementation
   cannot derive PQ keys from a seed, so the PQ identity is backed up by
   backing up the encrypted wallet file (safe to copy anywhere — it is
@@ -33,7 +33,7 @@ File format (vida_secure.json) — everything sensitive is ciphertext:
   "kdf": {"algo": "scrypt", "n": 32768, "r": 8, "p": 1, "salt": "..."},
   "enc_seed":    {"nonce": "...", "ct": "..."},   # 64-byte BIP39 seed
   "enc_schnorr": {"nonce": "...", "ct": "..."},   # schnorr privkey hex
-  "enc_pq_sk":   {"nonce": "...", "ct": "..."}    # ML-DSA-65 secret key
+  "enc_pq_sk":   {"nonce": "...", "ct": "..."}    # ML-DSA-44 secret key
 }
 """
 
@@ -49,9 +49,9 @@ from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from kaspa import Mnemonic, XPrv
 
 try:
-    from ml_dsa_65 import keygen as pq_keygen
-    from ml_dsa_65 import sign as pq_sign
-    from ml_dsa_65 import verify as pq_verify
+    from ml_dsa_44 import keygen as pq_keygen
+    from ml_dsa_44 import sign as pq_sign
+    from ml_dsa_44 import verify as pq_verify
 
     PQ_AVAILABLE = True
 except ImportError:

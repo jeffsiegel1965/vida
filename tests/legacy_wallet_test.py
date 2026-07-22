@@ -21,7 +21,7 @@ import kaspa as kas
 from kaspa import Keypair, NetworkType, PrivateKey, PublicKey
 
 try:
-    from ml_dsa_65 import (  # noqa: F401 — imported for availability detection
+    from ml_dsa_44 import (  # noqa: F401 — imported for availability detection
         PUBLIC_KEY_LEN,
         SECRET_KEY_LEN,
         SIGNATURE_LEN,

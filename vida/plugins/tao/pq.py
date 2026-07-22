@@ -1,5 +1,8 @@
 """
-TAO post-quantum identity (ML-DSA-65) — same model as Kaspa Vida.
+TAO post-quantum identity (ML-DSA-44, NIST FIPS-204) — same model as Kaspa Vida.
+
+ML-DSA-44 (Dilithium-2): NIST security level 2.
+Verified on Kaspa TN10 via KIP-16 ZK opcode (KaspaKii / 0xfourier, July 2026).
 
 Honest limits:
 - Finney still verifies **sr25519** for transfers/stake. PQ does NOT secure
@@ -16,50 +19,50 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# vida/ml_dsa_65.py lives next to secure_wallet
+# vida/ml_dsa_44.py lives next to secure_wallet
 _VIDA_DIR = Path(__file__).resolve().parents[2]
 if str(_VIDA_DIR) not in sys.path:
     sys.path.insert(0, str(_VIDA_DIR))
 
 try:
-    from ml_dsa_65 import (  # type: ignore
+    from ml_dsa_44 import (  # type: ignore
         PQ_AVAILABLE,
         PUBLIC_KEY_LEN,
         SECRET_KEY_LEN,
     )
-    from ml_dsa_65 import (
+    from ml_dsa_44 import (
         keygen as pq_keygen,
     )
-    from ml_dsa_65 import (
+    from ml_dsa_44 import (
         sign as pq_sign,
     )
-    from ml_dsa_65 import (
+    from ml_dsa_44 import (
         verify as pq_verify,
     )
 except ImportError:
     PQ_AVAILABLE = False
     pq_keygen = pq_sign = pq_verify = None  # type: ignore
-    PUBLIC_KEY_LEN = 1952
-    SECRET_KEY_LEN = 4032
+    PUBLIC_KEY_LEN = 1312
+    SECRET_KEY_LEN = 2560
 
-PQ_SCHEME = "ML-DSA-65"
-PQ_NIST_LEVEL = 3
+PQ_SCHEME = "ML-DSA-44"
+PQ_NIST_LEVEL = 2
 
 
 def generate_pq_identity() -> dict[str, Any]:
     """
-    Generate ML-DSA-65 keypair.
+    Generate ML-DSA-44 keypair.
     Returns {ok, pq_public_key_hex, pq_secret_key_bytes} or error.
     """
     if not PQ_AVAILABLE:
         return {
             "ok": False,
-            "error": "ML-DSA-65 not available (install pqcrypto / use Kaspa venv)",
+            "error": "ML-DSA-44 not available (install pqcrypto>=0.4)",
             "pq_available": False,
         }
     pk, sk = pq_keygen()
     if len(pk) != PUBLIC_KEY_LEN or len(sk) != SECRET_KEY_LEN:
-        return {"ok": False, "error": "unexpected ML-DSA-65 key sizes"}
+        return {"ok": False, "error": "unexpected ML-DSA-44 key sizes"}
     return {
         "ok": True,
         "pq_available": True,
@@ -72,13 +75,13 @@ def generate_pq_identity() -> dict[str, Any]:
 
 def sign_message(message: bytes, secret_key: bytes) -> bytes:
     if not PQ_AVAILABLE:
-        raise RuntimeError("ML-DSA-65 not available")
+        raise RuntimeError("ML-DSA-44 not available")
     return pq_sign(message, secret_key)
 
 
 def verify_message(message: bytes, signature: bytes, public_key_hex: str) -> bool:
     if not PQ_AVAILABLE:
-        raise RuntimeError("ML-DSA-65 not available")
+        raise RuntimeError("ML-DSA-44 not available")
     return bool(pq_verify(message, signature, bytes.fromhex(public_key_hex)))
 
 

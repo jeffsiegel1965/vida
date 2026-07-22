@@ -12,7 +12,7 @@ import tempfile
 import time
 from pathlib import Path
 
-# Ensure vida directory is in path for ml_dsa_65 import
+# Ensure vida directory is in path for ml_dsa_44 import
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vida"))
 
 from vida.wallet import (
@@ -527,7 +527,7 @@ if __name__ == "__main__":
     if PQ_AVAILABLE:
         run_test("T3:  verify_pq round-trip on PQ-enabled wallet", test_t3_pq_signing)
     else:
-        print(f"\n{Colors.YELLOW}  ⚠ Skipping T3: ml_dsa_65 not available{Colors.RESET}")
+        print(f"\n{Colors.YELLOW}  ⚠ Skipping T3: ml_dsa_44 not available{Colors.RESET}")
 
     run_test("T4:  FULL-mode session key signs any amount", test_t4_full_mode)
     run_test("T5:  COMMAND-mode session key ALWAYS returns None", test_t5_command_mode)
