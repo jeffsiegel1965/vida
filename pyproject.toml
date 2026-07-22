@@ -14,7 +14,7 @@ dependencies = [
     "cryptography>=42.0",
     "aiohttp>=3.9",
     "substrate-interface>=1.7.0,<2",
-    "bittensor>=11.0",  # v11 — Rust SDK with Python bindings (PyPI TBD)
+    "bittensor>=9.0",  # v11 pending PyPI release
     "mnemonic>=0.21",
     "mcp>=1.28",
 ]
