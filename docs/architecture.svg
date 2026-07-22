@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" font-family="system-ui, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a100f"/>
+      <stop offset="100%" stop-color="#0d1a17"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#111a18"/>
+      <stop offset="100%" stop-color="#0f1715"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#70c7ba"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bg)"/>
+
+  <!-- Title -->
+  <text x="400" y="35" text-anchor="middle" fill="#e9f1ef" font-size="18" font-weight="bold">Vida Wallet — Architecture</text>
+  <text x="400" y="55" text-anchor="middle" fill="#a7b8b4" font-size="11">Session-gated agent wallet for Kaspa (KAS) and Bittensor (TAO)</text>
+
+  <!-- Owner -->
+  <rect x="340" y="75" width="120" height="36" rx="6" fill="#0d302b" stroke="#70c7ba" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="400" y="97" text-anchor="middle" fill="#70c7ba" font-size="13" font-weight="bold">Owner</text>
+  <line x1="400" y1="111" x2="400" y2="135" stroke="#70c7ba" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Agent Session -->
+  <rect x="310" y="135" width="180" height="28" rx="5" fill="#1a2522" stroke="#3a4a47" stroke-width="1"/>
+  <text x="400" y="153" text-anchor="middle" fill="#a7b8b4" font-size="11">Grant session + caps</text>
+  <line x1="400" y1="163" x2="400" y2="185" stroke="#70c7ba" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Vida Kernel -->
+  <rect x="310" y="185" width="180" height="40" rx="8" fill="url(#card)" stroke="#70c7ba" stroke-width="2" filter="url(#shadow)"/>
+  <text x="400" y="203" text-anchor="middle" fill="#70c7ba" font-size="14" font-weight="bold">Vida Kernel</text>
+  <text x="400" y="217" text-anchor="middle" fill="#a7b8b4" font-size="9">AES-256-GCM · scrypt · BIP39</text>
+
+  <!-- Three-way split -->
+  <line x1="400" y1="225" x2="160" y2="255" stroke="#70c7ba" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="400" y1="225" x2="400" y2="255" stroke="#70c7ba" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="400" y1="225" x2="640" y2="255" stroke="#70c7ba" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Kaspa Core -->
+  <rect x="60" y="258" width="200" height="90" rx="8" fill="url(#card)" stroke="#5ab4a5" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="160" y="278" text-anchor="middle" fill="#70c7ba" font-size="13" font-weight="bold">Kaspa Core</text>
+  <text x="160" y="296" text-anchor="middle" fill="#a7b8b4" font-size="10">Send / Receive KAS</text>
+  <text x="160" y="312" text-anchor="middle" fill="#a7b8b4" font-size="10">wRPC via SDK + Resolver</text>
+  <text x="160" y="328" text-anchor="middle" fill="#a7b8b4" font-size="10">Mainnet proven</text>
+  <text x="160" y="342" text-anchor="middle" fill="#3a4a47" font-size="9">m/44'/111111'/0'/0/0</text>
+
+  <!-- Covenant Plugin -->
+  <rect x="300" y="258" width="200" height="90" rx="8" fill="url(#card)" stroke="#f2a566" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="400" y="278" text-anchor="middle" fill="#f2a566" font-size="13" font-weight="bold">Covenant Module</text>
+  <text x="400" y="296" text-anchor="middle" fill="#a7b8b4" font-size="10">Escrow / Timelock / Vault</text>
+  <text x="400" y="312" text-anchor="middle" fill="#a7b8b4" font-size="10">Payment Channels (KCC-0402)</text>
+  <text x="400" y="328" text-anchor="middle" fill="#a7b8b4" font-size="10">SilverScript · KIP-16 ZK</text>
+  <text x="400" y="342" text-anchor="middle" fill="#3a4a47" font-size="9">Commercial license</text>
+
+  <!-- TAO Plugin -->
+  <rect x="540" y="258" width="200" height="90" rx="8" fill="url(#card)" stroke="#5ab4a5" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="640" y="278" text-anchor="middle" fill="#70c7ba" font-size="13" font-weight="bold">TAO Plugin</text>
+  <text x="640" y="296" text-anchor="middle" fill="#a7b8b4" font-size="10">Stake / Unstake / Transfer</text>
+  <text x="640" y="312" text-anchor="middle" fill="#a7b8b4" font-size="10">Subnet Marketplace (9 SN)</text>
+  <text x="640" y="328" text-anchor="middle" fill="#a7b8b4" font-size="10">x402 Auto-Pay · Multisig</text>
+  <text x="640" y="342" text-anchor="middle" fill="#3a4a47" font-size="9">Finney · pre-dTAO</text>
+
+  <!-- Down arrows from plugins -->
+  <line x1="160" y1="348" x2="160" y2="380" stroke="#3a4a47" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="400" y1="348" x2="400" y2="380" stroke="#3a4a47" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="640" y1="348" x2="640" y2="380" stroke="#3a4a47" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Agent Tools -->
+  <rect x="260" y="383" width="280" height="36" rx="6" fill="url(#card)" stroke="#5ab4a5" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="400" y="399" text-anchor="middle" fill="#70c7ba" font-size="12" font-weight="bold">Agent Tools (19 · MCP Server · CLI)</text>
+  <text x="400" y="414" text-anchor="middle" fill="#a7b8b4" font-size="9">Orchestrator · Verification Ladder (L1-L5) · Tool Schema</text>
+  <line x1="400" y1="419" x2="400" y2="448" stroke="#3a4a47" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Agent Layer -->
+  <rect x="260" y="451" width="280" height="55" rx="8" fill="url(#card)" stroke="#70c7ba" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="400" y="470" text-anchor="middle" fill="#70c7ba" font-size="13" font-weight="bold">Agent Layer</text>
+  <text x="400" y="485" text-anchor="middle" fill="#a7b8b4" font-size="10">Memory · Negotiation · Subscriptions · Volume Discounts</text>
+  <text x="400" y="499" text-anchor="middle" fill="#3a4a47" font-size="9">Persistent across sessions · ~/.vida/memory/</text>
+
+  <!-- External Agent -->
+  <line x1="400" y1="506" x2="400" y2="535" stroke="#70c7ba" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="320" y="535" width="160" height="30" rx="6" fill="#0d302b" stroke="#70c7ba" stroke-width="1.5"/>
+  <text x="400" y="555" text-anchor="middle" fill="#70c7ba" font-size="12" font-weight="bold">LLM Agent (K2.5 · Grok)</text>
+
+  <!-- Footer -->
+  <text x="400" y="590" text-anchor="middle" fill="#3a4a47" font-size="9">MIT (core) · Commercial (covenants) · vida-wallet on PyPI · github.com/jeffsiegel1965/vida</text>
+</svg>

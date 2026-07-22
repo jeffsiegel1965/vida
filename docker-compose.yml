@@ -1,0 +1,64 @@
+# ── docker-compose for Vida agent deployment ──
+#
+# Usage:
+#   docker compose up -d
+#   docker compose logs -f
+#   docker compose down
+
+version: "3.8"
+
+services:
+  vida-agent:
+    build: .
+    image: vida-wallet:0.2.0
+    container_name: vida-agent
+    restart: unless-stopped
+
+    # Mount wallet data for persistence
+    volumes:
+      - ./data/wallet:/home/vida/.vida:rw
+
+    # Environment configuration
+    environment:
+      - VIDA_OWNER_ADDRESS=${VIDA_OWNER_ADDRESS:-}
+      - VIDA_FEE_ADDRESS=${VIDA_FEE_ADDRESS:-}
+      - VIDA_DONATION_ADDRESS=${VIDA_DONATION_ADDRESS:-}
+      - VIDA_TAO_FEE_ADDRESS=${VIDA_TAO_FEE_ADDRESS:-}
+      - VIDA_SESSION=${VIDA_SESSION:-}
+      - PYTHONUNBUFFERED=1
+
+    ports:
+      - "8082:8082"  # Admin dashboard
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+
+  # Optional: dashboard-only service (no agent)
+  vida-dashboard:
+    build: .
+    image: vida-wallet:0.2.0
+    container_name: vida-dashboard
+    restart: unless-stopped
+    profiles: ["dashboard"]
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./data/wallet:/home/vida/.vida:rw
+    environment:
+      - VIDA_OWNER_ADDRESS=${VIDA_OWNER_ADDRESS:-}
+      - PYTHONUNBUFFERED=1
