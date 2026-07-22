@@ -140,7 +140,8 @@ HTML_HEAD = """
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta http-equiv="refresh" content="30">
 <title>Vida Admin</title>
 <style>
   :root { color-scheme: dark; --bg: #0a100f; --card: #111a18; --border: rgba(255,255,255,0.09);
@@ -150,7 +151,13 @@ HTML_HEAD = """
   .container { max-width: 960px; margin: 0 auto; padding: 1rem; }
   h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
   .subtitle { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.5rem; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+  @media (max-width: 600px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+    .container { padding: 0.75rem; }
+    h1 { font-size: 1.3rem; }
+    .card .value { font-size: 1.1rem; }
+  }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 1rem; }
   .card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
   .card .value { font-size: 1.25rem; font-weight: 600; margin-top: 0.25rem; }
@@ -167,13 +174,18 @@ HTML_HEAD = """
   .badge.gray { background: rgba(255,255,255,0.08); color: var(--muted); }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  .actions { display: flex; gap: 0.5rem; margin: 0.5rem 0; }
+  .actions { display: flex; gap: 0.5rem; margin: 0.5rem 0; flex-wrap: wrap; }
   button { background: var(--accent); color: var(--bg); border: none; border-radius: 6px; padding: 0.4rem 0.8rem; font-size: 0.85rem; cursor: pointer; }
   button:hover { opacity: 0.85; }
+  button.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
   pre { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; font-size: 0.8rem; overflow-x: auto; }
-  .nav { display: flex; gap: 1rem; margin-bottom: 1rem; }
+  .nav { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
   .nav a { color: var(--muted); font-size: 0.9rem; }
   .nav a.active { color: var(--accent); }
+  .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+  .status-dot.green { background: var(--accent); }
+  .status-dot.red { background: var(--red); }
+  .refresh-info { color: var(--muted); font-size: 0.8rem; margin-top: 0.5rem; }
 </style>
 </head>
 <body>
@@ -204,6 +216,23 @@ async def dashboard():
     sessions = list_sessions()
     escrows = list_escrows()
     commits = git_log(5)
+
+    # Get wallet balance and network status
+    owner_address = os.environ.get("VIDA_OWNER_ADDRESS", "")
+    if owner_address:
+        try:
+            from vida.plugins.covenant.kaspa_rpc import get_balance, get_network_info
+
+            bal = get_balance(owner_address)
+            net = get_network_info()
+            kas_balance = bal.get("balance_kas", "?") + " KAS" if bal.get("ok") else "offline"
+            network_status = net.get("ok", False)
+        except Exception:
+            kas_balance = "N/A"
+            network_status = False
+    else:
+        kas_balance = "set VIDA_OWNER_ADDRESS"
+        network_status = False
 
     # Build HTML tables to avoid nested f-string issues
     html_sessions = ""
@@ -236,6 +265,18 @@ async def dashboard():
       <div class="card"><div class="label">Ruff Errors</div><div class="value {"green" if ruff["errors"] == 0 else "red"}">{ruff["errors"]}</div></div>
       <div class="card"><div class="label">Sessions</div><div class="value green">{open_sessions} / {session_count}</div></div>
       <div class="card"><div class="label">Escrows</div><div class="value green">{len(escrows)}</div></div>
+      <div class="card"><div class="label">Wallet Balance</div><div class="value green">{kas_balance}</div></div>
+      <div class="card"><div class="label">Network Status</div>
+        <div class="value">
+          <span class="status-dot {"green" if network_status else "red"}"></span>
+          {"Connected" if network_status else "Disconnected"}
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button onclick="window.location.reload()" class="secondary">Refresh Now</button>
+      <div class="refresh-info">Auto-refreshes every 30 seconds</div>
     </div>
 
     <h2>Recent Commits</h2>
@@ -253,16 +294,39 @@ async def dashboard():
     return render_page("Dashboard", body)
 
 
+@app.post("/session/revoke")
+async def revoke_session(session_id: str = Form(...)):
+    try:
+        session_file = Path.home() / ".vida" / "sessions" / f"{session_id}.json"
+        if session_file.exists():
+            session_file.unlink()
+            return {"ok": True, "message": f"Revoked session {session_id}"}
+        return {"ok": False, "message": "Session not found"}
+    except Exception as e:
+        return {"ok": False, "message": str(e)}
+
+
 @app.get("/sessions", response_class=HTMLResponse)
 async def sessions_page():
     sessions = list_sessions()
     rows = (
         "".join(
-            f"<tr><td><code>{s['id']}</code></td><td>{s['created']}</td><td>{s['caps']}</td><td>{s['expires']}</td></tr>"
+            f"""<tr>
+              <td><code>{s["id"]}</code></td>
+              <td>{s["created"]}</td>
+              <td>{s["caps"]}</td>
+              <td>{s["expires"]}</td>
+              <td>
+                <form action="/session/revoke" method="post" style="display:inline">
+                  <input type="hidden" name="session_id" value="{s["id"]}">
+                  <button type="submit" class="secondary">Revoke</button>
+                </form>
+              </td>
+            </tr>"""
             for s in sessions
         )
         if sessions
-        else '<tr><td colspan="4" style="color:var(--muted)">No sessions found.</td></tr>'
+        else '<tr><td colspan="5" style="color:var(--muted)">No sessions found.</td></tr>'
     )
 
     body = f"""
@@ -274,11 +338,13 @@ async def sessions_page():
         <button type="submit">Grant Session</button>
       </form>
       <small style="color:var(--muted);align-self:center">hours / max KAS/tx / max KAS/day</small>
+      <button onclick="window.location.reload()" class="secondary" style="margin-left:auto">Refresh</button>
     </div>
     <table>
-      <tr><th>ID</th><th>Created</th><th>Caps</th><th>Expires</th></tr>
+      <tr><th>ID</th><th>Created</th><th>Caps</th><th>Expires</th><th>Action</th></tr>
       {rows}
     </table>
+    <div class="refresh-info">Auto-refreshes every 30 seconds</div>
     """
     return render_page("Sessions", body, active="sessions")
 
