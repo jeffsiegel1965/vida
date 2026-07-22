@@ -14,7 +14,7 @@ Vida is a wallet for autonomous AI agents. Agents use it to discover subnets on 
 
 ### Production Installation
 ```bash
-pip install git+https://github.com/jeffsiegel1965/vida.git
+pip install vida-wallet
 ```
 
 ### Development Setup
