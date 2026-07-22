@@ -231,17 +231,17 @@ def create_secure_wallet(
 def _secure_key_operation(private_key_hex: str, operation_func):
     """
     Perform operations on private keys with immediate clearing.
-    
+
     Args:
         private_key_hex: The private key as hex string
         operation_func: Function to execute with the private key bytes
-    
+
     Returns:
         Result of operation_func
     """
     # Convert to bytearray for mutable operations
     private_key_bytes = bytearray.fromhex(private_key_hex)
-    
+
     try:
         # Execute the operation
         result = operation_func(bytes(private_key_bytes))
@@ -249,15 +249,17 @@ def _secure_key_operation(private_key_hex: str, operation_func):
     finally:
         # Securely clear the bytearray
         import secrets
+
         for i in range(len(private_key_bytes)):
             private_key_bytes[i] = secrets.randbits(8) & 0xFF
-        
+
         # Clear again with zeros
         for i in range(len(private_key_bytes)):
             private_key_bytes[i] = 0
-        
+
         # Force garbage collection
         import gc
+
         gc.collect()
 
 

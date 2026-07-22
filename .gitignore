@@ -46,6 +46,28 @@ venv/
 
 # Agent context (internal — not for public repo)
 AGENTS.md
+SESSION_SUMMARY.md
+
+# Local test artifacts (not for public repo)
+COMPREHENSIVE_MAINNET_REPORT.md
+MAINNET_READINESS_REPORT.md
+MAINNET_STATUS.md
+
+# Development / WIP code
+dev/
+
+# Test output results
+test_results/
+
+# Internal strategy / launch docs (not for public repo)
+docs/COMPETITIVE_POSITION.md
+docs/DAY_ONE_REPLIES.md
+docs/LAUNCH_PLAN.md
+docs/MARKETING.md
+docs/ORIGIN_HOSTILE_QA.md
+
+# Third-party PDF copyright concern
+docs/openai-building-agents-guide.pdf
 
 # Plugin local stores (TAO accounts, etc.)
 data/

@@ -21,36 +21,37 @@ from typing import Any, Optional
 def _safe_json_loads(data: str, context: str = "data") -> dict:
     """
     Safely parse JSON with validation and size limits.
-    
+
     Args:
         data: JSON string to parse
         context: Description for error reporting
-    
+
     Returns:
         Parsed JSON data
-        
+
     Raises:
         ValueError: If JSON is invalid or exceeds safety limits
     """
     if not isinstance(data, str):
         raise ValueError(f"{context} must be string, got {type(data)}")
-    
+
     if len(data) > 1024 * 1024:  # 1MB limit
         raise ValueError(f"{context} JSON too large (>1MB)")
-    
+
     try:
         result = json.loads(data)
     except json.JSONDecodeError as e:
         raise ValueError(f"{context} JSON invalid: {e}")
-    
+
     if not isinstance(result, dict):
         raise ValueError(f"{context} JSON must be object, got {type(result)}")
-    
+
     # Basic structure validation
     if len(result) > 1000:  # Reasonable key limit
         raise ValueError(f"{context} JSON has too many keys (>1000)")
-    
+
     return result
+
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
@@ -65,9 +66,9 @@ def _host_fingerprint() -> str:
     import hashlib
     import socket
     import uuid
-    
+
     factors = []
-    
+
     # Primary: machine-id
     for path in ("/etc/machine-id", "/var/lib/dbus/machine-id"):
         try:
@@ -77,83 +78,76 @@ def _host_fingerprint() -> str:
                 break
         except Exception:
             continue
-    
+
     # Secondary: MAC address of primary interface
     try:
         mac = hex(uuid.getnode())[2:].upper()
         factors.append(f"mac:{mac}")
-    except:
+    except Exception:
         pass
-    
+
     # Tertiary: hostname
     try:
         hostname = socket.gethostname()
         factors.append(f"host:{hostname}")
     except OSError:
         pass
-    
+
     # Quaternary: CPU info (Linux)
     try:
         cpu_info = Path("/proc/cpuinfo").read_text()
-        cpu_lines = [line for line in cpu_info.split('\n') 
-                    if 'processor' in line or 'model name' in line][:4]
+        cpu_lines = [line for line in cpu_info.split("\n") if "processor" in line or "model name" in line][:4]
         if cpu_lines:
-            cpu_hash = hashlib.sha256('\n'.join(cpu_lines).encode()).hexdigest()[:16]
+            cpu_hash = hashlib.sha256("\n".join(cpu_lines).encode()).hexdigest()[:16]
             factors.append(f"cpu:{cpu_hash}")
     except (OSError, FileNotFoundError):
         pass
-    
+
     # Fallback if no factors available
     if not factors:
         factors.append("host:unknown")
-    
+
     # Combine all factors into stable fingerprint
     combined = "|".join(sorted(factors))
     return hashlib.sha256(combined.encode()).hexdigest()[:32]
 
 
 def _seal_spend(machine_key: bytes, day: str, daily_spent: float, version: int = 2) -> dict:
-    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     import hashlib
-    
+
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
     if version == 1:
         # Legacy v1 format for backward compatibility
-        spend = json.dumps({
-            "day": day,
-            "daily_spent": daily_spent
-        })
+        spend = json.dumps({"day": day, "daily_spent": daily_spent})
         aad = b"vida-tao-session-spend-v1"
         nonce = os.urandom(12)
         ct = AESGCM(machine_key).encrypt(nonce, spend.encode(), aad)
-        
-        return {
-            "nonce": nonce.hex(),
-            "ct": ct.hex(),
-            "version": 1
-        }
+
+        return {"nonce": nonce.hex(), "ct": ct.hex(), "version": 1}
     elif version == 2:
         # Enhanced v2 format with integrity protection
         spend_data = {
             "day": day,
             "daily_spent": daily_spent,
             "timestamp": time.time(),  # Include timestamp for freshness
-            "counter_version": 1       # Version field for future updates
+            "counter_version": 1,  # Version field for future updates
         }
-        
+
         # Create integrity hash of spend data
         spend_json = json.dumps(spend_data, sort_keys=True)
         spend_hash = hashlib.sha256(spend_json.encode()).hexdigest()
         spend_data["integrity_hash"] = spend_hash
-        
+
         # Encrypt with versioned AAD for tamper detection
         aad = b"vida-tao-session-spend-v2"  # Upgraded AAD version
         nonce = os.urandom(12)
         ct = AESGCM(machine_key).encrypt(nonce, json.dumps(spend_data).encode(), aad)
-        
+
         return {
             "nonce": nonce.hex(),
             "ct": ct.hex(),
-            "version": 2  # Track encryption version
+            "version": 2,  # Track encryption version
         }
     else:
         raise ValueError(f"Unsupported spend counter version: {version}")
@@ -342,8 +336,9 @@ def load_tao_session_secrets(session_path: str | Path) -> dict[str, Any]:
     Burns file if expired.
     """
     import hashlib
+
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    
+
     path = Path(session_path)
     if not path.is_file():
         return {"ok": False, "error": "session file missing", "session_revoked": True}
@@ -387,7 +382,7 @@ def load_tao_session_secrets(session_path: str | Path) -> dict[str, Any]:
     try:
         enc_spend = sess["enc_spend"]
         version = enc_spend.get("version", 1)  # Default to v1 for backward compatibility
-        
+
         if version == 1:
             # Legacy v1 format
             sp = AESGCM(machine_key).decrypt(
@@ -407,26 +402,26 @@ def load_tao_session_secrets(session_path: str | Path) -> dict[str, Any]:
             )
             spend_json = sp.decode()
             spend = _safe_json_loads(spend_json, "spend counter v2")
-            
+
             # Verify integrity hash
             expected_hash = spend.pop("integrity_hash", None)
             if not expected_hash:
                 return {"ok": False, "error": "enc_spend v2 missing integrity hash (tamper?)"}
-            
+
             recomputed_hash = hashlib.sha256(json.dumps(spend, sort_keys=True).encode()).hexdigest()
             if expected_hash != recomputed_hash:
                 return {"ok": False, "error": "enc_spend v2 integrity check failed (tamper detected)"}
-            
+
             # Verify timestamp freshness (within 48 hours)
             timestamp = spend.get("timestamp", 0)
             if time.time() - timestamp > 48 * 3600:
                 return {"ok": False, "error": "enc_spend v2 timestamp too old (replay attack?)"}
-            
+
             if spend.get("day") == today:
                 daily_spent = float(spend.get("daily_spent") or 0)
         else:
             return {"ok": False, "error": f"enc_spend unsupported version {version}"}
-            
+
         # if day rolled, daily_spent stays 0 (counter resets)
     except Exception as e:
         return {"ok": False, "error": f"enc_spend invalid (tamper?): {type(e).__name__}"}

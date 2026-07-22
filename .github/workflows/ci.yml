@@ -21,12 +21,22 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install kaspa cryptography aiohttp "substrate-interface>=1.7.0,<2" bittensor mnemonic mcp pytest pytest-anyio
+          pip install -r requirements.txt
+          pip install pytest pytest-anyio
           # pqcrypto is optional — if it fails, PQ tests are skipped gracefully
           pip install pqcrypto 2>/dev/null || true
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint check
+        run: ruff check vida/ tests/
+
+      - name: Format check
+        run: ruff format --check vida/ tests/
 
       - name: Install Vida package
         run: pip install -e .
 
       - name: Run full test suite
-        run: python -m pytest tests/ --tb=short
+        run: python -m pytest tests/ --tb=short -x

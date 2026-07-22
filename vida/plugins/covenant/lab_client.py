@@ -69,41 +69,41 @@ def live_gates_ok() -> dict[str, Any]:
 def _validate_subprocess_input(value: str, param_name: str, allowed_chars: str = "a-zA-Z0-9._-") -> bool:
     """
     Validate subprocess input parameters to prevent injection.
-    
+
     Args:
         value: The input value to validate
         param_name: Name of the parameter for error reporting
         allowed_chars: Regex character class of allowed characters
-    
+
     Returns:
         True if valid, raises ValueError if invalid
     """
     import re
-    
+
     if not isinstance(value, str):
         raise ValueError(f"{param_name} must be string, got {type(value)}")
-    
+
     if not value.strip():
         raise ValueError(f"{param_name} cannot be empty")
-    
+
     if len(value) > 256:  # Reasonable length limit
         raise ValueError(f"{param_name} too long (max 256 chars)")
-    
+
     # Check for suspicious characters
     if not re.match(f"^[{allowed_chars}]+$", value):
         raise ValueError(f"{param_name} contains invalid characters (allowed: {allowed_chars})")
-    
+
     # Check for obvious injection patterns
     dangerous_patterns = [
         r"[;&|`$()<>]",  # Shell metacharacters
-        r"\.{2,}",       # Path traversal
-        r"^-",           # Option injection
+        r"\.{2,}",  # Path traversal
+        r"^-",  # Option injection
     ]
-    
+
     for pattern in dangerous_patterns:
         if re.search(pattern, value):
             raise ValueError(f"{param_name} contains dangerous pattern: {pattern}")
-    
+
     return True
 
 
@@ -139,7 +139,7 @@ def run_lab_demo(*, transitions: int = 1, timeout: int = 120) -> dict[str, Any]:
         }
     if not g["key_ok"]:
         return {"ok": False, "error": f"key file missing: {g['key_path']}", "gates": g}
-    
+
     # Enhanced input validation
     if not isinstance(transitions, int):
         return {"ok": False, "error": "transitions must be integer"}
@@ -202,7 +202,7 @@ def fund_agent_pot(
             "error": "need node + covenant_fund_agent_pot.js + wasm + key",
             "gates": g,
         }
-    
+
     # Enhanced input validation
     if not isinstance(pot_sompi, int) or pot_sompi < 1_000_000:
         return {"ok": False, "error": "pot_sompi must be integer >= 1,000,000 (min 0.01 KAS)"}
@@ -210,7 +210,7 @@ def fund_agent_pot(
         return {"ok": False, "error": "max_tx_sompi must be positive integer <= pot_sompi"}
     if not isinstance(timeout, int) or timeout <= 0 or timeout > 600:
         return {"ok": False, "error": "timeout must be positive integer <= 600"}
-    
+
     # Validate allowed_destinations if provided
     if allowed_destinations is not None:
         if not isinstance(allowed_destinations, (list, tuple)):
@@ -306,7 +306,7 @@ def spend_agent_pot(
             return {"ok": False, "error": "covenant_id must be string"}
         if not re.match(r"^[a-fA-F0-9]{64}$", covenant_id):
             return {"ok": False, "error": f"invalid covenant_id format: {covenant_id}"}
-    
+
     # Validate allowed_destinations if provided
     if allowed_destinations is not None:
         if not isinstance(allowed_destinations, (list, tuple)):
