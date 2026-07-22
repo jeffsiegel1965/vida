@@ -36,7 +36,7 @@ jobs:
         run: ruff format --check vida/ tests/
 
       - name: Install Vida package
-        run: pip install -e .
+        run: pip install --no-deps -e .
 
       - name: Run test suite
-        run: python -m pytest tests/ --tb=short --ignore=tests/test_kaspa_rpc_integration.py --ignore=tests/legacy/
+        run: python -m pytest tests/ --tb=long --no-header -q --ignore=tests/test_kaspa_rpc_integration.py --ignore=tests/legacy/ 2>&1 | tail -60
