@@ -1,12 +1,12 @@
-import json
-from typing import Any, Optional
 from dataclasses import dataclass
-
+from typing import Any
 
 # ── Local validation (no external deps) ──
 
+
 class CovenantError(Exception):
     """Covenant operation error."""
+
     pass
 
 
@@ -25,6 +25,7 @@ def validate_token_amount(amount: int) -> None:
 @dataclass
 class PoolState:
     """Represents the state of a CoAMM pool."""
+
     pool_id: str
     kas_reserve: int
     token_reserve: int
@@ -99,10 +100,10 @@ class CoAMMClient:
                 return dict(ok=False, error=quote["error"])
 
             # Apply Vida protocol fee (0.05%)
-            output_amount = int(quote["output_amount"] * (1 - self.fee_rate))
+            int(quote["output_amount"] * (1 - self.fee_rate))
 
             # Build transaction (placeholder for testnet)
-            tx_builder = None  # TxBuilder placeholder
+            _ = None  # TxBuilder placeholder
             # tx_builder.add_input(wallet_id, amount)
             # tx_builder.add_output(output_token, output_amount)
             # tx_builder.add_fee(self.fee_rate * amount)
@@ -113,9 +114,7 @@ class CoAMMClient:
         except CovenantError as e:
             return dict(ok=False, error=str(e))
 
-    def add_liquidity(
-        self, wallet_id: str, pool_id: str, amounts: dict[str, int]
-    ) -> dict[str, Any]:
+    def add_liquidity(self, wallet_id: str, pool_id: str, amounts: dict[str, int]) -> dict[str, Any]:
         """Add liquidity to a pool.
 
         Args:
@@ -138,7 +137,7 @@ class CoAMMClient:
                 return dict(ok=False, error=pool["error"])
 
             # Simulate liquidity addition (offline)
-            tx_builder = None  # TxBuilder placeholder
+            _ = None  # TxBuilder placeholder
             for token, amount in amounts.items():
                 # tx_builder.add_input(wallet_id, amount)
                 pass
@@ -149,9 +148,7 @@ class CoAMMClient:
         except CovenantError as e:
             return dict(ok=False, error=str(e))
 
-    def estimate_swap(
-        self, pool_id: str, input_token: str, output_token: str, amount: int
-    ) -> dict[str, Any]:
+    def estimate_swap(self, pool_id: str, input_token: str, output_token: str, amount: int) -> dict[str, Any]:
         """Preview swap output.
 
         Args:
@@ -176,9 +173,7 @@ class CoAMMClient:
         except CovenantError as e:
             return {"ok": False, "error": str(e)}
 
-    def _estimate_swap(
-        self, pool_id: str, input_token: str, output_token: str, amount: int
-    ) -> dict[str, Any]:
+    def _estimate_swap(self, pool_id: str, input_token: str, output_token: str, amount: int) -> dict[str, Any]:
         """Internal method to compute swap output."""
         pool = self.pools[pool_id]
         if input_token == "KAS":
@@ -215,17 +210,13 @@ def vida_coamm_swap(
     return client.swap_tokens(wallet_id, pool_id, input_token, output_token, amount, slippage)
 
 
-def vida_coamm_estimate(
-    pool_id: str, input_token: str, output_token: str, amount: int
-) -> dict[str, Any]:
+def vida_coamm_estimate(pool_id: str, input_token: str, output_token: str, amount: int) -> dict[str, Any]:
     """Estimate swap output."""
     client = CoAMMClient(kaspa_sdk=None)  # Placeholder for testnet
     return client.estimate_swap(pool_id, input_token, output_token, amount)
 
 
-def vida_coamm_liquidity(
-    wallet_id: str, pool_id: str, amounts: dict[str, int]
-) -> dict[str, Any]:
+def vida_coamm_liquidity(wallet_id: str, pool_id: str, amounts: dict[str, int]) -> dict[str, Any]:
     """Add liquidity to a CoAMM pool."""
     client = CoAMMClient(kaspa_sdk=None)  # Placeholder for testnet
     return client.add_liquidity(wallet_id, pool_id, amounts)
