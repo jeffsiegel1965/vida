@@ -80,4 +80,5 @@ agent_session*.json
 *tao_account.json
 mnemonic.txt
 password.txt
-build/\ndist/
+build/
+dist/
