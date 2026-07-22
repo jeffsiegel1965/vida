@@ -35,6 +35,12 @@ jobs:
       - name: Format check
         run: ruff format --check vida/ tests/
 
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Dependency vulnerability scan
+        run: pip-audit -r requirements.txt
+
       - name: Install Vida package
         run: pip install --no-deps -e .
 

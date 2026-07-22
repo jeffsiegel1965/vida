@@ -163,3 +163,16 @@ result = covenant_deploy_ownable(private_key_hex="...", value_sompi=100_000_000)
 **MIT** (core, TAO, agent, CLI) / **Commercial** (covenant module).
 
 Fees: `VIDA_FEE_ADDRESS` (KAS), `VIDA_TAO_FEE_ADDRESS` (TAO), `VIDA_DONATION_ADDRESS` (KAS).
+
+See [LICENSE](LICENSE) for full terms and scope boundaries.
+
+## Docs
+
+| Doc | Purpose |
+|-----|---------|
+| [ROADMAP.md](ROADMAP.md) | v1.0 milestone plan |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting |
+| [docs/BACKUP_RECOVERY.md](docs/BACKUP_RECOVERY.md) | Wallet backup & emergency procedures |
+| [docs/HERMES_INTEGRATION.md](docs/HERMES_INTEGRATION.md) | Hermes agent setup |
+| [AUDIT.md](AUDIT.md) | Internal security audit results |
