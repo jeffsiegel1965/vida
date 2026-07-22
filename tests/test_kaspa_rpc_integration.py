@@ -6,6 +6,7 @@ Run: source /tmp/kaspa-venv/bin/activate && PYTHONPATH=$PWD python -m pytest tes
 
 from __future__ import annotations
 
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -17,6 +18,7 @@ if str(ROOT) not in sys.path:
 TEST_ADDR = "kaspatest:qplmcgy7gvgvsjrcmvphwnasu577y8agpe3crtl0zwna9h34dadeg8f024trj"
 
 
+@unittest.skipIf(os.environ.get("CI") == "true", "Live testnet-10 integration — skipped in CI")
 class TestKaspaRpcIntegration(unittest.TestCase):
     """Integration tests against live Kaspa testnet-10 via the SDK."""
 
