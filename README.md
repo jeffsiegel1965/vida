@@ -12,29 +12,73 @@ spend-capped, host-bound — without handing over full custody.
 
 **Session-gated access** is the core. Owner creates time-boxed,
 host-bound, spend-capped session files. Agents get scoped permissions
-without ever seeing the master password or full seed. Exactly what
-you want for local agents controlling funds without full key exposure.
+without ever seeing the master password or seed.
 
-**Dual-rail:** Kaspa mainnet (send/receive) + Bittensor Finney
-(staking, subnet queries, x402). Testnet-10 covenants, escrow,
-payment channels. Few wallets target this agent + dual-ecosystem use case.
+**TAO is an intelligence rail, not just a staking asset.** Most wallets
+treat Bittensor as another token to hold. Vida treats it as a
+decentralized intelligence marketplace that agents can actually use.
+Agents discover subnet services by capability, pay via x402 within
+session budgets, and consume results autonomously — all while the owner
+controls how much can be spent and on which subnets.
+
+**Dual-rail architecture.** Kaspa for fast settlement and micropayments.
+TAO for intelligence and compute markets. One custody plane, one policy
+plane. Clean separation of concerns.
 
 **Agent-first, not consumer.** CLI and MCP. No browser extension.
-Explicit non-goals: custodial service, EVM, fiat ramps, browser UX.
 
 ## What it does
 
-| Capability | Kaspa | Bittensor |
-|---|---|---|
-| Send / receive | ✅ Mainnet | ✅ Finney |
-| Session-gated agent access | ✅ | ✅ |
-| Covenant deploy & spend | ✅ Testnet-10 | — |
-| Escrow | ✅ Testnet-10 | — |
-| Payment channels | ✅ Testnet-10 | — |
-| Stake / unstake | — | ✅ |
-| Subnet queries | — | ✅ |
-| Agent registration | — | ✅ |
-| x402 facilitator | — | ✅ |
+### Kaspa
+
+| Capability | Network |
+|---|---|
+| Send / receive | ✅ Mainnet |
+| Covenant deploy & spend | ✅ Testnet-10 |
+| Escrow | ✅ Testnet-10 |
+| Payment channels | ✅ Testnet-10 |
+
+### Bittensor (TAO)
+
+| Capability | Status |
+|---|---|
+| Stake / unstake | ✅ Finney |
+| Session-gated access | ✅ |
+| Subnet capability discovery | ✅ — find subnets by service type |
+| Autonomous service consumption | ✅ — discover → pay → consume in one call |
+| Quality-based subnet routing | ✅ — track performance, route to best |
+| Session-scoped subnet budgets | ✅ — cap TAO spend per session |
+| x402 micropayments | ✅ |
+| Agent registration | ✅ |
+
+## How agents use TAO subnets
+
+```python
+from vida.plugins.tao.gateway import AutonomousGateway, SubnetBudget
+
+# Owner sets a session budget — 0.1 TAO total for subnet services
+budget = SubnetBudget(max_spend_tao=0.1, max_queries=50)
+
+# Agent gets a gateway with that budget
+gateway = AutonomousGateway(budget=budget, wallet_id="agent-1")
+
+# Agent asks: "I need LLM inference for this prompt"
+result = gateway.consume(
+    capability="llm",
+    prompt="Summarize this contract clause...",
+    max_cost_tao=0.005,
+)
+
+# Vida handles discovery → quality routing → payment → consumption
+# Returns the subnet's response + which subnet was used + cost + latency
+print(result["subnet"])     # "Inference (LLM) — netuid 19"
+print(result["data"])       # The LLM's response
+print(result["cost_tao"])   # 0.005 TAO
+print(result["latency_ms"]) # 234ms
+```
+
+The agent never sees the master key. The owner controls the budget.
+The subnet marketplace routes queries to the best-performing subnets.
 
 ## Security
 
@@ -55,12 +99,14 @@ Explicit non-goals: custodial service, EVM, fiat ramps, browser UX.
 ## Architecture
 
 ```
-Owner → creates session (spend cap, expiry, allowed operations)
+Owner → creates session (spend cap, expiry, subnet budget, allowed ops)
          │
     Vida Kernel
          │
     ┌────┼────┐
   Kaspa  TAO  Covenant
+         │
+    Subnet Gateway (discovery + quality routing + x402 payments)
          │
     MCP Server (12 tools + 2 resources)
 ```
@@ -68,7 +114,8 @@ Owner → creates session (spend cap, expiry, allowed operations)
 ## MCP Server
 
 Agents connect through standard MCP. Tools include: balances, send KAS,
-stake/unstake TAO, subnet queries, covenant deploy/spend, escrow, channels.
+stake/unstake TAO, discover subnets, consume subnet services,
+covenant deploy/spend, escrow, channels.
 
 ```bash
 python3 scripts/vida_mcp_server.py
@@ -77,7 +124,7 @@ python3 scripts/vida_mcp_server.py
 ## Tests
 
 246 tests covering wallet security, transactions, TAO operations,
-covenant deployment, escrow, channels, and agent verification.
+subnet gateway, covenant deployment, escrow, channels.
 
 ```bash
 python3 -m pytest tests/ -q
@@ -87,12 +134,6 @@ python3 -m pytest tests/ -q
 
 No fees on any operation. No commercial license. No royalties.
 The wallet is the on-ramp.
-
-## Roadmap
-
-- **Phase 1** (Aug 2026): Polish, PyPI, Docker, external audit
-- **Phase 2**: Mainnet covenants (gated on Toccata toolchain)
-- **Later**: Multi-agent economy, hardware wallet signing, BIP39 interop
 
 ## License
 
