@@ -7,8 +7,10 @@ See vida_commerce/negotiation.py for 5 cooperative strategies.
 """
 
 import warnings
+
 warnings.warn(
     "vida.agents.negotiation.models has moved to vida_commerce.negotiation",
-    DeprecationWarning, stacklevel=2,
+    DeprecationWarning,
+    stacklevel=2,
 )
 __all__ = []

@@ -10,8 +10,10 @@ This file remains as a forwarding notice only. No functionality.
 """
 
 import warnings
+
 warnings.warn(
     "vida.agents.orchestrator has moved to vida_commerce.agent",
-    DeprecationWarning, stacklevel=2,
+    DeprecationWarning,
+    stacklevel=2,
 )
 __all__ = []
