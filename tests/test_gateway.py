@@ -4,6 +4,8 @@ Tests subnet discovery, quality scoring, budget enforcement,
 and error handling with live registry data.
 """
 
+import socket
+
 import pytest
 
 from vida.plugins.tao.gateway import (
@@ -13,6 +15,22 @@ from vida.plugins.tao.gateway import (
     agent_consume_subnet_service,
 )
 from vida.plugins.tao.subnet_marketplace import ServiceType, SubnetRegistry
+
+
+def _has_network() -> bool:
+    """Check if the CI/test environment can reach subnet endpoints."""
+    try:
+        s = socket.create_connection(("api.subnet1.ai", 443), timeout=3)
+        s.close()
+        return True
+    except OSError:
+        return False
+
+
+requires_network = pytest.mark.skipif(
+    not _has_network(),
+    reason="Subnet API endpoints not reachable in this environment",
+)
 
 
 class TestSubnetBudget:
@@ -142,6 +160,7 @@ class TestGatewayDiscovery:
             assert scores == sorted(scores, reverse=True)
 
 
+@requires_network
 class TestGatewayConsumption:
     def test_consume_no_affordable(self):
         """Attempting to spend more than budget returns error gracefully."""
@@ -186,6 +205,7 @@ class TestGatewayConsumption:
         assert "subnets" in report
 
 
+@requires_network
 class TestAgentToolIntegration:
     def test_high_level_entry_point(self):
         """agent_consume_subnet_service returns valid structure."""
