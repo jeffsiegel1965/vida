@@ -74,6 +74,15 @@ stake/unstake TAO, subnet queries, covenant deploy/spend, escrow, channels.
 python3 scripts/vida_mcp_server.py
 ```
 
+## Tests
+
+246 tests covering wallet security, transactions, TAO operations,
+covenant deployment, escrow, channels, and agent verification.
+
+```bash
+python3 -m pytest tests/ -q
+```
+
 ## Free. Everything. Forever.
 
 No fees on any operation. No commercial license. No royalties.
