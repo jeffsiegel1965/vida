@@ -12,8 +12,7 @@ See: https://github.com/Vida-Wallet/vida-commerce
 import warnings
 
 warnings.warn(
-    "vida.agents.negotiation has moved to vida-commerce. "
-    "Import from vida_commerce.negotiation instead.",
+    "vida.agents.negotiation has moved to vida-commerce. Import from vida_commerce.negotiation instead.",
     DeprecationWarning,
     stacklevel=2,
 )

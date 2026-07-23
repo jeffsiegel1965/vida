@@ -492,7 +492,7 @@ class ChannelStore:
 def open_channel(party_a: str, party_b: str, capacity_kas: float, network: str = "mainnet") -> dict[str, Any]:
     """Open a legacy bidirectional payment channel."""
     try:
-        from vida.plugins.covenant.fees import calc_kas_fee
+        from vida.plugins.covenant.fees import calc_kas_fee, get_fee_address
 
         channel_id = f"ch_{secrets.token_hex(8)}"
         capacity_sompi = int(capacity_kas * SOMIPI_PER_KAS)

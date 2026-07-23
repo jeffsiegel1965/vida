@@ -3,16 +3,16 @@
 import unittest
 
 from vida.plugins.covenant.kip16_zk import (
+    TEST_VECTORS,
+    CovenantManager,
     ZkProofCovenant,
     ZkProofType,
     ZkScheme,
-    CovenantManager,
     verify_benchmark,
-    vida_covenant_zk_deploy,
-    vida_covenant_zk_verify,
-    vida_covenant_zk_status,
     vida_covenant_zk_benchmarks,
-    TEST_VECTORS,
+    vida_covenant_zk_deploy,
+    vida_covenant_zk_status,
+    vida_covenant_zk_verify,
 )
 
 

@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 from .agent_pot import SOMPI_PER_KAS, plan_agent_pot
 from .agent_pot_script import verify_policy_hash
-from .fees import calc_kas_fee, describe_fees
+from .fees import calc_kas_fee, describe_fees, get_donation_address, get_fee_address
 from .lab_client import live_gates_ok
 from .plugin import CovenantPlugin
 from .pot_spend import check_spend_kas, load_pot_record

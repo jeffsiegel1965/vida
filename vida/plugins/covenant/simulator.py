@@ -16,7 +16,7 @@ from typing import Any, Optional
 
 from .agent_pot import SOMPI_PER_KAS, plan_agent_pot
 from .agent_pot_script import build_agent_pot_script_template
-from .fees import calc_kas_fee
+from .fees import calc_kas_fee, get_fee_address
 from .pot_spend import check_spend_kas
 
 

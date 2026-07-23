@@ -11,10 +11,10 @@ LICENSE: MIT. Both KAS and TAO operations.
 
 from __future__ import annotations
 
-
 # ═══════════════════════════════════════════════════════════════════
 # All operations free
 # ═══════════════════════════════════════════════════════════════════
+
 
 def calc_kas_fee(amount: float) -> float:
     """Always returns 0."""

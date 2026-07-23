@@ -3,8 +3,6 @@ from typing import Dict, Optional
 import requests
 from requests.exceptions import RequestException
 
-from ..covenant.fees import calc_subnet_query_fee
-
 
 class X402Terms:
     """Payment terms from a 402 response."""

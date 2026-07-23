@@ -21,12 +21,12 @@ import json
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
-
+from typing import Any, Dict, List, Optional
 
 # ═══════════════════════════════════════════════════════════════════
 # Bridge Key — shared secret between wallet and commerce
 # ═══════════════════════════════════════════════════════════════════
+
 
 def get_bridge_key() -> bytes:
     key = os.environ.get("VIDA_BRIDGE_KEY", "")
@@ -42,6 +42,7 @@ def is_bridge_configured() -> bool:
 # ═══════════════════════════════════════════════════════════════════
 # Bridge Message Protocol
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class BridgeMessage:
@@ -59,13 +60,15 @@ class BridgeMessage:
             self.message_id = hashlib.sha256(raw.encode()).hexdigest()[:12]
 
     def serialize(self) -> str:
-        return json.dumps({
-            "sender": self.sender,
-            "action": self.action,
-            "payload": self.payload,
-            "timestamp": self.timestamp,
-            "message_id": self.message_id,
-        })
+        return json.dumps(
+            {
+                "sender": self.sender,
+                "action": self.action,
+                "payload": self.payload,
+                "timestamp": self.timestamp,
+                "message_id": self.message_id,
+            }
+        )
 
     @classmethod
     def deserialize(cls, data: str) -> "BridgeMessage":
@@ -80,9 +83,7 @@ class BridgeMessage:
 
     def authenticate(self) -> str:
         key = get_bridge_key()
-        return hashlib.pbkdf2_hmac(
-            "sha256", self.serialize().encode(), key, 10_000
-        ).hex()
+        return hashlib.pbkdf2_hmac("sha256", self.serialize().encode(), key, 10_000).hex()
 
     def verify(self, auth_tag: str) -> bool:
         expected = self.authenticate()
@@ -93,9 +94,11 @@ class BridgeMessage:
 # Simple Identity Models (wallet-native, no commerce dependency)
 # ═══════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class IdentityProfile:
     """Party identity stored in the wallet."""
+
     profile_id: str
     party_name: str
     entity_type: str  # "individual", "llc", "corporation", "dao", etc.
@@ -119,10 +122,10 @@ class IdentityProfile:
 @dataclass
 class IdentityVault:
     """Simple encrypted identity store in the wallet."""
+
     profiles: Dict[str, IdentityProfile] = field(default_factory=dict)
 
-    def create_profile(self, party_name: str, entity_type: str,
-                       jurisdiction: str, **kwargs) -> IdentityProfile:
+    def create_profile(self, party_name: str, entity_type: str, jurisdiction: str, **kwargs) -> IdentityProfile:
         profile_id = hashlib.sha256(
             f"{party_name}:{entity_type}:{datetime.now(timezone.utc).isoformat()}".encode()
         ).hexdigest()[:16]
@@ -154,6 +157,7 @@ class IdentityVault:
 # ═══════════════════════════════════════════════════════════════════
 # Wallet-Side Bridge
 # ═══════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class WalletBridge:
@@ -218,10 +222,10 @@ class WalletBridge:
 # Convenience: create vault from wallet data
 # ═══════════════════════════════════════════════════════════════════
 
-def create_vault_from_wallet(wallet_addresses: List[str],
-                             party_name: str = "",
-                             entity_type: str = "individual",
-                             jurisdiction: str = "") -> IdentityVault:
+
+def create_vault_from_wallet(
+    wallet_addresses: List[str], party_name: str = "", entity_type: str = "individual", jurisdiction: str = ""
+) -> IdentityVault:
     """Create an identity vault seeded with wallet addresses."""
     vault = IdentityVault()
     profile = vault.create_profile(

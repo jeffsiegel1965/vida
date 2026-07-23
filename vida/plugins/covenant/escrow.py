@@ -283,7 +283,7 @@ def deploy_escrow(
     try:
         import secrets
 
-        from .fees import calc_kas_fee, get_fee_address, get_donation_address
+        from .fees import calc_kas_fee, get_donation_address, get_fee_address
 
         # Validate addresses are non-empty
         if not buyer_address or not seller_address:

@@ -1,12 +1,13 @@
 import unittest
 from unittest.mock import patch
+
 from vida.plugins.covenant.coamm import (
     CoAMMClient,
     PoolState,
-    vida_coamm_pools,
-    vida_coamm_swap,
     vida_coamm_estimate,
     vida_coamm_liquidity,
+    vida_coamm_pools,
+    vida_coamm_swap,
 )
 
 
@@ -44,16 +45,12 @@ class TestCoAMMClient(unittest.TestCase):
         self.assertGreater(result["output_amount"], 0)
 
     def test_swap_tokens_success(self):
-        result = self.client.swap_tokens(
-            "test_wallet", "test_pool", "KAS", "test_token", 1000, 0.01
-        )
+        result = self.client.swap_tokens("test_wallet", "test_pool", "KAS", "test_token", 1000, 0.01)
         self.assertTrue(result["ok"])
         self.assertEqual(result["txid"], "simulated_txid_for_testnet")
 
     def test_add_liquidity_success(self):
-        result = self.client.add_liquidity(
-            "test_wallet", "test_pool", {"KAS": 1000, "test_token": 500}
-        )
+        result = self.client.add_liquidity("test_wallet", "test_pool", {"KAS": 1000, "test_token": 500})
         self.assertTrue(result["ok"])
         self.assertEqual(result["txid"], "simulated_txid_for_testnet")
 
