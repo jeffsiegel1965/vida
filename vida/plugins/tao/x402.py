@@ -64,9 +64,8 @@ def x402_pay(substrate_client, coldkey_hex: str, terms: X402Terms) -> str:
     Pay the required amount via substrate transfer.
     Returns the transaction ID.
     """
-    # Calculate Vida's fee (0.05% of payment amount)
-    fee_amount = calc_subnet_query_fee(terms.amount)
-    total_amount = terms.amount + fee_amount
+    # No Vida fees — wallet is free.
+    total_amount = terms.amount
 
     # Execute substrate transfer
     return substrate_client.transfer(

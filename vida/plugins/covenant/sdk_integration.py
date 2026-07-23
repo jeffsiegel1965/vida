@@ -214,7 +214,7 @@ async def deploy_covenant(
         signed = sign_transaction(tx, [priv_key], True)
 
         # Submit
-        result = await rpc.submit_transaction(request=signed)
+        result = await rpc.submit_transaction(request={"transaction": signed})
         txid = result.get("transactionId", "") if isinstance(result, dict) else str(result)
 
         covenant_id = program_to_covenant_id(program_hex)
@@ -375,7 +375,7 @@ async def spend_from_covenant(
         signed = sign_transaction(tx, [priv_key], True)
 
         # Submit
-        result = await rpc.submit_transaction(request=signed)
+        result = await rpc.submit_transaction(request={"transaction": signed})
         txid = result.get("transactionId", "") if isinstance(result, dict) else str(result)
 
         return CovenantSpendResult(

@@ -283,7 +283,7 @@ def deploy_escrow(
     try:
         import secrets
 
-        from .fees import calc_fund_fee, get_donation_address, get_fee_address
+        from .fees import calc_kas_fee, get_fee_address, get_donation_address
 
         # Validate addresses are non-empty
         if not buyer_address or not seller_address:
@@ -296,7 +296,7 @@ def deploy_escrow(
         amount_sompi = int(amount_kas * 100_000_000)
 
         # Calculate fee
-        fee_kas = calc_fund_fee(amount_kas)
+        fee_kas = calc_kas_fee(amount_kas)
         fee_sompi = int(fee_kas * 100_000_000)
         total_kas = amount_kas + fee_kas
         total_sompi = amount_sompi + fee_sompi

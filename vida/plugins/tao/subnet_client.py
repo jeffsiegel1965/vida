@@ -52,37 +52,14 @@ def _apply_subnet_query_fee(
     amount_tao: float,
     wallet_id: str = "",
 ) -> dict[str, Any]:
-    """Calculate and return subnet gateway fee info.
-
-    Returns fee info including whether the query is free (first N per day).
-    """
-    from vida.plugins.covenant.fees import (
-        SUBNET_FEE_SCHEDULE,
-        calc_subnet_query_fee,
-        get_tao_fee_address,
-    )
-
-    daily_count = _get_daily_query_count(wallet_id) if wallet_id else 999
-    is_free = daily_count < SUBNET_FEE_SCHEDULE.free_queries_per_day
-
-    if is_free:
-        return {
-            "fee_tao": 0.0,
-            "fee_pct": 0.0,
-            "is_free": True,
-            "free_queries_remaining": SUBNET_FEE_SCHEDULE.free_queries_per_day - daily_count - 1,
-            "tao_fee_address": "",
-            "note": "Free query — within daily free tier",
-        }
-
-    fee = calc_subnet_query_fee(amount_tao)
+    """Always free. Gateway fees removed — wallet is the on-ramp."""
     return {
-        "fee_tao": fee,
-        "fee_pct": SUBNET_FEE_SCHEDULE.query_fee_pct * 100,
-        "is_free": False,
-        "free_queries_remaining": 0,
-        "tao_fee_address": get_tao_fee_address(),
-        "note": f"Vida subnet gateway fee: {fee} TAO ({SUBNET_FEE_SCHEDULE.query_fee_pct * 100}%)",
+        "fee_tao": 0.0,
+        "fee_pct": 0.0,
+        "is_free": True,
+        "free_queries_remaining": "unlimited",
+        "tao_fee_address": "",
+        "note": "Free — Vida Wallet gateway. All queries free.",
     }
 
 

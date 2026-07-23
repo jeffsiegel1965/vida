@@ -1,6 +1,6 @@
 Copyright (c) 2026 Vida Wallet Contributors
 
-## MIT License (Kaspa core, TAO plugin, Agent layer, CLI tools)
+## MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,46 +20,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## Commercial License (Covenant module)
+---
 
-The covenant module — including SilverScript contract sources, escrow
-logic, payment channel implementations, and agent negotiation protocols
-under `vida/plugins/covenant/` — is licensed under a commercial,
-royalty-bearing model. This module is NOT covered by the MIT grant above.
+This license covers all code in this repository: Kaspa wallet, TAO plugin,
+covenant deployment and spending, agent orchestration, CLI tools, and tests.
+Everything is MIT. No commercial restrictions. No fees.
 
-### What this means
-
-- **Free for non-commercial use, evaluation, and testing.** You may run,
-  modify, and experiment with covenant code locally, on testnet, and in
-  personal projects at no cost.
-- **Commercial deployment requires a license.** If you use Vida's covenant
-  module in a revenue-generating product, service, or agent fleet (including
-  hosted or embedded deployments), you must obtain a paid license.
-- **Small-scale / low-revenue exemption:** Projects under $10,000 annual
-  revenue may request a free commercial license.
-
-### How to obtain a license
-
-Contact: `vida-license@` (domain TBD) or open an issue on GitHub titled
-"Commercial License Inquiry." Include your use case, expected volume,
-and deployment details. We respond within 5 business days.
-
-### Why commercial?
-
-Covenants are the moat — they're the hard on-chain limits that make agent
-delegation cryptographically enforceable. The R&D and toolchain investment
-(including SilverScript, Kaspa SDK integration, and Toccata mainnet
-readiness) is significant. A commercial covenant license ensures ongoing
-maintenance while keeping the core wallet, TAO plugin, agent layer, and
-CLI tools MIT-licensed and free forever.
-
-### Scope boundaries
-
-| MIT (free forever) | Commercial (license required) |
-|---|---|
-| `vida/secure_wallet.py` | `vida/plugins/covenant/` |
-| `vida/transactions.py` | `vida/plugins/covenant/silverscript/` |
-| `vida/agents/` (orchestrator, memory, verification) | `vida/agents/negotiation/` |
-| `vida/plugins/tao/` | Covenant deploy/spend RPC paths |
-| `scripts/` (CLI tools, admin, MCP) | Fee collection logic |
-| `tests/` (all test suites) | — |
+Vida Commerce (separate project: https://github.com/Vida-Wallet/vida-commerce)
+handles contract negotiation, templates, and monetization.

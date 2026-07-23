@@ -16,7 +16,7 @@ from typing import Any, Optional
 
 from .agent_pot import SOMPI_PER_KAS, plan_agent_pot
 from .agent_pot_script import build_agent_pot_script_template
-from .fees import calc_fund_fee, calc_spend_fee, get_fee_address
+from .fees import calc_kas_fee
 from .pot_spend import check_spend_kas
 
 
@@ -89,7 +89,7 @@ class CovenantSimulator:
         if not template.get("ok"):
             return {"ok": False, "error": template.get("error")}
 
-        fee = calc_fund_fee(float(plan["fund_pot_kas"]))
+        fee = calc_kas_fee(float(plan["fund_pot_kas"]))
         policy = template["policy"]
 
         pot = SimulatedPot(
@@ -124,7 +124,7 @@ class CovenantSimulator:
         if amount_sompi <= 0:
             return {"ok": False, "error": "amount must be positive"}
 
-        fee = calc_fund_fee(amount_kas)
+        fee = calc_kas_fee(amount_kas)
         fee_sompi = int(round(fee * SOMPI_PER_KAS))
         net_sompi = amount_sompi - fee_sompi
 
@@ -178,7 +178,7 @@ class CovenantSimulator:
             return {"ok": False, "error": check.get("error", "policy rejected")}
 
         # Check balance
-        fee = calc_spend_fee(amount_kas)
+        fee = calc_kas_fee(amount_kas)
         fee_sompi = int(round(fee * SOMPI_PER_KAS))
         total_sompi = amount_sompi + fee_sompi
 

@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 from .agent_pot import SOMPI_PER_KAS, plan_agent_pot
 from .agent_pot_script import verify_policy_hash
-from .fees import calc_fund_fee, calc_spend_fee, describe_fees, get_donation_address, get_fee_address
+from .fees import calc_kas_fee, describe_fees
 from .lab_client import live_gates_ok
 from .plugin import CovenantPlugin
 from .pot_spend import check_spend_kas, load_pot_record
@@ -96,7 +96,7 @@ def covenant_plan_with_fees(
     if not plan.get("ok"):
         return plan
     pot_kas = float(plan["fund_pot_kas"])
-    fee = calc_fund_fee(pot_kas)
+    fee = calc_kas_fee(pot_kas)
     plan["fee"] = {
         "dev_fee_kas": fee,
         "dev_fee_sompi": int(round(fee * SOMPI_PER_KAS)),
@@ -114,9 +114,9 @@ def covenant_plan_with_fees(
 def covenant_estimate_fee(amount_kas: float, fee_type: str = "fund") -> dict[str, Any]:
     """Estimate fee for a covenant operation."""
     if fee_type == "fund":
-        fee = calc_fund_fee(amount_kas)
+        fee = calc_kas_fee(amount_kas)
     elif fee_type == "spend":
-        fee = calc_spend_fee(amount_kas)
+        fee = calc_kas_fee(amount_kas)
     else:
         return {"ok": False, "error": "fee_type must be 'fund' or 'spend'"}
     return {
