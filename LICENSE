@@ -26,5 +26,4 @@ This license covers all code in this repository: Kaspa wallet, TAO plugin,
 covenant deployment and spending, agent orchestration, CLI tools, and tests.
 Everything is MIT. No commercial restrictions. No fees.
 
-Vida Commerce (separate project: https://github.com/Vida-Wallet/vida-commerce)
 handles contract negotiation, templates, and monetization.

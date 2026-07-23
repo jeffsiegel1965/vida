@@ -1,13 +1,9 @@
-"""⚠️ MOVED TO VIDA COMMERCE — vida_commerce/agent.py
-
-Subscription management has moved to Vida Commerce.
-See vida_commerce/agent.py for contract lifecycle management.
-"""
+"""⚠️ Deprecated. Subscriptions have been moved out of the wallet."""
 
 import warnings
 
 warnings.warn(
-    "vida.agents.negotiation.subscriptions has moved to vida_commerce",
+    "vida.agents.negotiation.subscriptions is deprecated. Subscriptions have been moved out of the wallet.",
     DeprecationWarning,
     stacklevel=2,
 )

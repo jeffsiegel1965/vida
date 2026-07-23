@@ -1,18 +1,9 @@
-"""⚠️ MOVED TO VIDA COMMERCE — vida_commerce/agent.py
-
-The agent loop (goal → plan → execute → verify) has moved to Vida Commerce.
-The contract administrator agent handles contract lifecycle, negotiation, and memory.
-
-Import from vida_commerce.agent instead:
-    from vida_commerce.agent import ContractAdminAgent
-
-This file remains as a forwarding notice only. No functionality.
-"""
+"""⚠️ Deprecated. The agent loop has been moved out of the wallet."""
 
 import warnings
 
 warnings.warn(
-    "vida.agents.orchestrator has moved to vida_commerce.agent",
+    "vida.agents.orchestrator is deprecated. The agent loop has been moved out of the wallet.",
     DeprecationWarning,
     stacklevel=2,
 )

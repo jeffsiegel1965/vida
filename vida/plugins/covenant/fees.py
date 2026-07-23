@@ -3,8 +3,7 @@
 KASPA: Free. Covenant deployment, spending, escrow, payment channels.
 TAO: Free. Subnet queries, staking, agent registration.
 
-The wallet is the on-ramp. Adoption drives everything. Monetization lives
-in Vida Commerce — the contract platform where value is created.
+The wallet is the on-ramp.
 
 LICENSE: MIT. Both KAS and TAO operations.
 """
@@ -51,12 +50,12 @@ def describe_fees() -> dict:
         "kaspa": {
             "free": True,
             "license": "MIT",
-            "note": "All Kaspa operations are free. Monetization is in Vida Commerce.",
+            "note": "All Kaspa operations are free.",
         },
         "tao": {
             "free": True,
             "license": "MIT",
-            "note": "All TAO operations are free. Monetization is in Vida Commerce.",
+            "note": "All TAO operations are free.",
         },
-        "message": "Vida Wallet is free. Vida Commerce is the monetization layer.",
+        "message": "Vida Wallet is free.",
     }

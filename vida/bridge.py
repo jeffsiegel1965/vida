@@ -1,7 +1,7 @@
 """
-Vida Wallet → Vida Commerce Bridge (Wallet Side).
+Vida Wallet Identity Bridge (Wallet Side).
 
-This bridge connects Vida Wallet's identity vault to Vida Commerce.
+This bridge exposes wallet identity for contract party references.
 It exposes encrypted party profiles for contract party references.
 
 The bridge is Vida-to-Vida only — encrypted with VIDA_BRIDGE_KEY.
@@ -163,15 +163,15 @@ class IdentityVault:
 class WalletBridge:
     """Bridge that runs inside Vida Wallet.
 
-    Responds to identity queries from Vida Commerce.
+    Responds to identity queries from authorized clients.
     Uses HMAC-authenticated messages with shared VIDA_BRIDGE_KEY.
     """
 
     vault: IdentityVault
 
     def handle_query(self, msg: BridgeMessage) -> BridgeMessage:
-        """Process incoming query from Vida Commerce."""
-        if msg.sender != "vida-commerce":
+        """Process incoming query."""
+        if msg.sender != "vida-client":
             return self._error("Unauthorized sender", msg.message_id)
 
         handlers = {

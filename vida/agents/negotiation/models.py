@@ -1,15 +1,9 @@
-"""⚠️ MOVED TO VIDA COMMERCE — vida_commerce/agent.py
-
-Negotiation templates and strategies have moved to Vida Commerce.
-The wallet no longer negotiates — that's the commerce layer's job.
-
-See vida_commerce/negotiation.py for 5 cooperative strategies.
-"""
+"""⚠️ Deprecated. Negotiation models have been moved out of the wallet."""
 
 import warnings
 
 warnings.warn(
-    "vida.agents.negotiation.models has moved to vida_commerce.negotiation",
+    "vida.agents.negotiation.models is deprecated. Negotiation models have been moved out of the wallet.",
     DeprecationWarning,
     stacklevel=2,
 )

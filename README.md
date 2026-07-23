@@ -86,8 +86,7 @@ python3 -m pytest tests/ -q
 ## Free. Everything. Forever.
 
 No fees on any operation. No commercial license. No royalties.
-The wallet is the on-ramp. Vida Commerce (separate project)
-is where monetization happens through contract negotiation.
+The wallet is the on-ramp.
 
 ## Roadmap
 
