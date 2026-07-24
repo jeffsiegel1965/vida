@@ -14,6 +14,7 @@ import json
 import os
 import stat
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Optional
 
@@ -296,37 +297,144 @@ def load_tao_session_secrets(session_path: str | Path) -> dict[str, Any]:
     }
 
 
-def record_tao_session_spend(session_path: str | Path, amount: float) -> dict[str, Any]:
+# ── Cross-process session locking ──────────────────────────────────────────
+# record_tao_session_spend() and load_tao_session_secrets() are separated by
+# the entire broadcast in plugin.py (stake at L330-382, transfer at L524-596).
+# Without a lock two agent processes sharing a TAO session file each read the
+# same stale enc_spend counter and both pass the daily cap.
+# Fix: reserve-then-record pattern with fcntl.flock, matching the Kaspa path.
+
+
+def _tao_lock_path(session_path: str | Path) -> Path:
+    return Path(str(session_path) + ".lock")
+
+
+@contextmanager
+def tao_session_lock(session_path: str | Path, timeout: float = 10.0):
+    """Exclusive fcntl.flock on the session lockfile."""
+    import fcntl
+
+    lp = _tao_lock_path(session_path)
+    lp.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(lp), os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        deadline = time.time() + timeout
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError:
+                if time.time() >= deadline:
+                    raise RuntimeError(
+                        f"Timed out acquiring TAO session lock {lp} after {timeout}s"
+                    )
+                time.sleep(0.01)
+        try:
+            yield
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+
+
+def _read_tao_spend_from_disk(path: Path) -> tuple[str, float]:
+    """Return (day, daily_spent) from the TAO session file.
+
+    Returns ("", 0.0) if the file is missing, the counter hasn't started,
+    or the day has rolled. Raises on decryption failure (tamper).
     """
-    After a successful session-funded action: bump authenticated daily spend.
-    Day rolls over in UTC. Tamper of enc_spend fails future loads.
+    if not path.is_file():
+        return ("", 0.0)
+    sess = json.loads(path.read_text())
+    mk = bytes.fromhex(sess["machine_key"])
+    today = time.strftime("%Y-%m-%d", time.gmtime())
+    if not sess.get("enc_spend"):
+        return (today, 0.0)
+    sp = AESGCM(mk).decrypt(
+        bytes.fromhex(sess["enc_spend"]["nonce"]),
+        bytes.fromhex(sess["enc_spend"]["ct"]),
+        b"vida-tao-session-spend-v1",
+    )
+    spend = json.loads(sp.decode())
+    if spend.get("day") != today:
+        return (today, 0.0)
+    return (today, float(spend.get("daily_spent") or 0.0))
+
+
+def reserve_tao_session_spend(
+    session_path: str | Path, amount: float, daily_limit: float
+) -> dict[str, Any]:
+    """Atomically check the TAO session daily cap and reserve the amount.
+
+    Returns {"ok": True} if the spend fits in the cap, or
+    {"ok": False, "error": ...} if it would exceed.
+    The reservation is published to disk so sibling processes observe it.
+    Caller MUST later call record_tao_session_spend() on success or
+    release_tao_session_spend() on failure.
+
+    This is the concurrency-safe entry point. Never read daily_spent from
+    load_tao_session_secrets() and check it yourself.
+    """
+    path = Path(session_path)
+    with tao_session_lock(path):
+        day, spent = _read_tao_spend_from_disk(path)
+        if daily_limit > 0 and (spent + amount) > daily_limit + 1e-12:
+            return {
+                "ok": False,
+                "error": (
+                    f"Session policy rejected: amount {amount} would exceed "
+                    f"max_tao_per_day {daily_limit} (spent {spent})"
+                ),
+            }
+        # Publish the reservation so sibling processes see it.
+        _write_tao_spend_encrypted(path, day, spent + amount)
+        return {"ok": True, "reserved": amount, "day": day, "spent_before": spent}
+
+
+def release_tao_session_spend(
+    session_path: str | Path, amount: float
+) -> dict[str, Any]:
+    """Release a reservation that was never committed (failed broadcast)."""
+    path = Path(session_path)
+    with tao_session_lock(path):
+        day, spent = _read_tao_spend_from_disk(path)
+        new_spent = max(spent - amount, 0.0)
+        _write_tao_spend_encrypted(path, day, new_spent)
+        return {"ok": True, "day": day, "daily_spent": new_spent}
+
+
+def _write_tao_spend_encrypted(path: Path, day: str, daily_spent: float) -> None:
+    """Persist enc_spend. Must be called while holding tao_session_lock()."""
+    if not path.is_file():
+        raise FileNotFoundError(f"TAO session missing: {path}")
+    import secrets as _sec
+
+    sess = json.loads(path.read_text())
+    mk = bytes.fromhex(sess["machine_key"])
+    nonce = _sec.token_bytes(12)
+    ct = AESGCM(mk).encrypt(
+        nonce,
+        json.dumps({"day": day, "daily_spent": daily_spent}).encode(),
+        b"vida-tao-session-spend-v1",
+    )
+    sess["enc_spend"] = {"nonce": nonce.hex(), "ct": ct.hex()}
+    _write_0600(path, sess)
+
+
+def record_tao_session_spend(session_path: str | Path, amount: float) -> dict[str, Any]:
+    """After a successful session-funded action: commit the daily spend.
+
+    Holds an exclusive flock across the read-modify-write so concurrent
+    processes cannot both pass the cap.
     """
     path = Path(session_path)
     if not path.is_file():
         return {"ok": False, "error": "session missing"}
-    try:
-        sess = json.loads(path.read_text())
-        machine_key = bytes.fromhex(sess["machine_key"])
-        today = time.strftime("%Y-%m-%d", time.gmtime())
-        spent = 0.0
-        if sess.get("enc_spend"):
-            try:
-                sp = AESGCM(machine_key).decrypt(
-                    bytes.fromhex(sess["enc_spend"]["nonce"]),
-                    bytes.fromhex(sess["enc_spend"]["ct"]),
-                    b"vida-tao-session-spend-v1",
-                )
-                prev = json.loads(sp.decode())
-                if prev.get("day") == today:
-                    spent = float(prev.get("daily_spent") or 0)
-            except Exception:
-                return {"ok": False, "error": "enc_spend decrypt failed"}
-        spent = float(spent) + float(amount)
-        sess["enc_spend"] = _seal_spend(machine_key, today, spent)
-        _write_0600(path, sess)
-        return {"ok": True, "daily_spent": spent, "day": today}
-    except Exception as e:
-        return {"ok": False, "error": f"{type(e).__name__}: {e}"}
+    with tao_session_lock(path):
+        day, spent = _read_tao_spend_from_disk(path)
+        spent += float(amount)
+        _write_tao_spend_encrypted(path, day, spent)
+        return {"ok": True, "daily_spent": spent, "day": day}
 
 
 def revoke_tao_agent_session(session_path: str | Path) -> bool:

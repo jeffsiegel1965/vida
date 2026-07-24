@@ -307,12 +307,27 @@ class TaoPlugin:
             return {"ok": False, "error": "hotkey ss58 required"}
 
         self._spend._roll()
-        if unlock_via == "session":
-            daily_spent = float(locals().get("_session_daily", 0) or 0)
-            if ctx.daily_spent:
-                daily_spent = max(daily_spent, float(ctx.daily_spent))
+        # ── Reserve against the daily cap BEFORE the broadcast ──
+        reserve_result = None
+        if unlock_via == "session" and session_path:
+            from .session import reserve_tao_session_spend
+
+            reserve_result = reserve_tao_session_spend(
+                session_path, float(amount_tao), daily_limit or 0.0
+            )
+            if not reserve_result.get("ok"):
+                secrets.clear()
+                return {
+                    "ok": False,
+                    "error": reserve_result.get("error", "daily cap exceeded"),
+                    "needs_approval": False,
+                    "policy": reserve_result.get("error", ""),
+                    "unlock_via": unlock_via,
+                }
+            daily_spent = reserve_result.get("spent_before", 0.0)
         else:
             daily_spent = self._spend.daily_spent if ctx.daily_spent == 0 else ctx.daily_spent
+
         decision = evaluate_stake(
             mode=mode,
             amount=float(amount_tao),
@@ -364,6 +379,13 @@ class TaoPlugin:
                 )
         except Exception as e:
             result = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+            # Return the reservation so a sibling process can use the budget.
+            if reserve_result and reserve_result.get("ok") and session_path:
+                try:
+                    from .session import release_tao_session_spend
+                    release_tao_session_spend(session_path, float(amount_tao))
+                except Exception:
+                    pass
         finally:
             try:
                 self.client.close()
@@ -514,10 +536,23 @@ class TaoPlugin:
                 return {"ok": False, "error": "destination not in session allowed_destinations"}
 
         self._spend._roll()
-        if unlock_via == "session":
-            daily_spent = float(locals().get("_session_daily", 0) or 0)
-            if ctx.daily_spent:
-                daily_spent = max(daily_spent, float(ctx.daily_spent))
+        # ── Reserve against the daily cap BEFORE the broadcast ──
+        reserve_result = None
+        if unlock_via == "session" and session_path:
+            from .session import reserve_tao_session_spend
+            reserve_result = reserve_tao_session_spend(
+                session_path, float(amount_tao), daily_limit or 0.0
+            )
+            if not reserve_result.get("ok"):
+                secrets.clear()
+                return {
+                    "ok": False,
+                    "error": reserve_result.get("error", "daily cap exceeded"),
+                    "needs_approval": False,
+                    "policy": reserve_result.get("error", ""),
+                    "unlock_via": unlock_via,
+                }
+            daily_spent = reserve_result.get("spent_before", 0.0)
         else:
             daily_spent = self._spend.daily_spent if ctx.daily_spent == 0 else ctx.daily_spent
         # reuse stake policy with action=transfer (netuid ignored if no allowlist subnets for transfer)
@@ -559,6 +594,13 @@ class TaoPlugin:
             )
         except Exception as e:
             result = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+            # Return the reservation so a sibling process can use the budget.
+            if reserve_result and reserve_result.get("ok") and session_path:
+                try:
+                    from .session import release_tao_session_spend
+                    release_tao_session_spend(session_path, float(amount_tao))
+                except Exception:
+                    pass
         finally:
             try:
                 self.client.close()
