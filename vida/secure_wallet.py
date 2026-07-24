@@ -40,7 +40,9 @@ File format (vida_secure.json) — everything sensitive is ciphertext:
 import json
 import os
 import stat
+import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -374,15 +376,121 @@ class SecureVida:
             raise ValueError("No PQ public key on this wallet")
         return pq_verify(message, signature, bytes.fromhex(self.pq_public_key))
 
+    # ── Session spend concurrency ─────────────────────────────────────
+    # check_session_spend() and record_session_spend() are separated by the
+    # whole UTXO-gather / build / sign / broadcast sequence in
+    # transactions.send() (check at ~line 227, record at ~line 314). Without
+    # a reservation, N concurrent agent calls each read the same stale
+    # session_daily_spent and all pass the daily cap -- 20 concurrent 10 KAS
+    # spends were observed committing 200 KAS against a 100 KAS/day cap.
+    #
+    # _session_spend_lock guards the counter; _session_reserved holds
+    # in-flight amounts that have passed the check but not yet committed, so
+    # the cap is evaluated against (committed + reserved).
+
+    @property
+    def _spend_lock(self) -> threading.RLock:
+        """Lazily created re-entrant lock (instances may be built via __new__)."""
+        lock = getattr(self, "_session_spend_lock", None)
+        if lock is None:
+            lock = threading.RLock()
+            object.__setattr__(self, "_session_spend_lock", lock)
+        return lock
+
+    @property
+    def _reserved(self) -> float:
+        return float(getattr(self, "_session_reserved", 0.0) or 0.0)
+
     def _roll_session_day(self) -> None:
         """Reset daily spend when the UTC calendar day changes."""
         today = time.strftime("%Y-%m-%d", time.gmtime())
         if self._session_spend_day != today:
             self._session_spend_day = today
             self.session_daily_spent = 0.0
+            object.__setattr__(self, "_session_reserved", 0.0)
+
+    def reserve_session_spend(
+        self, amount_kas: float, dest_address: Optional[str] = None
+    ) -> Optional[str]:
+        """Atomically check the session caps and reserve the amount.
+
+        Returns an error string on rejection, or None on success. On success the
+        caller MUST later call either record_session_spend(amount_kas) to commit
+        the spend, or release_session_spend(amount_kas) if the send failed.
+
+        This is the concurrency-safe entry point. check_session_spend() remains
+        available for read-only pre-flight checks.
+        """
+        with self._spend_lock:
+            with self._session_file_lock():
+                # Another process may have spent since this object loaded the
+                # session file. Re-read the authoritative counter before the
+                # cap check, otherwise concurrent processes each evaluate the
+                # cap against their own stale in-memory value.
+                self._roll_session_day()
+                self._sync_spend_from_disk()
+                err = self.check_session_spend(
+                    amount_kas, dest_address=dest_address, _include_reserved=True
+                )
+                if err:
+                    return err
+                if self.session_limits is not None:
+                    object.__setattr__(
+                        self, "_session_reserved", self._reserved + float(amount_kas)
+                    )
+                    # Publish the reservation so a sibling process sees the
+                    # budget as committed while this send is in flight. It is
+                    # reconciled by record_session_spend() or returned by
+                    # release_session_spend().
+                    self.session_daily_spent += float(amount_kas)
+                    try:
+                        self._persist_session_spend()
+                    except Exception:
+                        # Roll back the optimistic publish so a failed write
+                        # cannot silently consume budget.
+                        self.session_daily_spent -= float(amount_kas)
+                        object.__setattr__(
+                            self,
+                            "_session_reserved",
+                            max(self._reserved - float(amount_kas), 0.0),
+                        )
+                        raise
+                return None
+
+    def release_session_spend(self, amount_kas: float) -> None:
+        """Release a reservation that was never committed (failed broadcast).
+
+        Reverses the optimistic publish done by reserve_session_spend(), both
+        in memory and on disk, so a sibling process sees the budget freed.
+        """
+        with self._spend_lock:
+            if self.session_limits is None:
+                return
+            with self._session_file_lock():
+                amount = float(amount_kas)
+                had = self._reserved
+                object.__setattr__(self, "_session_reserved", max(had - amount, 0.0))
+                # Only un-publish what was actually published.
+                give_back = min(amount, had)
+                if give_back > 0:
+                    # Disk is authoritative; subtract from the persisted total
+                    # so sibling processes' spends are not clobbered.
+                    self._sync_spend_from_disk()
+                    self.session_daily_spent = max(
+                        self.session_daily_spent - give_back, 0.0
+                    )
+                    try:
+                        self._persist_session_spend()
+                    except Exception:
+                        # Leaving the counter high is the safe direction: it
+                        # under-spends rather than over-spends.
+                        pass
 
     def check_session_spend(
-        self, amount_kas: float, dest_address: Optional[str] = None
+        self,
+        amount_kas: float,
+        dest_address: Optional[str] = None,
+        _include_reserved: bool = False,
     ) -> Optional[str]:
         """
         Enforce secure agent session caps. Returns error string or None if OK.
@@ -390,6 +498,10 @@ class SecureVida:
         Owner password unlocks leave session_limits is None → no session cap.
         max_kas_per_tx / max_kas_per_day of 0 means unlimited on that axis.
         If allowed_destinations is a non-empty list, dest must be in it.
+
+        When _include_reserved is True, in-flight reservations count against
+        the daily cap. Callers should prefer reserve_session_spend(), which
+        sets this and holds the lock across check-and-reserve.
         """
         if self.session_limits is None:
             return None
@@ -417,6 +529,13 @@ class SecureVida:
                     f"Session policy rejected: destination not in allowed_destinations"
                 )
         self._roll_session_day()
+        # NOTE: reserve_session_spend() publishes its reservation directly into
+        # session_daily_spent (and to disk) so sibling processes observe it, and
+        # _sync_spend_from_disk() pulls in other processes' reservations. The
+        # counter therefore ALREADY includes all in-flight amounts -- adding
+        # self._reserved here would double-count this process's own reservation
+        # and reject spends that fit inside the cap. _include_reserved is kept
+        # for call-site clarity but must not add to the total.
         if max_day > 0 and (self.session_daily_spent + amount_kas) > max_day + 1e-12:
             return (
                 f"Session policy rejected: amount would exceed max_kas_per_day "
@@ -440,12 +559,148 @@ class SecureVida:
                 return pot_err
         return None
 
+    # ── Cross-process session locking ─────────────────────────────────
+    # The RLock above only serialises threads inside ONE process. Two agent
+    # processes sharing a session file each hold their own lock and their own
+    # in-memory counter, so both pass the daily cap -- measured 120 KAS
+    # approved against a 100 KAS/day cap with 4 concurrent processes.
+    #
+    # The fix treats the session FILE as the authority: an exclusive flock is
+    # held across the whole read-modify-write, and the on-disk counter is
+    # re-read under that lock rather than trusting memory.
+
+    def _lock_path(self) -> Optional[Path]:
+        if self._session_file is None:
+            return None
+        return Path(str(self._session_file) + ".lock")
+
+    @contextmanager
+    def _session_file_lock(self, timeout: float = 10.0):
+        """Hold an exclusive advisory lock on the session file.
+
+        No-ops when there is no session file (in-memory / owner unlock), so
+        callers do not need to branch.
+        """
+        lock_path = self._lock_path()
+        if lock_path is None:
+            yield
+            return
+
+        import fcntl
+
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            deadline = time.time() + timeout
+            while True:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except OSError:
+                    if time.time() >= deadline:
+                        raise RuntimeError(
+                            f"Timed out acquiring session lock {lock_path} "
+                            f"after {timeout}s -- refusing to spend without it"
+                        )
+                    time.sleep(0.01)
+            try:
+                yield
+            finally:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+    def _read_persisted_spend(self) -> Optional[tuple[str, float]]:
+        """Read (day, daily_spent) from the session file, or None.
+
+        Must be called while holding _session_file_lock().
+        """
+        if self._session_file is None:
+            return None
+        try:
+            path = Path(self._session_file)
+            if not path.is_file():
+                return None
+            with open(path) as f:
+                sess = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return None
+
+        mk = getattr(self, "_session_machine_key", None)
+        if mk is not None and "enc_spend" in sess:
+            try:
+                return _open_spend(mk, sess["enc_spend"])
+            except Exception:
+                return None
+        spend = sess.get("spend")
+        if isinstance(spend, dict):
+            try:
+                return str(spend.get("day", "")), float(spend.get("daily_spent", 0.0))
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    def _sync_spend_from_disk(self) -> None:
+        """Make the on-disk counter authoritative for this process.
+
+        Must be called while holding _session_file_lock().
+
+        The session file -- not this object's memory -- is the source of truth,
+        because any number of agent processes may share it. An earlier version
+        only adopted the disk value when it was HIGHER than memory; that lost
+        writes, because a freshly started process begins at 0.0, adds its own
+        reservation, and then persisted a total lower than what siblings had
+        already committed. Measured: 11 approvals against a 10-approval cap
+        with the on-disk counter ending at 20.0 instead of 100.0.
+
+        Rule: adopt the persisted total for today verbatim, then re-add only
+        this process's own outstanding reservation (which is included in the
+        file only if this process already published it).
+        """
+        persisted = self._read_persisted_spend()
+        if persisted is None:
+            return
+        day, spent = persisted
+        today = time.strftime("%Y-%m-%d", time.gmtime())
+        if day != today:
+            # Stale day on disk: today's spend is zero regardless of memory.
+            self.session_daily_spent = 0.0
+            return
+        self.session_daily_spent = spent
+
     def record_session_spend(self, amount_kas: float) -> None:
-        """Record a successful spend against the secure session daily cap."""
+        """Record a successful spend against the secure session daily cap.
+
+        Consumes any reservation taken by reserve_session_spend() so the amount
+        is not counted twice. Holds both the in-process lock and the
+        cross-process file lock across the counter update and the file write.
+        """
         if self.session_limits is None:
             return
-        self._roll_session_day()
-        self.session_daily_spent += max(float(amount_kas), 0.0)
+        with self._spend_lock:
+            with self._session_file_lock():
+                amount = max(float(amount_kas), 0.0)
+                held = self._reserved
+                # Disk is authoritative and already contains any amount this
+                # process published in reserve_session_spend().
+                self._sync_spend_from_disk()
+                self._roll_session_day()
+                # Add only what was never published as a reservation.
+                unreserved = max(amount - held, 0.0)
+                if unreserved > 0:
+                    self.session_daily_spent += unreserved
+                object.__setattr__(
+                    self, "_session_reserved", max(held - amount, 0.0)
+                )
+                self._persist_session_spend()
+
+    def _persist_session_spend(self) -> None:
+        """Write the daily counter back to the session file.
+
+        Raises RuntimeError if the counter cannot be persisted -- a silent
+        failure here would let the agent restart with a zeroed counter and
+        spend the daily budget again.
+        """
         if self._session_file is None:
             return
         try:
@@ -466,14 +721,22 @@ class SecureVida:
                     "daily_spent": self.session_daily_spent,
                 }
             raw = json.dumps(sess, indent=2, sort_keys=True)
-            tmp = path.with_suffix(".tmp")
+            # Unique temp name per process: a shared "<name>.tmp" path meant two
+            # concurrent writers raced and the loser's replace() failed with
+            # ENOENT after the winner moved the file away.
+            tmp = path.with_suffix(f".{os.getpid()}.tmp")
             with open(tmp, "w") as f:
                 f.write(raw)
             os.chmod(tmp, 0o600)
             tmp.replace(path)
             os.chmod(path, 0o600)
-        except Exception:
-            pass
+        except Exception as exc:
+            # Fail loudly: an unpersisted counter is a double-spend window
+            # across restarts. The in-memory counter has already been
+            # incremented, so this session stays capped until it exits.
+            raise RuntimeError(
+                f"Failed to persist session spend counter to {self._session_file}: {exc}"
+            ) from exc
 
     def lock(self):
         """Best-effort scrub of secrets from this object."""

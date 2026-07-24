@@ -224,11 +224,34 @@ class VidaTransactor:
 
         # ── Policy gate (SecureVida agent session file unlock) ──
         # grant_agent_session caps must be enforced here (not only AAD-bound).
-        check = getattr(self.vida, "check_session_spend", None)
-        if callable(check):
-            err = check(amount_kas, dest_address=to_address)
+        # Use the atomic reserve path: check-and-reserve happens under a lock so
+        # concurrent agent calls cannot each pass the daily cap against a stale
+        # counter. The reservation is committed by record_session_spend() on
+        # success, or released in the failure paths below.
+        reserved_amount = 0.0
+        reserve = getattr(self.vida, "reserve_session_spend", None)
+        if callable(reserve):
+            err = reserve(amount_kas, dest_address=to_address)
             if err:
                 return SendResult(success=False, error=str(err))
+            if getattr(self.vida, "session_limits", None) is not None:
+                reserved_amount = float(amount_kas)
+        else:
+            check = getattr(self.vida, "check_session_spend", None)
+            if callable(check):
+                err = check(amount_kas, dest_address=to_address)
+                if err:
+                    return SendResult(success=False, error=str(err))
+
+        def _release():
+            """Return an unspent reservation to the daily budget."""
+            if reserved_amount:
+                rel = getattr(self.vida, "release_session_spend", None)
+                if callable(rel):
+                    try:
+                        rel(reserved_amount)
+                    except Exception:
+                        pass
 
         # ── Covenant pot policy gate (optional hard cap via covenant) ──
         if self.covenant_policy is not None:
@@ -240,17 +263,20 @@ class VidaTransactor:
                     destination=to_address,
                 )
                 if not cerr.get("ok"):
+                    _release()
                     return SendResult(success=False, error=cerr.get("error", "covenant policy rejected"))
             except ImportError:
                 # covenant module not installed; skip check
                 pass
 
+        broadcast_done = False
         try:
             client = await self.connect()
 
             # ── Gather + select UTXOs ──
             entries = await self.get_utxos()
             if not entries:
+                _release()
                 return SendResult(success=False, error="No UTXOs available (zero balance?)")
 
             amount_sompi = kaspa_to_sompi(amount_kas)
@@ -285,6 +311,7 @@ class VidaTransactor:
 
             # Guard: fee must not swallow the send amount (TX-6)
             if fee_sompi >= amount_sompi:
+                _release()
                 return SendResult(
                     success=False,
                     error=(
@@ -293,6 +320,7 @@ class VidaTransactor:
                     ),
                 )
             if total_in < amount_sompi + fee_sompi:
+                _release()
                 return SendResult(success=False, error="Insufficient funds after fee")
 
             # ── Pass 2: rebuild with the correct fee ──
@@ -306,14 +334,32 @@ class VidaTransactor:
             resp = await client.submit_transaction({"transaction": signed, "allowOrphan": False})
             txid = resp.get("transactionId") or resp.get("transaction_id")
             if not txid:
+                _release()
                 return SendResult(success=False, error=f"No txid in submit response: {resp}")
+
+            # From this point the transaction IS on the network. Never release
+            # the reservation and never report failure -- a caller that retries
+            # would double-spend (TX-1).
+            broadcast_done = True
 
             # ── Record spend against session daily limit ──
             if session_pubkey is not None:
                 self.vida._session_keys[session_pubkey].record_spend(amount_kas)
             rec = getattr(self.vida, "record_session_spend", None)
             if callable(rec):
-                rec(amount_kas)
+                try:
+                    rec(amount_kas)
+                except Exception as exc:
+                    # The counter could not be persisted. The spend is already
+                    # broadcast, so we must still report success -- but surface
+                    # the bookkeeping failure so it is not silent.
+                    counter_error = (
+                        f"WARNING: spend broadcast but session counter not persisted: {exc}"
+                    )
+                else:
+                    counter_error = ""
+            else:
+                counter_error = ""
 
             # ── Verify: best-effort ONLY. The broadcast already succeeded above;
             #    a verification error must NEVER flip success to False, or the
@@ -332,9 +378,15 @@ class VidaTransactor:
                 fee_kas=fee_kas,
                 verified_on_network=verified,
                 network=self.network,
+                error=counter_error,
             )
 
         except Exception as e:
+            # Only return the reservation if the transaction never reached the
+            # network. If broadcast already succeeded, releasing here would let
+            # the agent spend the same daily budget twice.
+            if not broadcast_done:
+                _release()
             return SendResult(success=False, error=f"{type(e).__name__}: {e}")
 
     async def _verify_txid(self, txid: str, attempts: int = 15, delay_s: float = 2.0) -> bool:

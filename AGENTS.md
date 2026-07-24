@@ -61,6 +61,8 @@ Owner ─── grants session caps ───→ Vida Kernel
 | TAO stake/unstake via session | ✅ Finney |
 | Agent loop (LLM → plan → execute) | ✅ Working (K2.5) |
 | MCP server | ✅ Working (12 tools + 2 resources) |
+| Single-process session cap enforcement | ✅ RLock + atomic reserve/commit (Jul 24, 2026) |
+| Cross-process session cap enforcement | ✅ fcntl.flock + authoritative disk counter (Jul 24, 2026) |
 | Covenant pot planning | ✅ Offline |
 | Covenant deploy (on-chain) | ⚠️ TN10 only, gated |
 | SilverScript quine spend | ⚠️ Compiled, spend blocked (tooling gap) |
@@ -74,6 +76,9 @@ Owner ─── grants session caps ───→ Vida Kernel
 - **Don't forget the verification ladder.** Every financial operation needs L1 or L2 verification.
 - **Don't push marketing docs.** The `docs/brand/` directory was removed for this reason.
 - **Don't claim "agent economy"** without agent-to-agent commerce.
+- **NaN bypass: guard with `math.isfinite` BEFORE any comparison.** `float('nan') < 0` is `False`, so amount guards using only `< <= >` let NaN through. Already found in commerce fees, DEX treasury, and oracle bond registration. Every new amount validation must check `isfinite` first, then `< 0`, then threshold.
+- **Session counter writes need TWO locks.** An in-process `RLock` for threads, PLUS an `fcntl.flock` on `<session>.lock` for cross-process. The persistent file is the authority — read the counter from disk under the lock rather than trusting memory. Never merge via `max()` — a fresh process starts at 0.0 and will persist a lower total, erasing sibling processes' spends.
+- **Concurrent file writes need per-PID temp names.** Two processes writing to the same `<name>.tmp` race on `replace()`. Use `<name>.<pid>.tmp` instead.
 
 ## Past Decisions
 
@@ -81,6 +86,11 @@ Owner ─── grants session caps ───→ Vida Kernel
 - Negotiation protocol stripped (Jul 18, 2026). Premature — needs redesign.
 - TN12 migration reverted (Jul 18, 2026). TN12 doesn't exist as a public network.
 - Quine deployed on TN10 (Jul 18, 2026). Covenant `6d58b529...`. Spend blocked by tooling.
+- **Session daily-cap race fixed** (Jul 24, 2026). `transactions.send()` checked caps at ~line 227 and recorded at ~line 342 with no lock across the UTXO/sign/broadcast gap. 20 concurrent threads each read the same stale counter — measured 200 KAS against a 100 KAS cap. Fixed with atomic `reserve_session_spend()` under RLock + release-on-failure.
+- **Cross-process cap enforcement added** (Jul 24, 2026). The RLock only serialises threads in one process. Two agent processes sharing a session file both passed the daily cap — measured 120 KAS against 100 KAS. Fixed with `fcntl.flock` on `<session>.lock` and authoritative on-disk counter. Two follow-on bugs found and fixed during verification: stale `max()` merge losing writes, and shared temp-file collision. Tests at `tests/test_session_cap_race.py` (in-process, 13 tests) and `tests/test_cross_process_cap.py` (subprocess, 9 tests).
+- **NaN comparison bypass is a cross-repo vulnerability** (Jul 24, 2026). `float('nan') < X` is always False. Every fee/amount guard using only `< <= >` accepts NaN: commerce fees (NaN → ENTERPRISE zero-fee tier), DEX treasury (NaN poisons accumulator permanently), oracle bond (NaN registers with zero stake). Fix pattern: `math.isfinite(value)` then `int(value)` before any comparison. Regression tests in each repo.
+- **Oracle circuit breaker was dead across restarts** (Jul 24, 2026). `oracle.py` wrote `{"last_price": {...}}` but read the whole object back, keying the dict by the literal string `"last_price"` — `pair in self._last_price` was always False. Measured: a 44.4% jump was ACCEPTED after restart while the README claimed state was "persisted to disk."
+- **Oracle test suite shared state with the live service** (Jul 24, 2026). `Oracle()` defaults to `state_dir="~/.vida-oracle"` — tests read and WROTE the real circuit breaker. Masked until the breaker persistence fix exposed it. Now isolated via `conftest.py` redirecting HOME to `tmp_path`.
 
 ## Memory
 
