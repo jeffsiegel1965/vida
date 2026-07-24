@@ -23,7 +23,16 @@ Stake TAO to validators, unstake, P2P transfers — all through an agent session
 `scripts/vida_mcp_server.py` — 12 MCP tools + 2 resources. Compatible with Claude Desktop, Cursor, Grok Build. The `vida_agent_goal` tool wraps the orchestrator.
 
 ### Security model
+
 `vida/secure_wallet.py` — AES-256-GCM encrypted wallet, scrypt KDF, time-boxed session files with spending caps, host-bound authentication.
+
+### Session cap enforcement
+
+Agent sessions carry per-transaction and per-day spending limits, plus optional destination allowlists. Caps are enforced at two levels:
+
+- **Single-process**: an in-process `RLock` with atomic `reserve_session_spend()` / `record_session_spend()` / `release_session_spend()`. Proven closure of a race where 20 concurrent threads each passed a 100 KAS daily cap — measured 200 KAS committed before the fix, exactly 100 KAS after.
+
+- **Cross-process**: an `fcntl.flock` on `<session>.lock` serialises spend counting across separate agent processes sharing one session file. The on-disk counter is authoritative — re-read under the lock rather than trusted from memory. Same pattern applied to both the Kaspa path (`transactions.py`) and the TAO path (`plugins/tao/session.py`).
 
 ### Kaspa REST API client
 `vida/plugins/covenant/kaspa_rpc.py` — zero-dependency Python client for the Kaspa REST API. Balances, UTXOs, transaction submission, network info.
@@ -137,13 +146,80 @@ Owner ─── grants session caps ───→ Vida Kernel
 ## Tests
 
 ```text
-104 tests · 17s · pytest
+130 tests · 20s · pytest
 
-Covenant scaffold:    scaffold operations
-Covenant robustness:  edge cases, error handling
-TAO plugin:           62 tests (stake, unstake, P2P, sessions)
-Kaspa core:           27 tests (wallet, transactions, secure ops)
+Session caps:       22 tests (single-process race, cross-process flock, release, expiry)
+Covenant scaffold:   4 tests (scaffold operations)
+Covenant robustness: 8 tests (edge cases, error handling)
+TAO plugin:         62 tests (stake, unstake, P2P, sessions)
+Kaspa core:         27 tests (wallet, transactions, secure ops)
+Integration:         7 tests (Kaspa RPC integration against testnet-10)
 ```
+
+---
+
+## Wallet Dashboard UI
+
+A terminal-themed web dashboard for managing agent authority. Dark green-on-black, monospace. Served by termcn at `/wallet`.
+
+### Emergency Revoke
+
+Red pulsing button at the top of every view. Single click immediately revokes ALL active agent sessions and deletes their session files. No confirmation beyond the initial dialog. Irreversible — the agent loses all spending, staking, and transfer authority instantly.
+
+### Grant Panel
+
+Configure and create a new agent session. Owner provides:
+
+- **Wallet ID** — which provisioned wallet to authorize
+- **Owner password** — decrypts the funds key, never stored
+- **Mode** — COMMAND (agent proposes, owner approves), HYBRID (auto within limits, flag above), FULL (unrestricted within caps)
+- **Max per transaction** — slider, 0–1,000 KAS
+- **Max per day** — slider, 0–10,000 KAS
+- **Expiry** — slider, 1–720 hours
+- **Destination allowlist** — comma-separated Kaspa addresses; empty = unrestricted
+
+On submit, `grant_agent_session()` decrypts the wallet, re-encrypts the key material under a random machine key, writes a 0600 session file with AAD-bound limits, and returns a session ID. The agent never sees the password.
+
+### Active Sessions Panel
+
+Every active session is displayed as a card:
+
+- **Mode badge** — FULL (red), HYBRID (yellow), COMMAND (green)
+- **Daily spend bar** — visual progress bar: green below 60%, yellow 60-90%, red above 90%
+- **Remaining time** — hours until expiry
+- **Quick-adjust sliders** — modify per-transaction cap on any session without re-granting
+- **Per-session revoke** — terminate a single session without affecting others
+- **Destination list** — truncated addresses with tooltips
+
+Refreshes every 5 seconds. Sessions beyond expiry are automatically filtered out.
+
+### Overflow Auto-Transfer
+
+Configure an automatic sweep to cold storage:
+
+- **Threshold slider** — 0–100,000 KAS. When the wallet balance exceeds this, excess is transferred.
+- **Destination address** — the cold storage Kaspa address to sweep to.
+
+Settings persist across restarts via `~/.vida/sessions_meta.json`.
+
+### Locked Address
+
+Read-only display of the provisioned wallet's Kaspa address. All agent spends, stakes, and transfers originate from this address. Changing it requires re-provisioning.
+
+### API Server
+
+The dashboard is backed by `scripts/wallet_api_server.py` on port 8769:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/v1/wallet/sessions` | GET | List active sessions with spend data |
+| `/api/v1/wallet/status` | GET | Wallet address, network, lock status |
+| `/api/v1/wallet/grant` | POST | Create agent session |
+| `/api/v1/wallet/revoke` | POST | Revoke single session |
+| `/api/v1/wallet/revoke-all` | POST | Emergency revoke all sessions |
+| `/api/v1/wallet/adjust` | POST | Modify session limits |
+| `/api/v1/wallet/overflow` | POST | Configure auto-transfer |
+| `/health` | GET | Service health check |
 
 ---
 
