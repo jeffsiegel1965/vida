@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -18,8 +17,8 @@ from vida.plugins.covenant import (  # noqa: E402
     load_covenant_config,
     plan_agent_pot,
     register_covenant_plugin,
-    validate_agent_pot_plan,
     tn10_microproof,
+    validate_agent_pot_plan,
 )
 from vida.plugins.registry import PluginRegistry  # noqa: E402
 
@@ -110,9 +109,7 @@ class TestCovenantScaffold(unittest.TestCase):
         self.assertTrue(plan["hard_rules"]["require_dest_allowlist"])
         bad = plan_agent_pot(max_kas_per_tx=0, max_kas_per_day=1)
         self.assertFalse(bad["ok"])
-        via_plugin = CovenantPlugin().plan_agent_pot(
-            max_kas_per_tx=2.0, max_kas_per_day=10.0
-        )
+        via_plugin = CovenantPlugin().plan_agent_pot(max_kas_per_tx=2.0, max_kas_per_day=10.0)
         via_plan = via_plugin.copy()
         via_plan["live_ready"] = True
         self.assertTrue(via_plugin["ok"])

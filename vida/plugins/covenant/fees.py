@@ -1,110 +1,61 @@
-"""Vida covenant monetization — low fees in KAS.
+"""Vida Wallet — Free. All operations, both KAS and TAO.
 
-Model:
-  - Covenant pot funding: 0.1% fee (min 0.01 KAS, max 1 KAS) to dev fund
-  - Covenant pot spend: 0.05% fee (min 0.005 KAS, max 0.5 KAS)
-  - Agent covenant negotiation: free
-  - kascov API queries: free
-  - First pot free per wallet
+KASPA: Free. Covenant deployment, spending, escrow, payment channels.
+TAO: Free. Subnet queries, staking, agent registration.
 
-HONEST NOTE ON FORKABILITY:
-These fees are implemented in Python for transparency and ease of audit.
-Any forker can modify or remove them — the fee is a good-faith support
-mechanism, not a technical enforcement. We compete on quality, not fee
-extraction. The real moat is the kascov-lab binary (complex to build)
-and the Vida ecosystem.
+The wallet is the on-ramp.
 
-All fees are transparent, documented, and paid in KAS.
+LICENSE: MIT. Both KAS and TAO operations.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-import math
-import os
-from typing import Optional
-
-# Dev fund address — loaded from env var with fallback.
-# Set VIDA_DEV_FUND=kaspa:your_address to override.
-# This is a good-faith support mechanism, not technical enforcement.
-# The fee is transparent and can be removed by any forker.
-_DEV_FUND_ENV = "VIDA_DEV_FUND"
-DEV_FUND_ADDRESS = os.environ.get(
-    _DEV_FUND_ENV,
-    "kaspa:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
-)
-
-# Dev fund address (testnet-10 variant)
-DEV_FUND_ADDRESS_TESTNET = os.environ.get(
-    "VIDA_DEV_FUND_TESTNET",
-    "kaspatest:qzyswptp860l9efqarplnclndfsvcdyu4aaz9evk88hrt8475g5v68uqrkg7k"
-)
+# ═══════════════════════════════════════════════════════════════════
+# All operations free
+# ═══════════════════════════════════════════════════════════════════
 
 
-@dataclass
-class FeeSchedule:
-    """Fee rates for covenant services."""
-
-    # Pot funding fee
-    fund_fee_pct: float = 0.001  # 0.1%
-    fund_fee_min_kas: float = 0.01
-    fund_fee_max_kas: float = 1.0
-
-    # Per-spend fee
-    spend_fee_pct: float = 0.0005  # 0.05%
-    spend_fee_min_kas: float = 0.005
-    spend_fee_max_kas: float = 0.5
-
-    # Free tier: first N pots per wallet are free
-    free_pots_per_wallet: int = 1
+def calc_kas_fee(amount: float) -> float:
+    """Always returns 0."""
+    return 0.0
 
 
-FEE_SCHEDULE = FeeSchedule()
+def calc_subnet_query_fee(amount: float) -> float:
+    """Always returns 0."""
+    return 0.0
 
 
-def calc_fund_fee(pot_kas: float, volume_discount_pct: float = 0.0) -> float:
-    """Calculate fee for funding a covenant pot. Returns 0 for invalid input."""
-    if not isinstance(pot_kas, (int, float)) or not math.isfinite(pot_kas) or pot_kas <= 0:
-        return 0.0
-    fee = pot_kas * FEE_SCHEDULE.fund_fee_pct
-    fee = max(fee, FEE_SCHEDULE.fund_fee_min_kas)
-    fee = min(fee, FEE_SCHEDULE.fund_fee_max_kas)
-    if volume_discount_pct > 0:
-        fee = fee * (1 - min(volume_discount_pct, 0.5))
-    return round(max(fee, 0.0), 6)
+def calc_subnet_stake_fee(amount: float) -> float:
+    """Always returns 0."""
+    return 0.0
 
 
-def calc_spend_fee(amount_kas: float, volume_discount_pct: float = 0.0) -> float:
-    """Calculate fee for spending from a covenant pot. Returns 0 for invalid input."""
-    if not isinstance(amount_kas, (int, float)) or not math.isfinite(amount_kas) or amount_kas <= 0:
-        return 0.0
-    fee = amount_kas * FEE_SCHEDULE.spend_fee_pct
-    fee = max(fee, FEE_SCHEDULE.spend_fee_min_kas)
-    fee = min(fee, FEE_SCHEDULE.spend_fee_max_kas)
-    if volume_discount_pct > 0:
-        fee = fee * (1 - min(volume_discount_pct, 0.5))
-    return round(max(fee, 0.0), 6)
+def get_fee_address(network: str = "mainnet") -> str:
+    """No fee address — operations are free."""
+    return ""
 
 
-def get_dev_address(network: str = "mainnet") -> str:
-    """Get dev fund address for the given network."""
-    if network == "mainnet":
-        return DEV_FUND_ADDRESS
-    return DEV_FUND_ADDRESS_TESTNET
+def get_donation_address(network: str = "mainnet") -> str:
+    """No donation address — operations are free."""
+    return ""
+
+
+def get_tao_fee_address() -> str:
+    """No TAO fee address — operations are free."""
+    return ""
 
 
 def describe_fees() -> dict:
-    """Return fee schedule for display."""
     return {
-        "fund_fee_pct": FEE_SCHEDULE.fund_fee_pct * 100,
-        "fund_fee_min_kas": FEE_SCHEDULE.fund_fee_min_kas,
-        "fund_fee_max_kas": FEE_SCHEDULE.fund_fee_max_kas,
-        "spend_fee_pct": FEE_SCHEDULE.spend_fee_pct * 100,
-        "spend_fee_min_kas": FEE_SCHEDULE.spend_fee_min_kas,
-        "spend_fee_max_kas": FEE_SCHEDULE.spend_fee_max_kas,
-        "free_pots_per_wallet": FEE_SCHEDULE.free_pots_per_wallet,
-        "dev_address": DEV_FUND_ADDRESS,
-        "currency": "KAS",
-        "note": "Fees are transparent and paid in KAS per transaction.",
-        "forkability_note": "These fees are implemented in Python for transparency. A forker can modify them. The real moat is the kascov-lab binary and the Vida ecosystem.",
+        "kaspa": {
+            "free": True,
+            "license": "MIT",
+            "note": "All Kaspa operations are free.",
+        },
+        "tao": {
+            "free": True,
+            "license": "MIT",
+            "note": "All TAO operations are free.",
+        },
+        "message": "Vida Wallet is free.",
     }

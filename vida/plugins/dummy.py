@@ -38,9 +38,7 @@ class DummyPlugin:
         Example gated action (not a real transfer).
         Used only to exercise evaluate_policy in tests.
         """
-        decision = ctx.decide(
-            PolicyRequest(chain=self.chain, action="transfer", amount=amount)
-        )
+        decision = ctx.decide(PolicyRequest(chain=self.chain, action="transfer", amount=amount))
         if not decision.allowed:
             return {
                 "ok": False,

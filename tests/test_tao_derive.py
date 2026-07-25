@@ -13,10 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 # Known BIP39 test vector (NOT for funds)
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 # Expected cold SS58 prefix 42 from substrate-interface (captured in this env)
 EXPECTED_COLD = "5EPCUjPxiHAcNooYipQFWr9NmmXJKpNG5RhcntXwbtUySrgH"
 EXPECTED_HOT = "5DUfE6odm5zHq9GqArraUFKDny34ormTU5FPLAhgKnSWUd8y"
@@ -103,8 +100,8 @@ class TestProvision(unittest.TestCase):
 
 class TestPluginOwnerProvision(unittest.TestCase):
     def test_agent_path_blocked_owner_path_works(self):
-        from vida.plugins.tao import TaoPlugin, TaoConfig, TaoNetwork, TaoAccountStore
         from vida.plugins import VidaPluginContext
+        from vida.plugins.tao import TaoAccountStore, TaoConfig, TaoNetwork, TaoPlugin
 
         with tempfile.TemporaryDirectory() as td:
             store = TaoAccountStore(td)

@@ -83,13 +83,9 @@ class MockTaoClient:
 
     def get_balance(self, ss58_address: str) -> BalanceInfo:
         if not self._connected:
-            return BalanceInfo(
-                ok=False, address=ss58_address, error="not connected"
-            )
+            return BalanceInfo(ok=False, address=ss58_address, error="not connected")
         if not ss58_address or not isinstance(ss58_address, str):
-            return BalanceInfo(
-                ok=False, address=str(ss58_address), error="invalid address"
-            )
+            return BalanceInfo(ok=False, address=str(ss58_address), error="invalid address")
         free = self._balances.get(ss58_address, Decimal("0"))
         return BalanceInfo(ok=True, address=ss58_address, free_tao=free)
 
@@ -194,8 +190,7 @@ class UnimplementedLiveTaoClient:
 
     def connect(self) -> None:
         raise NotImplementedError(
-            "Use SubstrateTaoClient (vida.plugins.tao.substrate_client) for live RPC; "
-            "MockTaoClient for offline tests."
+            "Use SubstrateTaoClient (vida.plugins.tao.substrate_client) for live RPC; MockTaoClient for offline tests."
         )
 
     def close(self) -> None:

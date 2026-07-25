@@ -1,0 +1,105 @@
+pragma silverscript ^0.1.0;
+
+// Vesting — Scheduled Agent Payouts
+//
+// Beneficiary receives release_per_period after cliff_time, with
+// optional admin revocation.
+//
+// State: beneficiary, admin, total_allocation, claimed_amount,
+//        cliff_time, period, release_per_period, revocable
+// Entrypoints:
+//   claim(beneficiary_pk, sig, next_states)  — pull vested amount
+//   revoke(admin_pk, sig)                     — admin reclaims remaining
+contract Vesting(
+    pubkey init_beneficiary,
+    pubkey init_admin,
+    int init_total_allocation,
+    int init_claimed_amount,
+    int init_cliff_time,
+    int init_period,
+    int init_release_per_period,
+    bool init_revocable
+) {
+    pubkey beneficiary = init_beneficiary;
+    pubkey admin = init_admin;
+    int total_allocation = init_total_allocation;
+    int claimed_amount = init_claimed_amount;
+    int cliff_time = init_cliff_time;
+    int period = init_period;
+    int release_per_period = init_release_per_period;
+    bool revocable = init_revocable;
+
+    function requireBeneficiary(pubkey beneficiary_pk, sig beneficiary_sig, State prev_state) {
+        require(beneficiary_pk == prev_state.beneficiary);
+        require(checkSig(beneficiary_sig, beneficiary_pk));
+    }
+
+    function requireAdmin(pubkey admin_pk, sig admin_sig, State prev_state) {
+        require(admin_pk == prev_state.admin);
+        require(checkSig(admin_sig, admin_pk));
+    }
+
+    function requireValidVesting(State prev_state) {
+        require(prev_state.total_allocation > 0);
+        require(prev_state.claimed_amount >= 0);
+        require(prev_state.total_allocation >= prev_state.claimed_amount);
+        require(prev_state.release_per_period > 0);
+        require(prev_state.period >= 0);
+    }
+
+    function requireExactPayout(pubkey destination, int amount) {
+        byte[34] destinationLock = new ScriptPubKeyP2PK(destination);
+        require(tx.outputs[0].value == amount);
+        require(tx.outputs[0].scriptPubKey == byte[](destinationLock));
+    }
+
+    #[covenant.singleton(mode = transition, termination = allowed)]
+    function claim(State prev_state, pubkey beneficiary_pk, sig beneficiary_sig, State[] next_states) : (State[]) {
+        requireValidVesting(prev_state);
+        requireBeneficiary(beneficiary_pk, beneficiary_sig, prev_state);
+        require(tx.time >= prev_state.cliff_time);
+        require(prev_state.claimed_amount < prev_state.total_allocation);
+
+        require(next_states.length <= 1);
+
+        if (next_states.length == 1) {
+            int remaining = prev_state.total_allocation - prev_state.claimed_amount;
+            require(remaining > prev_state.release_per_period);
+            requireExactPayout(prev_state.beneficiary, prev_state.release_per_period);
+
+            require(next_states[0].beneficiary == prev_state.beneficiary);
+            require(next_states[0].admin == prev_state.admin);
+            require(next_states[0].total_allocation == prev_state.total_allocation);
+            require(next_states[0].claimed_amount == prev_state.claimed_amount + prev_state.release_per_period);
+            require(next_states[0].cliff_time == prev_state.cliff_time + prev_state.period);
+            require(next_states[0].period == prev_state.period);
+            require(next_states[0].release_per_period == prev_state.release_per_period);
+            require(next_states[0].revocable == prev_state.revocable);
+        } else {
+            int remaining = prev_state.total_allocation - prev_state.claimed_amount;
+            require(remaining <= prev_state.release_per_period);
+            requireExactPayout(prev_state.beneficiary, remaining);
+        }
+
+        return(next_states);
+    }
+
+    entrypoint function revoke(pubkey admin_pk, sig admin_sig) {
+        State prev_state = {
+            beneficiary: beneficiary,
+            admin: admin,
+            total_allocation: total_allocation,
+            claimed_amount: claimed_amount,
+            cliff_time: cliff_time,
+            period: period,
+            release_per_period: release_per_period,
+            revocable: revocable
+        };
+        requireValidVesting(prev_state);
+        require(prev_state.revocable);
+        requireAdmin(admin_pk, admin_sig, prev_state);
+        int minerFee = 1000;
+        int amount = tx.inputs[this.activeInputIndex].value - minerFee;
+        requireExactPayout(prev_state.admin, amount);
+    }
+}

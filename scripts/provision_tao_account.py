@@ -36,8 +36,7 @@ def _read_mnemonic(args: argparse.Namespace) -> str:
     if env:
         return env.strip()
     raise SystemExit(
-        "Provide mnemonic via VIDA_TAO_MNEMONIC_FILE or VIDA_TAO_MNEMONIC "
-        "(not CLI args — stays out of shell history)"
+        "Provide mnemonic via VIDA_TAO_MNEMONIC_FILE or VIDA_TAO_MNEMONIC (not CLI args — stays out of shell history)"
     )
 
 

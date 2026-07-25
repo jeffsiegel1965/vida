@@ -10,7 +10,6 @@ Security product rules:
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any, Optional
 
@@ -19,6 +18,7 @@ from .accounts import TaoAccountStore
 from .config import load_tao_config
 from .paths import resolve_session_path, resolve_store_dir
 from .plugin import TaoPlugin
+from .subnet_client import tao_list_subnets, tao_subnet_info, tao_subnet_query
 
 
 def _plugin(
@@ -199,6 +199,7 @@ def vida_tao_optimize(
 def vida_tao_session_info(session_path: str | None = None) -> dict[str, Any]:
     """Read-only: whether VIDA_TAO_SESSION exists and is unexpired (no secrets)."""
     import time
+
     sp = _session_path(session_path)
     if not sp:
         return {"ok": False, "error": "no session path", "active": False}
@@ -207,6 +208,7 @@ def vida_tao_session_info(session_path: str | None = None) -> dict[str, Any]:
         return {"ok": False, "error": "missing", "active": False, "path": sp}
     try:
         import json
+
         raw = json.loads(path.read_text())
         exp = float(raw.get("expires_at") or 0)
         return {
@@ -254,5 +256,20 @@ HERMES_TOOLS = {
         "fn": vida_tao_optimize,
         "description": "Plan or execute TAO yield rebalance (execute needs session)",
         "mutating": True,
+    },
+    "vida_tao_list_subnets": {
+        "fn": tao_list_subnets,
+        "description": "List available Bittensor subnets and their services (compute, LLM, storage, etc.)",
+        "mutating": False,
+    },
+    "vida_tao_subnet_info": {
+        "fn": tao_subnet_info,
+        "description": "Get detailed info about a specific subnet by netuid",
+        "mutating": False,
+    },
+    "vida_tao_subnet_query": {
+        "fn": tao_subnet_query,
+        "description": "Query a subnet's API to consume its service (requires prior payment)",
+        "mutating": False,
     },
 }

@@ -30,7 +30,7 @@ def main() -> int:
     ap.add_argument("--write-proof", action="store_true", help="write docs/proofs/tao_phase1_health.md")
     args = ap.parse_args()
 
-    from vida.plugins.tao.config import load_tao_config, TaoNetwork
+    from vida.plugins.tao.config import TaoNetwork, load_tao_config
     from vida.plugins.tao.substrate_client import SubstrateTaoClient
 
     net = args.network or "finney"

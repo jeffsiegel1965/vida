@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import Any, Optional, Sequence
 
-
 SOMPI_PER_KAS = 100_000_000
 
 

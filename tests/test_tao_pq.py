@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TAO PQ-ready identity tests (ML-DSA-65), same honesty model as Kaspa."""
+"""TAO PQ-ready identity tests (ML-DSA-44), same honesty model as Kaspa."""
 
 from __future__ import annotations
 
@@ -21,13 +21,10 @@ from vida.plugins.tao.provision import (
     unlock_tao_secrets,
 )
 
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 
-@unittest.skipUnless(PQ_AVAILABLE, "ml_dsa_65 / pqcrypto not available")
+@unittest.skipUnless(PQ_AVAILABLE, "ml_dsa_44 / pqcrypto not available")
 class TestTaoPQ(unittest.TestCase):
     def test_provision_includes_pq(self):
         with tempfile.TemporaryDirectory() as td:
@@ -43,7 +40,7 @@ class TestTaoPQ(unittest.TestCase):
             )
             self.assertTrue(r["ok"], r)
             self.assertTrue(r.get("pq_ready"), r)
-            self.assertEqual(r.get("pq_scheme"), "ML-DSA-65")
+            self.assertEqual(r.get("pq_scheme"), "ML-DSA-44")
             self.assertFalse(r.get("pq_on_chain"))
             rec = store.load("pq1")
             assert rec is not None
@@ -105,9 +102,7 @@ class TestTaoPQ(unittest.TestCase):
             rec = store.load("pq3")
             assert rec is not None
             self.assertFalse(rec.pq_public_key)
-            up = ensure_tao_pq_identity(
-                wallet_id="pq3", password="upgrade-pw-12345", store=store
-            )
+            up = ensure_tao_pq_identity(wallet_id="pq3", password="upgrade-pw-12345", store=store)
             self.assertTrue(up["ok"], up)
             self.assertTrue(up.get("upgraded") or up.get("pq_ready"))
             rec2 = store.load("pq3")
@@ -138,7 +133,7 @@ class TestTaoPQAvailability(unittest.TestCase):
         g = generate_pq_identity()
         if PQ_AVAILABLE:
             self.assertTrue(g["ok"])
-            self.assertEqual(len(bytes.fromhex(g["pq_public_key_hex"])), 1952)
+            self.assertEqual(len(bytes.fromhex(g["pq_public_key_hex"])), 1312)
         else:
             self.assertFalse(g["ok"])
 

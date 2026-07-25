@@ -28,10 +28,7 @@ from vida.plugins.tao.session import (  # noqa: E402
     revoke_tao_agent_session,
 )
 
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 
 class TestTaoSession(unittest.TestCase):
@@ -44,9 +41,7 @@ class TestTaoSession(unittest.TestCase):
             client=self.client,
             account_store=self.store,
         )
-        r = self.plugin.owner_provision(
-            wallet_id="w1", mnemonic=TEST_MNEMONIC, password="pw"
-        )
+        r = self.plugin.owner_provision(wallet_id="w1", mnemonic=TEST_MNEMONIC, password="pw")
         self.assertTrue(r["ok"], r)
         self.session_path = str(Path(self.td.name) / "sess.json")
 

@@ -21,10 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 EXPECTED = "5EPCUjPxiHAcNooYipQFWr9NmmXJKpNG5RhcntXwbtUySrgH"
 
 
@@ -32,7 +29,6 @@ def main() -> int:
     from vida.plugins import VidaPluginContext
     from vida.plugins.tao import (
         TaoAccountStore,
-        TaoConfig,
         TaoNetwork,
         TaoPlugin,
         load_tao_config,

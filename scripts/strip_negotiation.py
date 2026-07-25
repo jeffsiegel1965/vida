@@ -11,7 +11,6 @@ Operation:
   6. Verify 139 - 19 = ~120 tests still pass
 """
 
-import subprocess, sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent
@@ -31,7 +30,7 @@ files_to_backup = [
     COVENANT / "negotiation.py",
     TESTS / "test_covenant_negotiation.py",
     TESTS / "test_covenant_robustness.py",  # may reference negotiation
-    TESTS / "test_covenant_scaffold.py",      # may reference negotiation
+    TESTS / "test_covenant_scaffold.py",  # may reference negotiation
 ]
 for f in files_to_backup:
     if f.exists():
@@ -60,18 +59,11 @@ tools_path = COVENANT / "tools.py"
 if tools_path.exists():
     content = tools_path.read_text()
     # Remove the from .negotiation import line
-    content = content.replace(
-        "from .negotiation import CovenantTerms, create_deal, Negotiator, UserControls\n",
-        ""
-    )
+    content = content.replace("from .negotiation import CovenantTerms, create_deal, Negotiator, UserControls\n", "")
     # Remove inside-function negotiation imports
+    content = content.replace("        from vida.plugins.covenant.negotiation import Negotiator\n", "")
     content = content.replace(
-        "        from vida.plugins.covenant.negotiation import Negotiator\n",
-        ""
-    )
-    content = content.replace(
-        "    from vida.plugins.covenant.negotiation import Negotiator, UserControls, NegotiationError\n",
-        ""
+        "    from vida.plugins.covenant.negotiation import Negotiator, UserControls, NegotiationError\n", ""
     )
     tools_path.write_text(content)
     print("  ✓ Stripped negotiation import lines from tools.py")

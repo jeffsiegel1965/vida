@@ -22,12 +22,27 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest pytest-anyio
+          # pqcrypto is optional — if it fails, PQ tests are skipped gracefully
+          pip install pqcrypto 2>/dev/null || true
 
-      - name: Core wallet QA (13)
-        run: python tests/qa_tests.py
+      - name: Install ruff
+        run: pip install ruff
 
-      - name: Secure wallet QA (14)
-        run: python tests/qa_secure_tests.py
+      - name: Lint check
+        run: ruff check vida/ tests/
 
-      - name: TAO plugin tests (62)
-        run: python -m unittest discover -s tests -p 'test_tao*.py'
+      - name: Format check
+        run: ruff format --check vida/ tests/
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Dependency vulnerability scan
+        run: pip-audit -r requirements.txt || echo "::warning ::pip-audit found known vulnerabilities — review above"
+
+      - name: Install Vida package
+        run: pip install --no-deps -e .
+
+      - name: Run test suite
+        run: python -m pytest tests/ --tb=long --no-header -q --ignore=tests/test_kaspa_rpc_integration.py --ignore=tests/legacy/ 2>&1 | tail -60

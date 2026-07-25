@@ -63,15 +63,11 @@ class TestPolicy(unittest.TestCase):
         self.assertFalse(d.allowed)
 
     def test_hybrid_under_threshold(self):
-        d = evaluate_policy(
-            mode="HYBRID", amount=3.0, threshold=5.0, action="transfer"
-        )
+        d = evaluate_policy(mode="HYBRID", amount=3.0, threshold=5.0, action="transfer")
         self.assertTrue(d.allowed)
 
     def test_hybrid_over_threshold(self):
-        d = evaluate_policy(
-            mode="HYBRID", amount=6.0, threshold=5.0, action="transfer"
-        )
+        d = evaluate_policy(mode="HYBRID", amount=6.0, threshold=5.0, action="transfer")
         self.assertFalse(d.allowed)
         self.assertTrue(d.needs_approval)
 
@@ -121,9 +117,7 @@ class TestDummyPlugin(unittest.TestCase):
 
     def test_fake_spend_full(self):
         p = DummyPlugin()
-        ctx = VidaPluginContext(
-            wallet_id="w1", mode="FULL", max_per_tx=10.0, daily_limit=10.0
-        )
+        ctx = VidaPluginContext(wallet_id="w1", mode="FULL", max_per_tx=10.0, daily_limit=10.0)
         r = p.fake_spend(ctx, 1.5)
         self.assertTrue(r["ok"])
 

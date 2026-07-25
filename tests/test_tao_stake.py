@@ -22,17 +22,12 @@ from vida.plugins.tao import (  # noqa: E402
 )
 from vida.plugins.tao.staking import evaluate_stake  # noqa: E402
 
-TEST_MNEMONIC = (
-    "abandon abandon abandon abandon abandon abandon "
-    "abandon abandon abandon abandon abandon about"
-)
+TEST_MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
 
 class TestStakePolicy(unittest.TestCase):
     def test_command_denied(self):
-        d = evaluate_stake(
-            mode="COMMAND", amount=1.0, action="delegate", netuid=1
-        )
+        d = evaluate_stake(mode="COMMAND", amount=1.0, action="delegate", netuid=1)
         self.assertFalse(d.allowed)
         self.assertTrue(d.needs_approval)
 
@@ -68,9 +63,7 @@ class TestStakePolicy(unittest.TestCase):
         self.assertFalse(d.allowed)
 
     def test_negative(self):
-        d = evaluate_stake(
-            mode="FULL", amount=-1.0, action="delegate", netuid=1
-        )
+        d = evaluate_stake(mode="FULL", amount=-1.0, action="delegate", netuid=1)
         self.assertFalse(d.allowed)
 
     def test_over_daily(self):
@@ -106,20 +99,14 @@ class TestStakeMockPath(unittest.TestCase):
         self.td.cleanup()
 
     def test_confirm_required(self):
-        ctx = VidaPluginContext(
-            wallet_id="w1", mode="FULL", max_per_tx=10.0, daily_limit=10.0
-        )
-        r = self.plugin.delegate(
-            ctx, amount_tao=0.1, netuid=1, confirm=False, password="pw"
-        )
+        ctx = VidaPluginContext(wallet_id="w1", mode="FULL", max_per_tx=10.0, daily_limit=10.0)
+        r = self.plugin.delegate(ctx, amount_tao=0.1, netuid=1, confirm=False, password="pw")
         self.assertFalse(r["ok"])
         self.assertTrue(r.get("needs_confirm"))
 
     def test_command_blocked(self):
         ctx = VidaPluginContext(wallet_id="w1", mode="COMMAND")
-        r = self.plugin.delegate(
-            ctx, amount_tao=0.1, netuid=1, confirm=True, password="pw"
-        )
+        r = self.plugin.delegate(ctx, amount_tao=0.1, netuid=1, confirm=True, password="pw")
         self.assertFalse(r["ok"])
         self.assertTrue(r.get("needs_approval"))
 
@@ -131,20 +118,14 @@ class TestStakeMockPath(unittest.TestCase):
             daily_limit=10.0,
             allowed_subnets=[1],
         )
-        r = self.plugin.delegate(
-            ctx, amount_tao=0.5, netuid=1, confirm=True, password="pw"
-        )
+        r = self.plugin.delegate(ctx, amount_tao=0.5, netuid=1, confirm=True, password="pw")
         self.assertTrue(r["ok"], r)
         self.assertTrue(str(r.get("extrinsic_hash", "")).startswith("mock_delegate"))
         self.assertTrue(r.get("mock"))
 
     def test_undelegate_mock_success(self):
-        ctx = VidaPluginContext(
-            wallet_id="w1", mode="FULL", max_per_tx=10.0, daily_limit=10.0
-        )
-        r = self.plugin.undelegate(
-            ctx, amount_tao=0.2, netuid=3, confirm=True, password="pw"
-        )
+        ctx = VidaPluginContext(wallet_id="w1", mode="FULL", max_per_tx=10.0, daily_limit=10.0)
+        r = self.plugin.undelegate(ctx, amount_tao=0.2, netuid=3, confirm=True, password="pw")
         self.assertTrue(r["ok"], r)
         self.assertIn("mock_undelegate", r.get("extrinsic_hash", ""))
 
@@ -155,27 +136,17 @@ class TestStakeMockPath(unittest.TestCase):
             max_per_tx=10.0,
             allowed_subnets=[1],
         )
-        r = self.plugin.delegate(
-            ctx, amount_tao=0.1, netuid=9, confirm=True, password="pw"
-        )
+        r = self.plugin.delegate(ctx, amount_tao=0.1, netuid=9, confirm=True, password="pw")
         self.assertFalse(r["ok"])
 
     def test_revoked_session(self):
-        ctx = VidaPluginContext(
-            wallet_id="w1", mode="FULL", max_per_tx=10.0, session_revoked=True
-        )
-        r = self.plugin.delegate(
-            ctx, amount_tao=0.1, netuid=1, confirm=True, password="pw"
-        )
+        ctx = VidaPluginContext(wallet_id="w1", mode="FULL", max_per_tx=10.0, session_revoked=True)
+        r = self.plugin.delegate(ctx, amount_tao=0.1, netuid=1, confirm=True, password="pw")
         self.assertFalse(r["ok"])
 
     def test_wrong_password(self):
-        ctx = VidaPluginContext(
-            wallet_id="w1", mode="FULL", max_per_tx=10.0, daily_limit=10.0
-        )
-        r = self.plugin.delegate(
-            ctx, amount_tao=0.1, netuid=1, confirm=True, password="nope"
-        )
+        ctx = VidaPluginContext(wallet_id="w1", mode="FULL", max_per_tx=10.0, daily_limit=10.0)
+        r = self.plugin.delegate(ctx, amount_tao=0.1, netuid=1, confirm=True, password="nope")
         self.assertFalse(r["ok"])
 
 

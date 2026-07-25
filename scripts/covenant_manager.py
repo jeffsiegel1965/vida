@@ -21,20 +21,18 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from vida.plugins.covenant.tools import (
-    covenant_status,
     covenant_describe,
     covenant_live_gates,
     covenant_plan_pot,
-    covenant_spend_policy_check,
     covenant_pot_record,
+    covenant_spend_policy_check,
+    covenant_status,
 )
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Covenant manager")
-    ap.add_argument("command", choices=[
-        "status", "describe", "gates", "plan", "check", "record"
-    ])
+    ap.add_argument("command", choices=["status", "describe", "gates", "plan", "check", "record"])
 
     ap.add_argument("--wallet-id", default="default")
     ap.add_argument("--max-per-tx", type=float, default=0)

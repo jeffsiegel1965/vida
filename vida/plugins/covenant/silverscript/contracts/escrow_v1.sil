@@ -1,0 +1,35 @@
+contract Escrow(
+    pubkey buyer,
+    pubkey seller,
+    pubkey arbiter,
+    int timeoutBlock,
+    int minSettleAmount
+) {
+    // ─── Path 1: Release to seller ───
+    // Seller provides delivery proof + arbiter countersigns
+    // Covenant enforces: funds MUST go to seller
+    entrypoint release(sig sellerSig, sig arbiterSig) {
+        require(checkSig(sellerSig, seller));
+        require(checkSig(arbiterSig, arbiter));
+        // Covenant enforces output constraints
+        require(output[0].value >= minSettleAmount);
+        // Self-replicate any remaining balance
+        require(output[1].scriptPubKey == input[0].scriptPubKey);
+    }
+
+    // ─── Path 2: Refund to buyer ───
+    // After timeout, buyer can reclaim funds
+    entrypoint refund(sig buyerSig) {
+        require(blockNumber >= timeoutBlock);
+        require(checkSig(buyerSig, buyer));
+        require(output[0].scriptPubKey == buyer);
+    }
+
+    // ─── Path 3: Arbiter resolution ───
+    // Arbiter decides who gets funds (constrained to buyer or seller)
+    entrypoint resolve(sig arbiterSig, pubkey recipient) {
+        require(checkSig(arbiterSig, arbiter));
+        require(recipient == buyer || recipient == seller);
+        require(output[0].scriptPubKey == recipient);
+    }
+}

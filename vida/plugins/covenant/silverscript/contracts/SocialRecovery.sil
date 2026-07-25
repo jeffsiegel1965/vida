@@ -1,0 +1,108 @@
+pragma silverscript ^0.1.0;
+
+// Social Recovery — guardian-quorum owner replacement with delay.
+// 3 guardians, M-of-N threshold, recovery delay window.
+// State: owner, has_pending_owner, pending_owner, guardian_threshold,
+//        guardian1-3, activation_time, recovery_delay
+
+contract SocialRecovery(
+    pubkey init_owner,
+    bool init_has_pending_owner,
+    pubkey init_pending_owner,
+    int init_guardian_threshold,
+    pubkey init_guardian1,
+    pubkey init_guardian2,
+    pubkey init_guardian3,
+    int init_activation_time,
+    int init_recovery_delay
+) {
+    pubkey owner = init_owner;
+    bool has_pending_owner = init_has_pending_owner;
+    pubkey pending_owner = init_pending_owner;
+    int guardian_threshold = init_guardian_threshold;
+    pubkey guardian1 = init_guardian1;
+    pubkey guardian2 = init_guardian2;
+    pubkey guardian3 = init_guardian3;
+    int activation_time = init_activation_time;
+    int recovery_delay = init_recovery_delay;
+
+    function requireOwner(pubkey owner_pk, sig owner_sig, State prev_state) {
+        require(owner_pk == prev_state.owner);
+        require(checkSig(owner_sig, owner_pk));
+    }
+
+    function requirePendingOwner(pubkey pending_owner_pk, sig pending_owner_sig, State prev_state) {
+        require(prev_state.has_pending_owner);
+        require(pending_owner_pk == prev_state.pending_owner);
+        require(checkSig(pending_owner_sig, pending_owner_pk));
+    }
+
+    function requireValidConfiguration(State prev_state) {
+        require(prev_state.guardian_threshold >= 1);
+        require(prev_state.guardian_threshold <= 3);
+        require(prev_state.guardian1 != prev_state.guardian2);
+        require(prev_state.guardian1 != prev_state.guardian3);
+        require(prev_state.guardian2 != prev_state.guardian3);
+        require(prev_state.recovery_delay >= 0);
+    }
+
+    function signerIsGuardian(pubkey candidate, State prev_state): bool {
+        return(candidate == prev_state.guardian1 || candidate == prev_state.guardian2 || candidate == prev_state.guardian3);
+    }
+
+    function distinctGuardians(pubkey signer1, pubkey signer2, pubkey signer3): bool {
+        return(signer1 != signer2 && signer1 != signer3 && signer2 != signer3);
+    }
+
+    function approvalCount(State prev_state, pubkey signer1, sig sig1, pubkey signer2, sig sig2, pubkey signer3, sig sig3): int {
+        int approvals = 0;
+        if (signerIsGuardian(signer1, prev_state) && checkSig(sig1, signer1)) { approvals = approvals + 1; }
+        if (signerIsGuardian(signer2, prev_state) && checkSig(sig2, signer2)) { approvals = approvals + 1; }
+        if (signerIsGuardian(signer3, prev_state) && checkSig(sig3, signer3)) { approvals = approvals + 1; }
+        return(approvals);
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function initiate_recovery(
+        State prev_state, pubkey next_owner, int next_activation_time,
+        pubkey signer1, sig sig1, pubkey signer2, sig sig2, pubkey signer3, sig sig3
+    ) : (State) {
+        requireValidConfiguration(prev_state);
+        require(next_owner != prev_state.owner);
+        require(distinctGuardians(signer1, signer2, signer3));
+        require(approvalCount(prev_state, signer1, sig1, signer2, sig2, signer3, sig3) >= prev_state.guardian_threshold);
+        require(next_activation_time >= prev_state.activation_time);
+        return({
+            owner: prev_state.owner, has_pending_owner: true, pending_owner: next_owner,
+            guardian_threshold: prev_state.guardian_threshold,
+            guardian1: prev_state.guardian1, guardian2: prev_state.guardian2, guardian3: prev_state.guardian3,
+            activation_time: next_activation_time, recovery_delay: prev_state.recovery_delay
+        });
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function finalize_recovery(State prev_state, pubkey pending_owner_pk, sig pending_owner_sig) : (State) {
+        requireValidConfiguration(prev_state);
+        require(tx.time >= prev_state.activation_time);
+        requirePendingOwner(pending_owner_pk, pending_owner_sig, prev_state);
+        return({
+            owner: prev_state.pending_owner, has_pending_owner: false, pending_owner: prev_state.pending_owner,
+            guardian_threshold: prev_state.guardian_threshold,
+            guardian1: prev_state.guardian1, guardian2: prev_state.guardian2, guardian3: prev_state.guardian3,
+            activation_time: prev_state.activation_time, recovery_delay: prev_state.recovery_delay
+        });
+    }
+
+    #[covenant.singleton(mode = transition)]
+    function cancel_recovery(State prev_state, pubkey owner_pk, sig owner_sig) : (State) {
+        requireValidConfiguration(prev_state);
+        requireOwner(owner_pk, owner_sig, prev_state);
+        require(prev_state.has_pending_owner);
+        return({
+            owner: prev_state.owner, has_pending_owner: false, pending_owner: prev_state.pending_owner,
+            guardian_threshold: prev_state.guardian_threshold,
+            guardian1: prev_state.guardian1, guardian2: prev_state.guardian2, guardian3: prev_state.guardian3,
+            activation_time: prev_state.activation_time, recovery_delay: prev_state.recovery_delay
+        });
+    }
+}

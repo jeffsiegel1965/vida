@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 import tempfile
 import unittest
@@ -15,26 +14,25 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from vida.plugins.covenant import (
+    CovenantPlugin,
+    build_agent_pot_script_template,
     check_spend_allowed,
     check_spend_kas,
     plan_agent_pot,
-    build_agent_pot_script_template,
     verify_policy_hash,
-    CovenantPlugin,
 )
 from vida.plugins.covenant.lab_client import (
-    live_gates_ok,
-    can_run_lab_demo,
     can_fund_agent_pot,
+    can_run_lab_demo,
+    live_gates_ok,
 )
 from vida.plugins.covenant.pot_spend import (
-    save_pot_record,
     load_pot_record,
+    save_pot_record,
 )
 
 
 class TestCovenantRobustness(unittest.TestCase):
-
     def test_spend_zero_denied(self):
         r = check_spend_allowed(
             policy={"max_tx_sompi": 100_000_000, "allowed_destinations": []},
@@ -121,7 +119,8 @@ class TestCovenantRobustness(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             base = Path(td)
             t = build_agent_pot_script_template(
-                max_kas_per_tx=1.0, max_kas_per_day=5.0,
+                max_kas_per_tx=1.0,
+                max_kas_per_day=5.0,
                 allowed_destinations=["kaspatest:qtest"],
             )
             r = save_pot_record("test-wallet", {"template": t, "pot_sompi": 500_000_000}, base=base)
@@ -140,7 +139,8 @@ class TestCovenantRobustness(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             base = Path(td)
             t = build_agent_pot_script_template(
-                max_kas_per_tx=1.0, max_kas_per_day=5.0,
+                max_kas_per_tx=1.0,
+                max_kas_per_day=5.0,
                 allowed_destinations=[],
             )
             t["policy"]["max_tx_sompi"] = 999999999  # corrupt hash
@@ -165,9 +165,8 @@ class TestCovenantRobustness(unittest.TestCase):
     def test_plugin_status_no_secrets(self):
         p = CovenantPlugin()
         from vida.plugins.base import VidaPluginContext
-        ctx = VidaPluginContext(
-            wallet_id="test"
-        )
+
+        ctx = VidaPluginContext(wallet_id="test")
         s = p.status(ctx)
         raw = json.dumps(s)
         for secret in ("mnemonic", "private_key", "seed", "password"):

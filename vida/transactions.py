@@ -20,14 +20,14 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from kaspa import (
+    Address,
+    PrivateKey,
     Resolver,
     RpcClient,
-    PrivateKey,
-    Address,
-    create_transaction,
-    sign_transaction,
     calculate_transaction_mass,
+    create_transaction,
     kaspa_to_sompi,
+    sign_transaction,
     sompi_to_kaspa,
 )
 
@@ -36,7 +36,7 @@ try:
 except ImportError:
     aiohttp = None
 
-from wallet import Vida, DelegationMode  # TODO: Migrate to secure_wallet.SecureVida after API compatibility pass
+from vida.secure_wallet import SecureVida  # Secure wallet with encrypted keys
 
 # Kaspa dust threshold: outputs below ~0.02 KAS incur massive storage-mass
 # penalties and get rejected (verified on testnet-10, July 2026).
@@ -56,6 +56,7 @@ DEFAULT_PRIORITY_FEE_SOMPI = 10_000  # floor; real fee computed from mass
 @dataclass
 class SendResult:
     """Result of a send attempt."""
+
     success: bool
     txid: Optional[str] = None
     amount_kas: float = 0.0
@@ -85,7 +86,7 @@ class VidaTransactor:
         result = await tx.send(to_address='kaspa:...', amount_kas=10.0)
     """
 
-    def __init__(self, vida: Vida, *, covenant_policy: Optional[dict] = None):
+    def __init__(self, vida: SecureVida, *, covenant_policy: Optional[dict] = None):
         self.vida = vida
         self.network = "mainnet" if vida.network == "mainnet" else "testnet-10"
         self._client: Optional[RpcClient] = None
@@ -135,6 +136,7 @@ class VidaTransactor:
 
         Raises ValueError if funds are insufficient.
         """
+
         def amount_of(e: dict) -> int:
             return int(e["utxoEntry"]["amount"]) if "utxoEntry" in e else int(e["amount"])
 
@@ -146,8 +148,7 @@ class VidaTransactor:
             if total >= target_sompi:
                 return selected
         raise ValueError(
-            f"Insufficient funds: have {sompi_to_kaspa(total)} KAS, "
-            f"need {sompi_to_kaspa(target_sompi)} KAS"
+            f"Insufficient funds: have {sompi_to_kaspa(total)} KAS, need {sompi_to_kaspa(target_sompi)} KAS"
         )
 
     # ── Send ──────────────────────────────────────────────────────────────
@@ -176,6 +177,7 @@ class VidaTransactor:
         """
         # ── Validation gates ──
         import math
+
         if not isinstance(amount_kas, (int, float)) or not math.isfinite(amount_kas):
             return SendResult(success=False, error="Amount must be a finite number")
         if amount_kas <= 0:
@@ -257,6 +259,7 @@ class VidaTransactor:
         if self.covenant_policy is not None:
             try:
                 from vida.plugins.covenant.pot_spend import check_spend_kas
+
                 cerr = check_spend_kas(
                     policy=self.covenant_policy,
                     amount_kas=amount_kas,
@@ -315,8 +318,7 @@ class VidaTransactor:
                 return SendResult(
                     success=False,
                     error=(
-                        f"Fee ({sompi_to_kaspa(fee_sompi)} KAS) >= amount "
-                        f"({amount_kas} KAS). Send a larger amount."
+                        f"Fee ({sompi_to_kaspa(fee_sompi)} KAS) >= amount ({amount_kas} KAS). Send a larger amount."
                     ),
                 )
             if total_in < amount_sompi + fee_sompi:
@@ -399,11 +401,7 @@ class VidaTransactor:
         Uses aiohttp if available, else the stdlib (urllib) in an executor so
         the wallet works with zero extra dependencies.
         """
-        api_base = (
-            "https://api.kaspa.org"
-            if self.network == "mainnet"
-            else "https://api-tn10.kaspa.org"
-        )
+        api_base = "https://api.kaspa.org" if self.network == "mainnet" else "https://api-tn10.kaspa.org"
         url = f"{api_base}/transactions/{txid}"
 
         if aiohttp is not None:
@@ -439,8 +437,9 @@ class VidaTransactor:
 
 # ── CLI helpers for quick manual use ─────────────────────────────────────────
 
+
 async def _balance_cmd(wallet_path: str, network: str):
-    vida = Vida(wallet_path, network=network)
+    vida = SecureVida(wallet_path)
     tx = VidaTransactor(vida)
     bal = await tx.get_balance()
     utxos = await tx.get_utxos()
@@ -450,7 +449,7 @@ async def _balance_cmd(wallet_path: str, network: str):
 
 
 async def _send_cmd(wallet_path: str, network: str, to_address: str, amount: float):
-    vida = Vida(wallet_path, network=network)
+    vida = SecureVida(wallet_path)
     tx = VidaTransactor(vida)
     print(f"Sending {amount} KAS -> {to_address}")
     result = await tx.send(to_address=to_address, amount_kas=amount)
