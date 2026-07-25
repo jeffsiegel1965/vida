@@ -30,6 +30,7 @@ from vida.plugins.covenant.sdk_integration import (
 QUINE_JSON = ROOT / "vida" / "plugins" / "covenant" / "silverscript" / "quine_agent_pot.json"
 if not QUINE_JSON.exists():
     import pytest
+
     pytest.skip("quine_agent_pot.json not found — compile with silverc first", allow_module_level=True)
 with open(QUINE_JSON) as f:
     quine_data = json.load(f)
