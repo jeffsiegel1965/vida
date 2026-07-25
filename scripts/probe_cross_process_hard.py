@@ -1,4 +1,5 @@
 """Harder cross-process cases: many small spends, release, and lock contention."""
+
 import json
 import os
 import subprocess
@@ -6,7 +7,7 @@ import sys
 import tempfile
 import time
 
-WORKER = r'''
+WORKER = r"""
 import json, sys, time
 sys.path.insert(0, "/home/jeff-siegel/vida")
 from vida.secure_wallet import SecureVida
@@ -36,7 +37,7 @@ else:                     # simulate a failed broadcast
     time.sleep(0.05)
     v.release_session_spend(amount)
     print("RELEASED")
-'''
+"""
 
 tmp = tempfile.mkdtemp()
 worker = os.path.join(tmp, "w.py")
@@ -65,7 +66,9 @@ def run(path, n, amount, mode):
     procs = [
         subprocess.Popen(
             [sys.executable, worker, path, str(amount), mode],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
         )
         for _ in range(n)
     ]
@@ -113,7 +116,9 @@ for i in range(10):
     procs.append(
         subprocess.Popen(
             [sys.executable, worker, p3, "10", mode],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
         )
     )
 res = [p.communicate() for p in procs]

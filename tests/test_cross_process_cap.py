@@ -36,7 +36,7 @@ import pytest
 
 REPO = "/home/jeff-siegel/vida"
 
-WORKER = r'''
+WORKER = r"""
 import json, sys, time
 sys.path.insert(0, "{repo}")
 from vida.secure_wallet import SecureVida
@@ -64,7 +64,7 @@ if mode == "commit":
 else:
     v.release_session_spend(amount)
     print("RELEASED")
-'''.format(repo=REPO)
+""".format(repo=REPO)
 
 
 @pytest.fixture
@@ -210,9 +210,7 @@ class TestDiskIsAuthoritative:
         a.record_session_spend(60.0)
 
         b = wallet()  # fresh process, starts at 0.0 in memory
-        assert b.reserve_session_spend(60.0, "kaspatest:qd") is not None, (
-            "fresh process ignored the persisted counter"
-        )
+        assert b.reserve_session_spend(60.0, "kaspatest:qd") is not None, "fresh process ignored the persisted counter"
         assert b.reserve_session_spend(40.0, "kaspatest:qd") is None
 
     def test_sequential_fresh_processes_hit_cap_exactly(self, tmp_path):

@@ -102,7 +102,7 @@ from kaspa import TransactionInput
 import json
 
 d_in = {
-    "previousOutpoint": {"transactionId": "00"*32, "index": 0},
+    "previousOutpoint": {"transactionId": "00" * 32, "index": 0},
     "signatureScript": "",
     "sequence": 0,
     "sigOpCount": 1,

@@ -248,7 +248,6 @@ class TestRegistryCoverage:
     def test_most_subnets_have_endpoints(self):
         subnets = SubnetRegistry.list_all()
         with_endpoints = sum(
-            1 for s in subnets
-            if (s.get("api_endpoint") if isinstance(s, dict) else getattr(s, "api_endpoint", ""))
+            1 for s in subnets if (s.get("api_endpoint") if isinstance(s, dict) else getattr(s, "api_endpoint", ""))
         )
         assert with_endpoints >= len(subnets) - 2  # At most 2 without endpoints

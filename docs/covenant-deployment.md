@@ -30,7 +30,7 @@ This document outlines the process for deploying covenants to the Kaspa mainnet 
        contract_path="your_contract.ssc",
        funding_txid="your_utxo_txid",
        funding_vout=0,  # UTXO index
-       fee_rate=1.0,    # sat/byte
+       fee_rate=1.0,  # sat/byte
    )
    print(f"Deployed covenant TXID: {txid}")
    ```
@@ -40,6 +40,7 @@ This document outlines the process for deploying covenants to the Kaspa mainnet 
    - Check the covenant's status:
      ```python
      from vida.plugins.covenant.tools import get_covenant_status
+
      status = get_covenant_status(txid)
      print(status)
      ```

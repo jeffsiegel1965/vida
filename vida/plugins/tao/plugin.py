@@ -308,9 +308,7 @@ class TaoPlugin:
         if unlock_via == "session" and session_path:
             from .session import reserve_tao_session_spend
 
-            reserve_result = reserve_tao_session_spend(
-                session_path, float(amount_tao), daily_limit or 0.0
-            )
+            reserve_result = reserve_tao_session_spend(session_path, float(amount_tao), daily_limit or 0.0)
             if not reserve_result.get("ok"):
                 secrets.clear()
                 return {
@@ -379,6 +377,7 @@ class TaoPlugin:
             if reserve_result and reserve_result.get("ok") and session_path:
                 try:
                     from .session import release_tao_session_spend
+
                     release_tao_session_spend(session_path, float(amount_tao))
                 except Exception:
                     pass
@@ -475,7 +474,6 @@ class TaoPlugin:
         daily_limit = ctx.daily_limit
         threshold = ctx.threshold
         allowed_actions = ctx.allowed_actions or ["transfer", "delegate", "undelegate"]
-        allowed_subnets = ctx.allowed_subnets
         session_revoked = ctx.session_revoked
         unlock_via = None
         allowed_destinations = None
@@ -541,9 +539,8 @@ class TaoPlugin:
         reserve_result = None
         if unlock_via == "session" and session_path:
             from .session import reserve_tao_session_spend
-            reserve_result = reserve_tao_session_spend(
-                session_path, float(amount_tao), daily_limit or 0.0
-            )
+
+            reserve_result = reserve_tao_session_spend(session_path, float(amount_tao), daily_limit or 0.0)
             if not reserve_result.get("ok"):
                 secrets.clear()
                 return {
@@ -599,6 +596,7 @@ class TaoPlugin:
             if reserve_result and reserve_result.get("ok") and session_path:
                 try:
                     from .session import release_tao_session_spend
+
                     release_tao_session_spend(session_path, float(amount_tao))
                 except Exception:
                     pass

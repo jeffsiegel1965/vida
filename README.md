@@ -107,9 +107,7 @@ plan = plan_agent_pot(
 ```python
 from vida.plugins.covenant import check_spend_kas
 
-result = check_spend_kas(
-    policy=plan, amount_kas=2.0, destination="kaspa:address..."
-)
+result = check_spend_kas(policy=plan, amount_kas=2.0, destination="kaspa:address...")
 # → { "ok": False, "error": "amount exceeds max_tx_sompi", ... }
 ```
 

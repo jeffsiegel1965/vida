@@ -110,7 +110,9 @@ Add a thread-level or asyncio lock around the accept path:
 
 ```python
 import threading
+
 self._lock = threading.Lock()
+
 
 def accept(self, negotiation_id: str, agent: str) -> ...:
     with self._lock:
@@ -162,6 +164,7 @@ def calc_fund_fee(pot_kas: float) -> float:
 
 ```python
 import math
+
 
 def calc_fund_fee(pot_kas: float) -> float:
     if not isinstance(pot_kas, (int, float)) or not math.isfinite(pot_kas) or pot_kas <= 0:
@@ -234,8 +237,9 @@ A signed negotiation offer cannot be replayed because:
 
 ```python
 class NegotiationSession:
-    negotiation_id: str = field(default_factory=lambda: hashlib.sha256(
-        f"{time.time()}{os.urandom(8).hex()}".encode()).hexdigest()[:16])
+    negotiation_id: str = field(
+        default_factory=lambda: hashlib.sha256(f"{time.time()}{os.urandom(8).hex()}".encode()).hexdigest()[:16]
+    )
 ```
 
 Each `create_offer()` generates a fresh, unpredictable `negotiation_id` from `time.time()` + 8 bytes of `os.urandom`. The offer's terms are not used in the ID derivation, so the same terms produce a different ID each time.
@@ -300,6 +304,7 @@ def _host_fingerprint() -> str:
         except Exception:
             continue
     import socket
+
     return f"host:{socket.gethostname()}"
 ```
 

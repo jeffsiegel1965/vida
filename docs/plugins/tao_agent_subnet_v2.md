@@ -34,7 +34,7 @@ best = max(subnets, key=lambda s: s.emission)
 result = tao_subnet_query(subnet_uid=best.uid, endpoint="/inference", payload={...})
 
 # Agent sets weights based on evaluation
-tao_set_weights(subnet_uid=best.uid, uids=[1,2,3], weights=[0.5, 0.3, 0.2])
+tao_set_weights(subnet_uid=best.uid, uids=[1, 2, 3], weights=[0.5, 0.3, 0.2])
 
 # Agent serves work on a subnet
 tao_register_miner(subnet_uid=best.uid, hotkey=session_hotkey)

@@ -355,9 +355,7 @@ class VidaTransactor:
                     # The counter could not be persisted. The spend is already
                     # broadcast, so we must still report success -- but surface
                     # the bookkeeping failure so it is not silent.
-                    counter_error = (
-                        f"WARNING: spend broadcast but session counter not persisted: {exc}"
-                    )
+                    counter_error = f"WARNING: spend broadcast but session counter not persisted: {exc}"
                 else:
                     counter_error = ""
             else:

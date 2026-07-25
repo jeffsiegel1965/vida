@@ -14,22 +14,23 @@ Make the covenant negotiation protocol learn from experience, adapt strategies p
 ```python
 @dataclass
 class NegotiationOutcome:
-    counterparty_id: str          # agent identifier hash
+    counterparty_id: str  # agent identifier hash
     strategy_used: ConcessionStrategy
     rounds_to_deal: int
     final_terms: CovenantTerms
-    pot_funded: bool              # was the covenant actually created?
-    pot_sompi: int                # size of pot funded
+    pot_funded: bool  # was the covenant actually created?
+    pot_sompi: int  # size of pot funded
     fee_paid_kas: float
     timestamp: float
 
+
 class NegotiationMemory:
     """Persistent learning engine for negotiation strategies."""
-    
+
     def __init__(self, storage_path: str):
         self._outcomes: list[NegotiationOutcome] = []
         self._load()
-    
+
     def record(self, outcome: NegotiationOutcome): ...
     def best_strategy_for(self, counterparty: str) -> ConcessionStrategy: ...
     def estimated_acceptance(self, terms: CovenantTerms, counterparty: str) -> float: ...

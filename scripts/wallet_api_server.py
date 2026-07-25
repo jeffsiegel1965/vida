@@ -8,7 +8,7 @@ import json
 import os
 import sys
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 # Add vida repo to sys.path.
@@ -68,8 +68,8 @@ def _wallet_network() -> str:
 
 # ── HTTP Handler ──
 
-class Handler(BaseHTTPRequestHandler):
 
+class Handler(BaseHTTPRequestHandler):
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -89,7 +89,9 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(length)) if length else {}
 
     def do_OPTIONS(self):
-        self.send_response(204); self._cors(); self.end_headers()
+        self.send_response(204)
+        self._cors()
+        self.end_headers()
 
     def do_GET(self):
         p = self.path.strip("/").split("/")
@@ -115,35 +117,42 @@ class Handler(BaseHTTPRequestHandler):
                             daily = float(ds)
                     except Exception:
                         pass
-                active.append({
-                    "id": sid,
-                    "wallet_id": s.get("wallet_id", ""),
-                    "mode": s.get("mode", "COMMAND"),
-                    "expires_at": s.get("expires_at", 0),
-                    "max_kas_per_tx": s.get("max_kas_per_tx", 0),
-                    "max_kas_per_day": s.get("max_kas_per_day", 0),
-                    "allowed_destinations": s.get("allowed_destinations", []),
-                    "daily_spent": daily,
-                    "active": s.get("expires_at", 0) > now,
-                })
-            return self._json({
-                "ok": True, "sessions": active,
-                "address": _wallet_address(),
-                "overflow_threshold": _overflow_threshold,
-                "overflow_dest": _overflow_dest,
-            })
+                active.append(
+                    {
+                        "id": sid,
+                        "wallet_id": s.get("wallet_id", ""),
+                        "mode": s.get("mode", "COMMAND"),
+                        "expires_at": s.get("expires_at", 0),
+                        "max_kas_per_tx": s.get("max_kas_per_tx", 0),
+                        "max_kas_per_day": s.get("max_kas_per_day", 0),
+                        "allowed_destinations": s.get("allowed_destinations", []),
+                        "daily_spent": daily,
+                        "active": s.get("expires_at", 0) > now,
+                    }
+                )
+            return self._json(
+                {
+                    "ok": True,
+                    "sessions": active,
+                    "address": _wallet_address(),
+                    "overflow_threshold": _overflow_threshold,
+                    "overflow_dest": _overflow_dest,
+                }
+            )
 
         # GET /api/v1/wallet/status
         if p[:4] == ["api", "v1", "wallet", "status"]:
-            return self._json({
-                "ok": True,
-                "address": _wallet_address(),
-                "network": _wallet_network(),
-                "locked": WALLET_JSON.exists(),
-                "active_sessions": len(_sessions),
-                "overflow_threshold": _overflow_threshold,
-                "overflow_dest": _overflow_dest,
-            })
+            return self._json(
+                {
+                    "ok": True,
+                    "address": _wallet_address(),
+                    "network": _wallet_network(),
+                    "locked": WALLET_JSON.exists(),
+                    "active_sessions": len(_sessions),
+                    "overflow_threshold": _overflow_threshold,
+                    "overflow_dest": _overflow_dest,
+                }
+            )
 
         # GET /health
         if p[0] == "health":
@@ -191,9 +200,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"ok": False, "error": result.get("error", "grant failed")}, status=400)
 
             _sessions[sid] = {
-                "wallet_id": wid, "mode": mode,
+                "wallet_id": wid,
+                "mode": mode,
                 "expires_at": time.time() + hours * 3600,
-                "max_kas_per_tx": max_tx, "max_kas_per_day": max_day,
+                "max_kas_per_tx": max_tx,
+                "max_kas_per_day": max_day,
                 "allowed_destinations": dests or [],
                 "daily_spent": 0.0,
             }
@@ -252,6 +263,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 # ── Main ──
+
 
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else API_PORT

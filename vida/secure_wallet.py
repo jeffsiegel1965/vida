@@ -48,11 +48,13 @@ from typing import Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
-
 from kaspa import Mnemonic, XPrv
 
 try:
-    from ml_dsa_65 import keygen as pq_keygen, sign as pq_sign, verify as pq_verify
+    from ml_dsa_65 import keygen as pq_keygen
+    from ml_dsa_65 import sign as pq_sign
+    from ml_dsa_65 import verify as pq_verify
+
     PQ_AVAILABLE = True
 except ImportError:
     PQ_AVAILABLE = False
@@ -63,6 +65,7 @@ KEY_LEN = 32
 
 
 # ── Crypto helpers ───────────────────────────────────────────────────────────
+
 
 def _derive_key(password: str, salt: bytes) -> bytes:
     """Password -> 32-byte key via scrypt (memory-hard)."""
@@ -91,6 +94,7 @@ def _host_fingerprint() -> str:
             continue
     # Fallback: hostname (weaker) — still better than unbound
     import socket
+
     return f"host:{socket.gethostname()}"
 
 
@@ -157,6 +161,7 @@ def _write_0600(path: Path, data: dict):
 
 # ── Wallet creation (called by owner-run setup script ONLY) ──────────────────
 
+
 def create_secure_wallet(
     wallet_path: str | Path,
     password: str,
@@ -215,8 +220,7 @@ def create_secure_wallet(
         "address": address,
         "public_key": kp.public_key,
         "pq_public_key": pq_pub_hex,
-        "kdf": {"algo": "scrypt", "n": SCRYPT_N, "r": SCRYPT_R, "p": SCRYPT_P,
-                "salt": salt.hex()},
+        "kdf": {"algo": "scrypt", "n": SCRYPT_N, "r": SCRYPT_R, "p": SCRYPT_P, "salt": salt.hex()},
         "enc_seed": _encrypt(key, seed_bytes),
         "enc_schnorr": _encrypt(key, kp.private_key.encode()),
         "enc_pq_sk": _encrypt(key, pq_sk_bytes) if pq_sk_bytes else None,
@@ -228,6 +232,7 @@ def create_secure_wallet(
 
 # ── Unlocking ────────────────────────────────────────────────────────────────
 
+
 class SecureVida:
     """
     An unlocked secure wallet. Secrets live only in this object's memory.
@@ -237,8 +242,9 @@ class SecureVida:
     unchanged on top of the encrypted wallet.
     """
 
-    def __init__(self, wallet_path: str | Path, password: Optional[str] = None,
-                 _session_file: Optional[str | Path] = None):
+    def __init__(
+        self, wallet_path: str | Path, password: Optional[str] = None, _session_file: Optional[str | Path] = None
+    ):
         self.wallet_path = Path(wallet_path)
         with open(self.wallet_path) as f:
             self._data = json.load(f)
@@ -299,9 +305,7 @@ class SecureVida:
         # expiry + limits + host bound as AAD (v2). v1 sessions used older AAD.
         limits = sess.get("limits", {}) or {}
         try:
-            aad = _session_aad(
-                sess["wallet_address"], sess["expires_at"], limits, host_id=host_id
-            )
+            aad = _session_aad(sess["wallet_address"], sess["expires_at"], limits, host_id=host_id)
             self._private_key_hex = _decrypt(machine_key, sess["enc_schnorr"], aad).decode()
             self._session_format = 2
         except Exception:
@@ -319,9 +323,7 @@ class SecureVida:
                     sort_keys=True,
                     separators=(",", ":"),
                 ).encode("utf-8")
-                self._private_key_hex = _decrypt(
-                    machine_key, sess["enc_schnorr"], aad_v1
-                ).decode()
+                self._private_key_hex = _decrypt(machine_key, sess["enc_schnorr"], aad_v1).decode()
                 self._session_format = 1
             except Exception:
                 raise ValueError("Session file tampered or corrupt (auth check failed)")
@@ -336,9 +338,7 @@ class SecureVida:
         try:
             if self._session_format >= 2:
                 if not sess.get("enc_spend"):
-                    raise ValueError(
-                        "Session missing enc_spend (tamper/delete) — refuse unlock"
-                    )
+                    raise ValueError("Session missing enc_spend (tamper/delete) — refuse unlock")
                 day, spent = _open_spend(machine_key, sess.get("enc_spend"))
                 self._session_spend_day = day
                 self.session_daily_spent = spent
@@ -357,13 +357,15 @@ class SecureVida:
     # -- signing (same surface as wallet.Vida) --
 
     def sign(self, message: str) -> str:
-        from kaspa import PrivateKey
         import kaspa as kas
+        from kaspa import PrivateKey
+
         return kas.sign_message(message, PrivateKey(self._private_key_hex))
 
     def verify(self, message: str, sig_hex: str) -> bool:
-        from kaspa import PublicKey
         import kaspa as kas
+        from kaspa import PublicKey
+
         return kas.verify_message(message, sig_hex, PublicKey(self.public_key))
 
     def sign_pq(self, message: bytes) -> bytes:
@@ -409,9 +411,7 @@ class SecureVida:
             self.session_daily_spent = 0.0
             object.__setattr__(self, "_session_reserved", 0.0)
 
-    def reserve_session_spend(
-        self, amount_kas: float, dest_address: Optional[str] = None
-    ) -> Optional[str]:
+    def reserve_session_spend(self, amount_kas: float, dest_address: Optional[str] = None) -> Optional[str]:
         """Atomically check the session caps and reserve the amount.
 
         Returns an error string on rejection, or None on success. On success the
@@ -429,15 +429,11 @@ class SecureVida:
                 # cap against their own stale in-memory value.
                 self._roll_session_day()
                 self._sync_spend_from_disk()
-                err = self.check_session_spend(
-                    amount_kas, dest_address=dest_address, _include_reserved=True
-                )
+                err = self.check_session_spend(amount_kas, dest_address=dest_address, _include_reserved=True)
                 if err:
                     return err
                 if self.session_limits is not None:
-                    object.__setattr__(
-                        self, "_session_reserved", self._reserved + float(amount_kas)
-                    )
+                    object.__setattr__(self, "_session_reserved", self._reserved + float(amount_kas))
                     # Publish the reservation so a sibling process sees the
                     # budget as committed while this send is in flight. It is
                     # reconciled by record_session_spend() or returned by
@@ -476,9 +472,7 @@ class SecureVida:
                     # Disk is authoritative; subtract from the persisted total
                     # so sibling processes' spends are not clobbered.
                     self._sync_spend_from_disk()
-                    self.session_daily_spent = max(
-                        self.session_daily_spent - give_back, 0.0
-                    )
+                    self.session_daily_spent = max(self.session_daily_spent - give_back, 0.0)
                     try:
                         self._persist_session_spend()
                     except Exception:
@@ -508,15 +502,13 @@ class SecureVida:
         if self.session_expires_at is not None and time.time() > float(self.session_expires_at):
             return "Agent session expired"
         import math
+
         if not isinstance(amount_kas, (int, float)) or not math.isfinite(amount_kas) or amount_kas <= 0:
             return "Amount must be a positive finite number"
         max_tx = float(self.session_limits.get("max_kas_per_tx") or 0.0)
         max_day = float(self.session_limits.get("max_kas_per_day") or 0.0)
         if max_tx > 0 and amount_kas > max_tx + 1e-12:
-            return (
-                f"Session policy rejected: amount {amount_kas} KAS exceeds "
-                f"max_kas_per_tx {max_tx}"
-            )
+            return f"Session policy rejected: amount {amount_kas} KAS exceeds max_kas_per_tx {max_tx}"
         dests = self.session_limits.get("allowed_destinations")
         if dests is not None:
             allow = set(dests)
@@ -525,9 +517,7 @@ class SecureVida:
             if dest_address is None:
                 return "Session policy rejected: destination required by allowlist"
             if dest_address not in allow:
-                return (
-                    f"Session policy rejected: destination not in allowed_destinations"
-                )
+                return f"Session policy rejected: destination not in allowed_destinations"
         self._roll_session_day()
         # NOTE: reserve_session_spend() publishes its reservation directly into
         # session_daily_spent (and to disk) so sibling processes observe it, and
@@ -689,9 +679,7 @@ class SecureVida:
                 unreserved = max(amount - held, 0.0)
                 if unreserved > 0:
                     self.session_daily_spent += unreserved
-                object.__setattr__(
-                    self, "_session_reserved", max(held - amount, 0.0)
-                )
+                object.__setattr__(self, "_session_reserved", max(held - amount, 0.0))
                 self._persist_session_spend()
 
     def _persist_session_spend(self) -> None:
@@ -711,9 +699,7 @@ class SecureVida:
                 sess = json.load(f)
             mk = getattr(self, "_session_machine_key", None)
             if mk is not None:
-                sess["enc_spend"] = _seal_spend(
-                    mk, self._session_spend_day, self.session_daily_spent
-                )
+                sess["enc_spend"] = _seal_spend(mk, self._session_spend_day, self.session_daily_spent)
                 sess.pop("spend", None)
             else:
                 sess["spend"] = {
@@ -734,9 +720,7 @@ class SecureVida:
             # Fail loudly: an unpersisted counter is a double-spend window
             # across restarts. The in-memory counter has already been
             # incremented, so this session stays capped until it exits.
-            raise RuntimeError(
-                f"Failed to persist session spend counter to {self._session_file}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to persist session spend counter to {self._session_file}: {exc}") from exc
 
     def lock(self):
         """Best-effort scrub of secrets from this object."""
@@ -745,6 +729,7 @@ class SecureVida:
 
 
 # ── Agent session grants (owner-run) ─────────────────────────────────────────
+
 
 def grant_agent_session(
     wallet_path: str | Path,

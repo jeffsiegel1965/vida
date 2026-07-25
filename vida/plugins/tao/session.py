@@ -35,11 +35,13 @@ def _host_fingerprint() -> str:
         except Exception:
             continue
     import socket
+
     return f"host:{socket.gethostname()}"
 
 
 def _seal_spend(machine_key: bytes, day: str, daily_spent: float) -> dict:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
     pt = json.dumps({"day": day, "daily_spent": float(daily_spent)}, sort_keys=True, separators=(",", ":")).encode()
     nonce = os.urandom(12)
     ct = AESGCM(machine_key).encrypt(nonce, pt, b"vida-tao-session-spend-v1")
@@ -120,6 +122,7 @@ def grant_tao_agent_session(
 
     try:
         from .paths import actions_for_scope
+
         scope_actions = actions_for_scope(scope)
     except ValueError as e:
         return {"ok": False, "error": str(e)}
@@ -157,9 +160,7 @@ def grant_tao_agent_session(
         "max_tao_per_day": float(max_tao_per_day),
         "threshold": float(threshold),
         "allowed_subnets": list(allowed_subnets) if allowed_subnets is not None else None,
-        "allowed_actions": list(allowed_actions)
-        if allowed_actions is not None
-        else list(scope_actions),
+        "allowed_actions": list(allowed_actions) if allowed_actions is not None else list(scope_actions),
         "scope": (scope or "ALL").upper().replace("-", "_"),
         "allow_any_dest": bool(allow_any_dest),
     }
@@ -184,9 +185,7 @@ def grant_tao_agent_session(
         {
             "cold_private_hex": cold_hex,
             "hot_private_hex": hot_hex,
-            "hotkey_ss58": secrets.get("hotkey_ss58")
-            or (rec.meta or {}).get("hotkey_ss58")
-            or "",
+            "hotkey_ss58": secrets.get("hotkey_ss58") or (rec.meta or {}).get("hotkey_ss58") or "",
         },
         sort_keys=True,
     ).encode("utf-8")
@@ -325,9 +324,7 @@ def tao_session_lock(session_path: str | Path, timeout: float = 10.0):
                 break
             except OSError:
                 if time.time() >= deadline:
-                    raise RuntimeError(
-                        f"Timed out acquiring TAO session lock {lp} after {timeout}s"
-                    )
+                    raise RuntimeError(f"Timed out acquiring TAO session lock {lp} after {timeout}s")
                 time.sleep(0.01)
         try:
             yield
@@ -361,9 +358,7 @@ def _read_tao_spend_from_disk(path: Path) -> tuple[str, float]:
     return (today, float(spend.get("daily_spent") or 0.0))
 
 
-def reserve_tao_session_spend(
-    session_path: str | Path, amount: float, daily_limit: float
-) -> dict[str, Any]:
+def reserve_tao_session_spend(session_path: str | Path, amount: float, daily_limit: float) -> dict[str, Any]:
     """Atomically check the TAO session daily cap and reserve the amount.
 
     Returns {"ok": True} if the spend fits in the cap, or
@@ -391,9 +386,7 @@ def reserve_tao_session_spend(
         return {"ok": True, "reserved": amount, "day": day, "spent_before": spent}
 
 
-def release_tao_session_spend(
-    session_path: str | Path, amount: float
-) -> dict[str, Any]:
+def release_tao_session_spend(session_path: str | Path, amount: float) -> dict[str, Any]:
     """Release a reservation that was never committed (failed broadcast)."""
     path = Path(session_path)
     with tao_session_lock(path):

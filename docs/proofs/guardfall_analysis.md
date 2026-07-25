@@ -230,14 +230,15 @@ The Hermes terminal tool does **not** apply `shlex.quote()` or any escaping to t
    ```python
    # Validate Kaspa address format before passing to API
    import re
-   KASPA_ADDR_RE = re.compile(r'^kaspa:[a-z0-9]{60,}$')
+
+   KASPA_ADDR_RE = re.compile(r"^kaspa:[a-z0-9]{60,}$")
    if not KASPA_ADDR_RE.match(to_address):
        return error("Invalid Kaspa address format")
-   
+
    # Validate amounts
    if amount_kas <= 0 or amount_kas > MAX_PER_TX:
        return error("Amount out of range")
-   
+
    # Validate agent IDs (alphanumeric only)
    if not agent_id.isalnum():
        return error("Invalid agent ID format")

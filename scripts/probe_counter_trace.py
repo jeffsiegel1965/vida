@@ -1,4 +1,5 @@
 """Trace the exact counter arithmetic across two processes."""
+
 import json
 import os
 import sys

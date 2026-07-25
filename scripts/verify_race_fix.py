@@ -1,4 +1,5 @@
 """Verify the session daily-cap race is closed."""
+
 import sys
 import threading
 import time
@@ -93,9 +94,15 @@ v4._session_file = None
 v4._session_machine_key = None
 v4.address = "kaspatest:qowner"
 
-print("6 KAS (over 5 max_tx)    ->", "REJECTED" if v4.reserve_session_spend(6.0, "kaspatest:qgood") else "ACCEPTED (bug)")
-print("5 KAS to bad dest        ->", "REJECTED" if v4.reserve_session_spend(5.0, "kaspatest:qevil") else "ACCEPTED (bug)")
-print("5 KAS to good dest       ->", "REJECTED (bug)" if v4.reserve_session_spend(5.0, "kaspatest:qgood") else "ACCEPTED")
+print(
+    "6 KAS (over 5 max_tx)    ->", "REJECTED" if v4.reserve_session_spend(6.0, "kaspatest:qgood") else "ACCEPTED (bug)"
+)
+print(
+    "5 KAS to bad dest        ->", "REJECTED" if v4.reserve_session_spend(5.0, "kaspatest:qevil") else "ACCEPTED (bug)"
+)
+print(
+    "5 KAS to good dest       ->", "REJECTED (bug)" if v4.reserve_session_spend(5.0, "kaspatest:qgood") else "ACCEPTED"
+)
 print()
 print("=== expiry still enforced ===")
 v5 = fresh()

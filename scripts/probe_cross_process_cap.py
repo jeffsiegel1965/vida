@@ -4,6 +4,7 @@ The RLock fix closed the single-process race. This proves the multi-process
 gap: two agent processes reading the same session file each hold their own
 lock and their own in-memory counter.
 """
+
 import json
 import os
 import subprocess
@@ -11,7 +12,7 @@ import sys
 import tempfile
 import time
 
-WORKER = r'''
+WORKER = r"""
 import json, sys, time
 sys.path.insert(0, "/home/jeff-siegel/vida")
 from vida.secure_wallet import SecureVida
@@ -38,7 +39,7 @@ if err is None:
     print(f"APPROVED {amount}")
 else:
     print(f"DENIED {err[:40]}")
-'''
+"""
 
 tmp = tempfile.mkdtemp()
 worker_path = os.path.join(tmp, "worker.py")
