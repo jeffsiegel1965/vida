@@ -196,7 +196,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json({"ok": False, "error": str(e)}, status=400)
 
-            if not result.get("ok", True):
+            if not result.get("ok"):
                 return self._json({"ok": False, "error": result.get("error", "grant failed")}, status=400)
 
             _sessions[sid] = {
