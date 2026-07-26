@@ -19,6 +19,9 @@ Stake TAO to validators, unstake, P2P transfers — all through an agent session
 ### Agent orchestrator
 `vida/agents/orchestrator.py` — a natural-language agent loop. Takes a goal, calls K2.5 to plan execution, runs each step against real Vida tools, reports results.
 
+### Agent memory
+`vida/agents/memory.py` — persistent cross-session memory for agents. Deal history, counterparty reputation, session state tracking, volume discount records. SQLite-backed.
+
 ### MCP server
 `scripts/vida_mcp_server.py` — 12 MCP tools + 2 resources. Compatible with Claude Desktop, Cursor, Grok Build. The `vida_agent_goal` tool wraps the orchestrator.
 
