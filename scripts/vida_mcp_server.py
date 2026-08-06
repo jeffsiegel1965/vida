@@ -28,6 +28,9 @@ from typing import Any
 
 from fastmcp import FastMCP
 
+# Discovery — pointers to services + receptors for sensing agents
+from vida.discovery import get_discovery
+
 # ── Path Resolution ──
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -105,6 +108,138 @@ def vida_status() -> dict:
             },
         },
     }
+
+
+@mcp.tool()
+def discovery_status() -> dict:
+    """Show current discovery state — policy, receptors, connected services, approvals."""
+    try:
+        d = get_discovery()
+        return d.status()
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@mcp.tool()
+def discovery_scan() -> dict:
+    """Force a full discovery scan now. Returns services found."""
+    try:
+        d = get_discovery()
+        d.scan()
+        svcs = d.list_services()
+        pending = d.pending_approvals()
+        msg = f"Scan complete — {len(svcs)} services"
+        if pending:
+            msg += f", {len(pending)} pending approval"
+        return {"status": "ok", "message": msg, "services": svcs, "pending_approvals": pending}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@mcp.tool()
+def discovery_services(filter_type: str = "") -> list:
+    """List all discovered services, optionally filtered by type (oracle, mcp, agent, marketplace, custom)."""
+    return get_discovery().list_services(filter_type)
+
+
+@mcp.tool()
+def discovery_pending() -> list:
+    """Show services pending owner approval before the agent can connect."""
+    return get_discovery().pending_approvals()
+
+
+@mcp.tool()
+def discovery_report(limit: int = 50) -> list:
+    """Show the discovery audit log — scans, approvals, connections, blocks."""
+    return get_discovery().report(limit)
+
+
+@mcp.tool()
+def discovery_set_policy(policy: str) -> dict:
+    """Set discovery policy: manual (all need approval), balanced (trusted auto), permissive (everything auto)."""
+    d = get_discovery()
+    try:
+        from vida.discovery import Policy
+        p = Policy(policy.lower())
+        d.policy = p
+        return {"status": "ok", "policy": p.value,
+                "message": f"Policy set to '{p.value}' — {'all connections need approval' if p.value == 'manual' else 'trusted services auto-connect' if p.value == 'balanced' else 'everything auto-connects'}"}
+    except ValueError:
+        return {"status": "error", "error": f"Invalid policy '{policy}'. Options: manual, balanced, permissive"}
+
+
+@mcp.tool()
+def discovery_set_receptor(name: str, enabled: bool) -> dict:
+    """Enable or disable a receptor (lan, network, agent)."""
+    ok = get_discovery().set_receptor(name, enabled)
+    if ok:
+        return {"status": "ok", "message": f"Receptor '{name}' {'enabled' if enabled else 'disabled'}"}
+    return {"status": "error", "error": f"Unknown receptor '{name}'. Options: lan, network, agent"}
+
+
+@mcp.tool()
+def discovery_approve(service_name: str) -> dict:
+    """Approve a service — agent may connect to it."""
+    ok = get_discovery().approve(service_name)
+    if ok:
+        return {"status": "ok", "message": f"Service '{service_name}' approved"}
+    return {"status": "error", "error": f"Service '{service_name}' not found"}
+
+
+@mcp.tool()
+def discovery_block(service_name: str) -> dict:
+    """Block a service — agent may never connect to it."""
+    ok = get_discovery().block(service_name)
+    if ok:
+        return {"status": "ok", "message": f"Service '{service_name}' blocked"}
+    return {"status": "error", "error": f"Service '{service_name}' not found"}
+
+
+@mcp.tool()
+def discovery_set_trust(service_name: str, trust: str) -> dict:
+    """Set trust level for a service: trusted, known, unknown, blocked."""
+    ok = get_discovery().set_trust(service_name, trust)
+    if ok:
+        return {"status": "ok", "message": f"Service '{service_name}' trust set to '{trust}'"}
+    return {"status": "error", "error": f"Invalid service or trust level. Trust: trusted, known, unknown, blocked"}
+
+
+@mcp.tool()
+def discovery_check_connection(service_name: str) -> dict:
+    """Check if the agent is allowed to connect to a service."""
+    from vida.discovery import get_discovery
+    allowed, reason = get_discovery().may_connect(service_name)
+    svc = None
+    for s in get_discovery().list_services():
+        if s["name"] == service_name:
+            svc = s
+            break
+    return {"service": service_name, "allowed": allowed, "reason": reason, "service_info": svc}
+
+
+@mcp.tool()
+def discovery_connect(service_name: str) -> dict:
+    """Agent requests to connect to a service. May be blocked by policy."""
+    allowed, reason = get_discovery().connect(service_name)
+    if allowed:
+        return {"status": "ok", "message": f"Connected to '{service_name}'", "reason": reason}
+    return {"status": "error", "error": f"Connection blocked: {reason}", "policy_hint": "Set policy to permissive or approve the service"}
+
+
+@mcp.tool()
+def discovery_add_pointer(name: str, url: str, label: str = "") -> dict:
+    """Add a custom service pointer (added as trusted)."""
+    get_discovery().set_pointer(name, url, label)
+    return {"status": "ok", "message": f"Pointer '{name}' added (trusted)"}
+
+
+@mcp.tool()
+def discovery_remove_pointer(name: str) -> dict:
+    """Remove a service pointer by name."""
+    ok = get_discovery().remove_pointer(name)
+    if ok:
+        return {"status": "ok", "message": f"Pointer '{name}' removed"}
+    return {"status": "error", "error": f"Pointer '{name}' not found"}
 
 
 @mcp.tool()
