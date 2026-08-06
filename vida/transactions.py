@@ -187,6 +187,18 @@ class VidaTransactor:
                 success=False,
                 error=f"Amount {amount_kas} KAS below dust threshold ({DUST_THRESHOLD_KAS} KAS)",
             )
+        # Max transaction guard — prevents fat-finger or bug draining wallet
+        if amount_kas > 1000.0:
+            return SendResult(
+                success=False,
+                error=f"Amount {amount_kas} KAS exceeds max single tx limit (1000 KAS)",
+            )
+        # Self-send guard — refuse to send to own address
+        if to_address == self.vida.address:
+            return SendResult(
+                success=False,
+                error="Refusing to send to own wallet address (self-send)",
+            )
         expected_prefix = "kaspa:" if self.network == "mainnet" else "kaspatest:"
         if not to_address.startswith(expected_prefix):
             return SendResult(

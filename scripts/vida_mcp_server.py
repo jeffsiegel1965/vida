@@ -287,4 +287,25 @@ def get_wallet_pairs() -> str:
 # ═══════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
+    # Rate limiting state for send tool
+    _send_calls: list[float] = []
+    _original_send = vida_send
+
+    @mcp.tool()
+    def vida_send(amount: float, destination: str, api_key: str = "") -> dict:
+        """Send KAS (requires session with caps). Rate limited to 3 calls per minute."""
+        import time
+        now = time.time()
+        cutoff = now - 60
+        # Prune old entries
+        while _send_calls and _send_calls[0] < cutoff:
+            _send_calls.pop(0)
+        if len(_send_calls) >= 3:
+            return {"status": "error", "error": "Rate limited — max 3 send calls per minute"}
+        _send_calls.append(now)
+        return _original_send(amount, destination, api_key)
+
+    # Update the tool's name in the registry
+    mcp._tool_manager._tools["vida_send"] = vida_send
+
     mcp.run()
