@@ -16,6 +16,7 @@ Design rules:
 """
 
 import asyncio
+import os
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -48,6 +49,10 @@ DUST_THRESHOLD_KAS = 0.02
 # (verified empirically on testnet-10: "10000 fees ... under the required
 #  amount of 539000 for compute mass 5390" => 100 sompi per mass unit)
 FEE_RATE_SOMPI_PER_MASS = 100
+
+# Global max single transaction — configurable via VIDA_MAX_TX_KAS env var.
+# This is a safety net above session caps. 0 = no limit.
+MAX_TX_KAS = float(os.environ.get("VIDA_MAX_TX_KAS", "1000.0"))
 FEE_SAFETY_MARGIN = 1.1  # 10% headroom over the minimum
 
 DEFAULT_PRIORITY_FEE_SOMPI = 10_000  # floor; real fee computed from mass
@@ -188,10 +193,10 @@ class VidaTransactor:
                 error=f"Amount {amount_kas} KAS below dust threshold ({DUST_THRESHOLD_KAS} KAS)",
             )
         # Max transaction guard — prevents fat-finger or bug draining wallet
-        if amount_kas > 1000.0:
+        if MAX_TX_KAS > 0 and amount_kas > MAX_TX_KAS:
             return SendResult(
                 success=False,
-                error=f"Amount {amount_kas} KAS exceeds max single tx limit (1000 KAS)",
+                error=f"Amount {amount_kas} KAS exceeds max single tx limit ({MAX_TX_KAS} KAS)",
             )
         # Self-send guard — refuse to send to own address
         if to_address == self.vida.address:
