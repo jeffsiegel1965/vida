@@ -233,4 +233,43 @@ Development fund address configurable via `VIDA_DEV_FUND` / `VIDA_DEV_FUND_TESTN
 
 ---
 
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VIDA_WALLET` | `~/.vida/wallet.json` | Path to encrypted wallet file |
+| `VIDA_SESSION` | — | Path to agent session file (grants spending caps) |
+| `VIDA_MAX_TX_KAS` | `1000.0` | Global max single transaction. Safety net above session caps. `0` = unlimited. |
+| `VIDA_WALLET_MCP_API_KEY` | — | API key required by MCP server. If unset, auth is disabled. |
+| `VIDA_ORACLE_URL` | `http://127.0.0.1:8765` | Oracle HTTP endpoint for price feeds |
+| `VIDA_DEV_FUND` | — | Dev fund address for Kaspa mainnet |
+| `VIDA_DEV_FUND_TESTNET` | — | Dev fund address for testnet-10 |
+
+## Security Hardening
+
+| Feature | What it does | Config |
+|---------|-------------|--------|
+| Max tx guard | Rejects any single send above the limit | `VIDA_MAX_TX_KAS` env var |
+| Self-send guard | Refuses to send to the wallet's own address | Always on |
+| Rate limiting | Max 3 `vida_send` calls per minute per process | Always on (MCP server) |
+| Dust threshold | Rejects sends below 0.02 KAS | Always on |
+| Bech32 validation | Full checksum on all destination addresses | Always on |
+| Session caps | Per-tx and per-day limits from session file | Set by owner via `grant_session.py` |
+| Cross-process lock | `fcntl.flock` prevents concurrent spend racing | Always on |
+
+## Troubleshooting
+
+| Problem | Likely cause | Fix |
+|---------|-------------|-----|
+| `Amount below dust threshold` | Send amount < 0.02 KAS | Increase amount |
+| `Amount exceeds max single tx limit` | Send > `VIDA_MAX_TX_KAS` | Increase env var or split tx |
+| `Session policy rejected` | Send exceeds session cap | Grant new session with higher limits |
+| `Agent session expired` | Session file past its expiry | Run `grant_session.py` again |
+| `Invalid address (bech32 checksum failed)` | Typo in Kaspa address | Check the address character by character |
+| `Address prefix mismatch` | Testnet address on mainnet or vice versa | Use `kaspa:` for mainnet, `kaspatest:` for testnet |
+| `Refusing to send to own wallet address` | Destination equals wallet address | Send to a different address |
+| `Rate limited` | Too many `vida_send` calls in 1 minute | Wait 60 seconds |
+
+---
+
 **Don't trust marketing. Read the code. Run the tests. Self-custody means self-responsibility.**
